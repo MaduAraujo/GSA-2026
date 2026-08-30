@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Remap Tailwind's default gray scale to Google's Material Design
+  neutral palette. Every gray-50..gray-900 utility class used across
+  the app (283 occurrences) picks this up automatically, so components
+  read with Google's exact UI grays instead of Tailwind's stock slate.
+*/
+@theme {
+  --color-gray-50: #F8F9FA;
+  --color-gray-100: #F1F3F4;
+  --color-gray-200: #E8EAED;
+  --color-gray-300: #DADCE0;
+  --color-gray-400: #BDC1C6;
+  --color-gray-500: #9AA0A6;
+  --color-gray-600: #80868B;
+  --color-gray-700: #5F6368;
+  --color-gray-800: #3C4043;
+  --color-gray-900: #202124;
+  --color-gray-950: #17181A;
+}
+
+@layer base {
+  :root {
+    --font-sans: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    --google-blue: #1A73E8;
+    --google-red: #EA4335;
+    --google-yellow: #FBBC04;
+    --google-green: #34A853;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #F8F9FA;
+    color: #3C4043;
+  }
+
+  /* Lock page scroll behind any open modal (every modal in this app uses
+     role="dialog" aria-modal="true"), without wiring a lock in each one. */
+  body:has([aria-modal="true"]) {
+    overflow: hidden;
+  }
+
+  .dark body {
+    background-color: #0B0F19;
+    color: #E8EAED;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #202124;
+  }
+}
+
+/*
+  Dark mode surface/text/border remap.
+  Deliberately unlayered (outside @layer) so it wins the cascade over
+  Tailwind's own utility layer regardless of selector order — the
+  components below hard-code light-theme neutrals (bg-white,
+  text-gray-900, text-[#202124], etc.) throughout, so overriding them
+  here is far more tractable than adding a dark: variant to every
+  className across every file.
+*/
+.dark .bg-white { background-color: #161B27; }
+.dark .bg-gray-50 { background-color: #1B2130; }
+.dark .bg-gray-100 { background-color: #202737; }
+.dark .bg-\[\#F8FAFD\] { background-color: #161B27; }
+.dark .bg-\[\#F8F9FA\] { background-color: #10141F; }
+.dark .bg-\[\#F1F3F4\] { background-color: #202737; }
+
+.dark .text-gray-900 { color: #F1F3F4; }
+.dark .text-gray-800 { color: #E8EAED; }
+.dark .text-gray-700 { color: #DADCE0; }
+.dark .text-gray-600 { color: #BDC1C6; }
+.dark .text-gray-500 { color: #9AA0A6; }
+.dark .text-gray-400 { color: #80868B; }
+.dark .text-\[\#202124\] { color: #F1F3F4; }
+.dark .text-\[\#3C4043\] { color: #DADCE0; }
+.dark .text-\[\#5F6368\] { color: #9AA0A6; }
+.dark .text-\[\#80868B\] { color: #9AA0A6; }
+
+.dark .border-gray-200 { border-color: #2D3444; }
+.dark .border-gray-100 { border-color: #262C3B; }
+.dark .border-\[\#E8EAED\] { border-color: #2D3444; }
+.dark .border-\[\#DADCE0\] { border-color: #363E50; }
+
+/* Same remap, but for :hover states — without these, a hover on any of
+   the classes above still resolves to its light-mode color (Tailwind's
+   own hover:bg-gray-50 etc. isn't touched by the base overrides above),
+   so buttons/rows flash light-gray on hover against the dark surface. */
+.dark .hover\:bg-white:hover { background-color: #1B2130; }
+.dark .hover\:bg-gray-50:hover { background-color: #202737; }
+.dark .hover\:bg-gray-100:hover { background-color: #262D3D; }
+.dark .hover\:bg-gray-200:hover { background-color: #2D3444; }
+.dark .hover\:bg-\[\#F8FAFD\]:hover { background-color: #1B2130; }
+.dark .hover\:bg-\[\#F1F3F4\]:hover { background-color: #262D3D; }
+
+.dark .hover\:text-gray-900:hover { color: #F1F3F4; }
+.dark .hover\:text-gray-600:hover { color: #BDC1C6; }
+.dark .hover\:text-\[\#202124\]:hover { color: #F1F3F4; }
+
+.dark .hover\:border-gray-300:hover { border-color: #454E63; }
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #DADCE0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #BDC1C6;
+}
+
+/* Clean minimal card styling */
+.clean-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E8EAED;
+  border-radius: 1rem;
+}
+
+.clean-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clean-card-hover:hover {
+  border-color: #DADCE0;
+  box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.08), 0 4px 8px 3px rgba(60, 64, 67, 0.04);
+}
+
+/* Badge-unlock toast entrance */
+@keyframes badge-toast-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.badge-toast-enter {
+  animation: badge-toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+

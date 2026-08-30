@@ -1,0 +1,322 @@
+import { supabase } from './supabaseClient';
+import { Certificate, PromptItem, GeminiPost, AmbassadorProfile, UserBadge } from '../types';
+
+// --- Row <-> App type mappers (DB uses snake_case, app uses camelCase) ---
+
+function rowToCertificate(row: any): Certificate {
+  return {
+    id: row.id,
+    title: row.title,
+    issuer: row.issuer,
+    issueDate: row.issue_date,
+    category: row.category,
+    description: row.description,
+    fileData: row.file_data ?? undefined,
+    fileName: row.file_name ?? undefined,
+    fileType: row.file_type ?? undefined,
+    skills: row.skills ?? [],
+    credentialUrl: row.credential_url ?? undefined,
+    credentialId: row.credential_id ?? undefined,
+    hours: row.hours ?? undefined,
+    isFavorite: row.is_favorite ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function certificateToRow(cert: Certificate, userId: string) {
+  return {
+    id: cert.id,
+    user_id: userId,
+    title: cert.title,
+    issuer: cert.issuer,
+    issue_date: cert.issueDate,
+    category: cert.category,
+    description: cert.description,
+    file_data: cert.fileData ?? null,
+    file_name: cert.fileName ?? null,
+    file_type: cert.fileType ?? null,
+    skills: cert.skills ?? [],
+    credential_url: cert.credentialUrl ?? null,
+    credential_id: cert.credentialId ?? null,
+    hours: cert.hours ?? null,
+    is_favorite: cert.isFavorite ?? false,
+    created_at: cert.createdAt,
+  };
+}
+
+function rowToPrompt(row: any): PromptItem {
+  return {
+    id: row.id,
+    title: row.title,
+    promptText: row.prompt_text,
+    section: row.section,
+    description: row.description ?? undefined,
+    tags: row.tags ?? [],
+    variables: row.variables ?? undefined,
+    recommendedModel: row.recommended_model,
+    isFavorite: row.is_favorite ?? undefined,
+    usageCount: row.usage_count ?? 0,
+    lastUsed: row.last_used ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function promptToRow(prompt: PromptItem, userId: string) {
+  return {
+    id: prompt.id,
+    user_id: userId,
+    title: prompt.title,
+    prompt_text: prompt.promptText,
+    section: prompt.section,
+    description: prompt.description ?? null,
+    tags: prompt.tags ?? [],
+    variables: prompt.variables ?? null,
+    recommended_model: prompt.recommendedModel,
+    is_favorite: prompt.isFavorite ?? false,
+    usage_count: prompt.usageCount ?? 0,
+    last_used: prompt.lastUsed ?? null,
+    created_at: prompt.createdAt,
+  };
+}
+
+function rowToPost(row: any): GeminiPost {
+  return {
+    id: row.id,
+    title: row.title,
+    platform: row.platform,
+    status: row.status,
+    category: row.category,
+    tone: row.tone,
+    content: row.content,
+    promptUsed: row.prompt_used ?? undefined,
+    hashtags: row.hashtags ?? [],
+    visualIdea: row.visual_idea ?? undefined,
+    scheduledDate: row.scheduled_date ?? undefined,
+    publishedUrl: row.published_url ?? undefined,
+    likes: row.likes ?? undefined,
+    comments: row.comments ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function postToRow(post: GeminiPost, userId: string) {
+  return {
+    id: post.id,
+    user_id: userId,
+    title: post.title,
+    platform: post.platform,
+    status: post.status,
+    category: post.category,
+    tone: post.tone,
+    content: post.content,
+    prompt_used: post.promptUsed ?? null,
+    hashtags: post.hashtags ?? [],
+    visual_idea: post.visualIdea ?? null,
+    scheduled_date: post.scheduledDate ?? null,
+    published_url: post.publishedUrl ?? null,
+    likes: post.likes ?? null,
+    comments: post.comments ?? null,
+    created_at: post.createdAt,
+    updated_at: post.updatedAt,
+  };
+}
+
+function rowToProfile(row: any): AmbassadorProfile {
+  return {
+    name: row.name ?? '',
+    role: row.role ?? '',
+    cohort: row.cohort ?? '',
+    university: row.university ?? '',
+    course: row.course ?? '',
+    bio: row.bio ?? '',
+    avatarUrl: row.avatar_url ?? '',
+    email: row.email ?? '',
+    linkedInUrl: row.linkedin_url ?? '',
+    githubUrl: row.github_url ?? '',
+    instagramUrl: row.instagram_url ?? '',
+    goal2026: row.goal_2026 ?? '',
+  };
+}
+
+function profileToRow(profile: AmbassadorProfile, userId: string) {
+  return {
+    id: userId,
+    name: profile.name ?? '',
+    role: profile.role ?? '',
+    cohort: profile.cohort ?? '',
+    university: profile.university ?? '',
+    course: profile.course ?? '',
+    bio: profile.bio ?? '',
+    avatar_url: profile.avatarUrl ?? '',
+    email: profile.email ?? '',
+    linkedin_url: profile.linkedInUrl ?? '',
+    github_url: profile.githubUrl ?? '',
+    instagram_url: profile.instagramUrl ?? '',
+    goal_2026: profile.goal2026 ?? '',
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function rowToUserBadge(row: any): UserBadge {
+  return {
+    badgeId: row.badge_id,
+    unlockedAt: row.unlocked_at,
+  };
+}
+
+async function requireUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error('Não autenticado.');
+  return data.user.id;
+}
+
+export const SupabaseStorageService = {
+  // --- Profile ---
+  async getProfile(): Promise<AmbassadorProfile> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (error) throw error;
+    if (!data) return { name: '', role: '', university: '', course: '', bio: '', avatarUrl: '', goal2026: '' };
+    return rowToProfile(data);
+  },
+
+  async saveProfile(profile: AmbassadorProfile): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('profiles').upsert(profileToRow(profile, userId));
+    if (error) throw error;
+  },
+
+  // --- Certificates ---
+  async getCertificates(): Promise<Certificate[]> {
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToCertificate);
+  },
+
+  async saveCertificate(cert: Certificate): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('certificates').upsert(certificateToRow(cert, userId));
+    if (error) throw error;
+  },
+
+  async deleteCertificate(id: string): Promise<void> {
+    const { error } = await supabase.from('certificates').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  // --- Badges ---
+  async getUserBadges(): Promise<UserBadge[]> {
+    const { data, error } = await supabase
+      .from('user_badges')
+      .select('*')
+      .order('unlocked_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToUserBadge);
+  },
+
+  async unlockBadge(badgeId: string): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from('user_badges')
+      .upsert(
+        { user_id: userId, badge_id: badgeId, unlocked_at: new Date().toISOString() },
+        { onConflict: 'user_id,badge_id', ignoreDuplicates: true }
+      );
+    if (error) throw error;
+  },
+
+  // --- Prompts ---
+  async getPrompts(): Promise<PromptItem[]> {
+    const { data, error } = await supabase
+      .from('prompts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToPrompt);
+  },
+
+  async savePrompt(prompt: PromptItem): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('prompts').upsert(promptToRow(prompt, userId));
+    if (error) throw error;
+  },
+
+  async deletePrompt(id: string): Promise<void> {
+    const { error } = await supabase.from('prompts').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  // --- Posts ---
+  async getPosts(): Promise<GeminiPost[]> {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToPost);
+  },
+
+  async savePost(post: GeminiPost): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('posts').upsert(postToRow(post, userId));
+    if (error) throw error;
+  },
+
+  async deletePost(id: string): Promise<void> {
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  // --- Full Backup Export & Import ---
+  async exportAllData(): Promise<string> {
+    const [profile, certificates, prompts, posts] = await Promise.all([
+      this.getProfile(),
+      this.getCertificates(),
+      this.getPrompts(),
+      this.getPosts(),
+    ]);
+
+    const payload = {
+      exportVersion: '1.0',
+      exportedAt: new Date().toISOString(),
+      profile,
+      certificates,
+      prompts,
+      posts,
+    };
+
+    return JSON.stringify(payload, null, 2);
+  },
+
+  async importAllData(jsonString: string): Promise<boolean> {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (parsed.profile) {
+        await this.saveProfile(parsed.profile);
+      }
+      if (Array.isArray(parsed.certificates)) {
+        for (const c of parsed.certificates) {
+          await this.saveCertificate(c);
+        }
+      }
+      if (Array.isArray(parsed.prompts)) {
+        for (const p of parsed.prompts) {
+          await this.savePrompt(p);
+        }
+      }
+      if (Array.isArray(parsed.posts)) {
+        for (const post of parsed.posts) {
+          await this.savePost(post);
+        }
+      }
+      return true;
+    } catch (e) {
+      console.error('Error importing backup:', e);
+      return false;
+    }
+  },
+};

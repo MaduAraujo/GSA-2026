@@ -1,0 +1,6 @@
+{
+  "name": "Embaixadora Google 2026",
+  "description": "Portal PWA exclusivo para Embaixadora Estudantil do Google 2026: upload e gestão de certificados, banco de prompts categorizados e gerador de posts com Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
