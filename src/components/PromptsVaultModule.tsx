@@ -273,7 +273,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               placeholder="Buscar prompt por palavra-chave, tema ou seção (ex: Feynman, Workshop, Instagram)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#FBBC04]/40 focus:border-[#FBBC04] bg-[#F8FAFD]"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#FBBC04]/40 focus:border-[#FBBC04] bg-gray-50"
             />
             {searchQuery && (
               <button
@@ -310,7 +310,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 onClick={() => setSelectedSection(sec)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                   isSelected
-                    ? 'bg-[#202124] text-white shadow-xs'
+                    ? 'bg-gray-900 text-white shadow-xs'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80 hover:text-gray-900'
                 }`}
               >
@@ -385,7 +385,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </h3>
 
                 {/* Prompt Code Container */}
-                <div className="relative group bg-[#F8FAFD] rounded-2xl p-4 border border-gray-200">
+                <div className="relative group bg-gray-50 rounded-2xl p-4 border border-gray-200">
                   <p className="text-xs sm:text-sm text-gray-700 font-mono whitespace-pre-wrap line-clamp-4 leading-relaxed">
                     {prompt.promptText}
                   </p>
@@ -526,7 +526,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   placeholder="Ex: Simulação de Entrevista Técnica Google"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD] focus:ring-2 focus:ring-[#FBBC04]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
                 />
               </div>
 
@@ -539,7 +539,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   <select
                     value={formData.section}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value as PromptSection })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   >
                     {SECTIONS.map((sec) => (
                       <option key={sec} value={sec}>{sec}</option>
@@ -554,7 +554,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   <select
                     value={formData.recommendedModel}
                     onChange={(e) => setFormData({ ...formData, recommendedModel: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   >
                     <option value="gemini-3.7-flash">Gemini 3.7 Flash (Rápido & Inteligente)</option>
                     <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Raciocínio Profundo)</option>
@@ -574,7 +574,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   placeholder="Escreva a instrução completa. Dica: Use colchetes para variáveis como [TÓPICO] ou [PÚBLICO]..."
                   value={formData.promptText}
                   onChange={(e) => setFormData({ ...formData, promptText: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-sm font-mono border border-gray-200 bg-[#F8FAFD] focus:ring-2 focus:ring-[#FBBC04]/40"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm font-mono border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
                 />
               </div>
 
@@ -595,7 +595,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                         handleAddVar();
                       }
                     }}
-                    className="flex-1 px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                    className="flex-1 px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   />
                   <button
                     type="button"
@@ -643,7 +643,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                         handleAddTag();
                       }
                     }}
-                    className="flex-1 px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                    className="flex-1 px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   />
                   <button
                     type="button"
@@ -727,7 +727,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
 
             {/* Variable Inputs */}
             {testingPrompt.variables && testingPrompt.variables.length > 0 && (
-              <div className="p-4 rounded-2xl bg-[#F8FAFD] border border-gray-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
                 <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Preencher Parâmetros do Prompt:
                 </h4>
@@ -855,7 +855,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </div>
             ) : enhancedResult ? (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-[#F8FAFD] border border-gray-200 text-xs sm:text-sm text-gray-800 whitespace-pre-wrap max-h-96 overflow-y-auto leading-relaxed">
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm text-gray-800 whitespace-pre-wrap max-h-96 overflow-y-auto leading-relaxed">
                   {enhancedResult}
                 </div>
 

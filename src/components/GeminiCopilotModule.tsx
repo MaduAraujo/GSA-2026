@@ -96,7 +96,7 @@ Sou sua **Gemini Ambassador Copilot**, sua mentora de inteligência artificial d
     setIsLoading(true);
 
     try {
-      const reply = await GeminiApiService.sendChatMessage(text.trim(), historyForRequest);
+      const reply = await GeminiApiService.sendChatMessage(text, historyForRequest);
       const geminiMsg: Message = {
         id: `gemini-${Date.now()}`,
         sender: 'gemini',
@@ -129,7 +129,7 @@ Sou sua **Gemini Ambassador Copilot**, sua mentora de inteligência artificial d
       {/* Copilot Header */}
       <div className="p-4 sm:p-5 border-b border-gray-100 bg-[#F8FAFD] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#1A73E8] to-[#34A853] flex items-center justify-center text-white shadow-xs">
+          <div className="w-10 h-10 rounded-2xl bg-linear-to-tr from-[#1A73E8] to-[#34A853] flex items-center justify-center text-white shadow-xs">
             <Bot className="w-6 h-6" />
           </div>
           <div>
@@ -160,7 +160,7 @@ Sou sua **Gemini Ambassador Copilot**, sua mentora de inteligência artificial d
                   <button
                     key={i}
                     onClick={() => handleSendMessage(qs.prompt)}
-                    className="flex items-start gap-2.5 p-3 rounded-2xl bg-[#F8FAFD] hover:bg-[#1A73E8]/5 border border-gray-200 text-left transition-all hover:border-[#1A73E8]/30 group"
+                    className="flex items-start gap-2.5 p-3 rounded-2xl bg-gray-50 hover:bg-[#1A73E8]/5 border border-gray-200 text-left transition-all hover:border-[#1A73E8]/30 group"
                   >
                     <Icon className="w-4 h-4 text-[#1A73E8] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                     <div>
@@ -190,7 +190,7 @@ Sou sua **Gemini Ambassador Copilot**, sua mentora de inteligência artificial d
               className={`relative group max-w-2xl rounded-3xl p-4 sm:p-5 text-xs sm:text-sm leading-relaxed ${
                 msg.sender === 'user'
                   ? 'bg-[#1A73E8] text-white rounded-br-xs shadow-xs'
-                  : 'bg-[#F8FAFD] text-gray-800 border border-gray-200 rounded-bl-xs'
+                  : 'bg-gray-50 text-gray-800 border border-gray-200 rounded-bl-xs'
               }`}
             >
               <div className="whitespace-pre-wrap">{msg.text}</div>

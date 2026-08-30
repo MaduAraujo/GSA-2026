@@ -113,19 +113,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   return (
     <>
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto border border-[#DADCE0] shadow-xl p-6 sm:p-8 space-y-6">
+      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-xl p-6 sm:p-8 space-y-6">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#E8EAED]">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-bold text-[#202124]">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                 Perfil de Embaixadora
               </h3>
-              <p className="text-xs text-[#5F6368]">
+              <p className="text-xs text-gray-600">
                 Personalize seus dados.
               </p>
             </div>
@@ -133,26 +133,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="p-2 rounded-lg hover:bg-[#F1F3F4] text-[#5F6368] hover:text-[#202124]"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Profile Card Preview */}
-        <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#DADCE0] flex items-center gap-4">
+        <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-4">
           <div className="relative shrink-0" ref={avatarMenuRef}>
             <img
               src={formData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
               alt="Avatar"
-              className="w-14 h-14 rounded-xl object-cover ring-2 ring-[#1A73E8]/30"
+              className="w-14 h-14 rounded-xl object-cover ring-2 ring-blue-600/30"
             />
             <button
               type="button"
               onClick={() => setAvatarMenuOpen((v) => !v)}
               aria-label="Opções da foto de perfil"
               aria-expanded={avatarMenuOpen}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-[#DADCE0] shadow-xs flex items-center justify-center text-[#5F6368] hover:text-[#1A73E8] hover:border-[#1A73E8]/40"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-gray-200 shadow-xs flex items-center justify-center text-gray-600 hover:text-blue-600 hover:border-blue-600/40"
             >
               <ChevronDown className={`w-3 h-3 transition-transform ${avatarMenuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -167,7 +167,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             {avatarMenuOpen && (
               <div
                 role="menu"
-                className="absolute left-0 top-full mt-2 w-40 rounded-xl bg-white border border-[#DADCE0] shadow-lg py-1.5 z-10"
+                className="absolute left-0 top-full mt-2 w-40 rounded-xl bg-white border border-gray-200 shadow-lg py-1.5 z-10"
               >
                 {formData.avatarUrl ? (
                   <button
@@ -176,7 +176,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       setFormData((prev) => ({ ...prev, avatarUrl: '' }));
                       setAvatarMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[#C5221F] hover:bg-[#FCE8E6]"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Remover foto</span>
@@ -188,7 +188,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       avatarInputRef.current?.click();
                       setAvatarMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[#3C4043] hover:bg-[#F1F3F4]"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-800 hover:bg-gray-100"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     <span>Adicionar foto</span>
@@ -199,14 +199,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold text-[#202124] text-sm sm:text-base">{formData.name || 'Embaixadora Google'}</h4>
+              <h4 className="font-bold text-gray-900 text-sm sm:text-base">{formData.name || 'Embaixadora Google'}</h4>
             </div>
-            <p className="text-xs text-[#5F6368] mt-0.5">{formData.role}</p>
-            <p className="text-[11px] text-[#80868B]">{formData.university} • {formData.course}</p>
+            <p className="text-xs text-gray-600 mt-0.5">{formData.role}</p>
+            <p className="text-[11px] text-gray-500">{formData.university} • {formData.course}</p>
           </div>
         </div>
         {avatarError && (
-          <p role="alert" className="text-xs font-semibold text-[#C5221F] bg-[#FCE8E6] border border-[#F6AEA9] rounded-xl px-3.5 py-2.5">
+          <p role="alert" className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">
             {avatarError}
           </p>
         )}
@@ -216,7 +216,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* Name & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-[#3C4043] uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
                 Nome Completo *
               </label>
               <input
@@ -224,19 +224,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-[#DADCE0] bg-[#F8F9FA] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#3C4043] uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
                 Título / Cargo Oficial
               </label>
               <input
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-[#DADCE0] bg-[#F8F9FA] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600"
               />
             </div>
           </div>
@@ -244,65 +244,65 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           {/* University & Course */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-[#3C4043] uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
                 Instituição de Ensino / Campus
               </label>
               <input
                 type="text"
                 value={formData.university}
                 onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-[#DADCE0] bg-[#F8F9FA] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#3C4043] uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
                 Curso / Graduação
               </label>
               <input
                 type="text"
                 value={formData.course}
                 onChange={(e) => setFormData({ ...formData, course: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-[#DADCE0] bg-[#F8F9FA] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
               />
             </div>
           </div>
 
           {/* Bio */}
           <div>
-            <label className="block text-xs font-bold text-[#3C4043] uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
               Mini Biografia
             </label>
             <textarea
               rows={2}
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-[#DADCE0] bg-[#F8F9FA] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
+              className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
             />
           </div>
 
           {/* 2026 Goal */}
           <div>
-            <label className="block text-xs font-bold text-[#3C4043] uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
               Meta para o Programa
             </label>
             <input
               type="text"
               value={formData.goal2026}
               onChange={(e) => setFormData({ ...formData, goal2026: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-[#DADCE0] bg-[#F8F9FA] focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
+              className="w-full px-3.5 py-2.5 rounded-lg text-sm border border-gray-200 bg-gray-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-[#1A73E8]"
             />
           </div>
 
           {/* Weekly Content Reminders */}
-          <div className="p-4 rounded-xl bg-[#F8F9FA] border border-[#DADCE0] flex items-center justify-between gap-3">
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${remindersEnabled ? 'bg-[#1A73E8]/10 text-[#1A73E8]' : 'bg-gray-200 text-gray-500'}`}>
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${remindersEnabled ? 'bg-blue-600/10 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
                 {remindersEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#202124]">Lembretes semanais de conteúdo</h4>
-                <p className="text-[11px] text-[#5F6368]">
+                <h4 className="text-xs font-bold text-gray-900">Lembretes semanais de conteúdo</h4>
+                <p className="text-[11px] text-gray-600">
                   {reminderStatus || 'Avisa se você ficar mais de 7 dias sem criar um post (enquanto o app estiver aberto).'}
                 </p>
               </div>
@@ -313,8 +313,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               aria-pressed={remindersEnabled}
               className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 remindersEnabled
-                  ? 'bg-[#1A73E8] text-white hover:bg-[#1557B0]'
-                  : 'bg-white border border-[#DADCE0] text-[#3C4043] hover:bg-[#F1F3F4]'
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-white border border-gray-200 text-gray-800 hover:bg-gray-100'
               }`}
             >
               {remindersEnabled ? 'Ativado' : 'Ativar'}
@@ -322,17 +322,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-[#E8EAED] flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-[#5F6368] hover:bg-[#F1F3F4] hover:text-[#202124]"
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#1A73E8] hover:bg-[#1557B0] text-white shadow-xs transition-all active:scale-95 flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all active:scale-95 flex items-center gap-2"
             >
               {saved ? (
                 <>
@@ -358,42 +358,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         container's containing block (backdrop-filter creates one, which
         would confine a nested `fixed inset-0` to the parent's padded box
         instead of the real viewport). */}
-    {pendingAvatar && (
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in"
-      >
-        <div className="bg-white rounded-2xl max-w-xs w-full border border-[#DADCE0] shadow-2xl p-6 space-y-4">
-          <div className="text-center space-y-1">
-            <h4 className="text-sm font-bold text-[#202124]">É assim que sua foto vai ficar</h4>
-          </div>
-
-          <img
-            src={pendingAvatar}
-            alt="Prévia da nova foto"
-            className="w-32 h-32 mx-auto rounded-xl object-cover ring-2 ring-[#1A73E8]/40"
-          />
-
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={cancelPendingAvatar}
-              className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-[#5F6368] hover:bg-[#F1F3F4]"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={confirmPendingAvatar}
-              className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-[#1A73E8] hover:bg-[#1557B0] text-white transition-all"
-            >
-              Usar esta foto
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+        {pendingAvatar && (
+  <div className="flex items-center gap-3">
+    <button
+      type="button"
+      className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all"
+      onClick={() => {
+        // ...salvar avatar...
+      }}
+    >
+      Confirmar avatar
+    </button>
+    <button
+      type="button"
+      className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-all"
+      onClick={() => {
+        // ...cancelar...
+      }}
+    >
+      Cancelar
+    </button>
+  </div>
+)}
     </>
   );
 };

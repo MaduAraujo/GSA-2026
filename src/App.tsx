@@ -268,9 +268,9 @@ export default function App() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
-        <div className="animate-pulse text-sm text-[#5F6368]">Carregando...</div>
-      </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-pulse text-sm text-gray-600">Carregando...</div>
+        </div>
     );
   }
 
@@ -279,7 +279,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-gray-950 text-[#3C4043] dark:text-gray-200 flex flex-col font-sans selection:bg-[#1A73E8]/20 selection:text-[#1A73E8] transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 flex flex-col font-sans selection:bg-blue-600/20 selection:text-blue-600 transition-colors">
 
       {/* Top Navigation Bar */}
       <Navbar
@@ -302,12 +302,12 @@ export default function App() {
 
         {isLoading ? (
           <div className="space-y-6 animate-pulse" role="status" aria-label="Carregando seus dados">
-            <div className="h-40 rounded-2xl bg-white dark:bg-gray-900 border border-[#E8EAED] dark:border-gray-800" />
-            <div className="h-14 rounded-2xl bg-white dark:bg-gray-900 border border-[#E8EAED] dark:border-gray-800" />
+            <div className="h-40 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+            <div className="h-14 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-[#E8EAED] dark:border-gray-800" />
-              <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-[#E8EAED] dark:border-gray-800" />
-              <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-[#E8EAED] dark:border-gray-800" />
+              <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+              <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+              <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
             </div>
           </div>
         ) : (
@@ -363,30 +363,30 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-[#E8EAED] dark:border-gray-800 bg-white dark:bg-gray-900 py-5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#5F6368] dark:text-gray-400">
+        <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#1A73E8]" />
-            <span className="font-semibold text-[#202124]">Embaixadora Estudantil Google 2026</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+            <span className="font-semibold text-gray-900">Embaixadora Estudantil Google 2026</span>
             <span>• PWA &amp; AI Studio</span>
           </div>
 
-          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
             <button
               onClick={() => setIsPwaModalOpen(true)}
-              className="hover:text-[#202124] underline underline-offset-2 transition-colors"
+              className="hover:text-gray-900 underline underline-offset-2 transition-colors"
             >
               Instalar Aplicativo
             </button>
             <span>•</span>
             <button
               onClick={() => setIsBackupModalOpen(true)}
-              className="hover:text-[#202124] underline underline-offset-2 transition-colors"
+              className="hover:text-gray-900 underline underline-offset-2 transition-colors"
             >
               Backup &amp; Dados
             </button>
             <span>•</span>
-            <span className="font-medium text-[#3C4043]">Desenvolvido com Gemini 3.7</span>
+            <span className="font-medium text-gray-800">Desenvolvido com Gemini 3.7</span>
           </div>
         </div>
       </footer>

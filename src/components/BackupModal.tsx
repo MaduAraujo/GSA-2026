@@ -68,18 +68,18 @@ export const BackupModal: React.FC<BackupModalProps> = ({
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#DADCE0] shadow-xl p-6 sm:p-8 space-y-6">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-xl p-6 sm:p-8 space-y-6">
         
-        <div className="flex items-center justify-between pb-4 border-b border-[#E8EAED]">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#34A853]/10 text-[#1E8E3E] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-green-50 text-green-700 flex items-center justify-center">
               <HardDrive className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-bold text-[#202124]">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                 Backup e Sincronização
               </h3>
-              <p className="text-xs text-[#5F6368]">
+              <p className="text-xs text-gray-600">
                 Exporte ou restaure seus certificados, prompts e posts.
               </p>
             </div>
@@ -87,15 +87,15 @@ export const BackupModal: React.FC<BackupModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="p-2 rounded-lg hover:bg-[#F1F3F4] text-[#5F6368] hover:text-[#202124]"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {statusMessage && (
-          <div className="p-3.5 rounded-xl bg-[#E6F4EA] border border-[#CEEAD6] text-xs font-semibold text-[#137333] flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#1E8E3E]" />
+          <div className="p-3.5 rounded-xl bg-green-50 border border-green-100 text-xs font-semibold text-green-700 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-700" />
             <span>{statusMessage}</span>
           </div>
         )}
@@ -103,18 +103,18 @@ export const BackupModal: React.FC<BackupModalProps> = ({
         <div className="space-y-4">
 
           {/* Portfolio Export Action */}
-          <div className="p-5 rounded-xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3">
+          <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <div className="flex items-center gap-2.5">
-              <FileDown className="w-5 h-5 text-[#EA4335]" />
-              <h4 className="text-sm font-bold text-[#202124]">Exportar Portfólio (PDF)</h4>
+              <FileDown className="w-5 h-5 text-red-600" />
+              <h4 className="text-sm font-bold text-gray-900">Exportar Portfólio (PDF)</h4>
             </div>
-            <p className="text-xs text-[#5F6368] leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               Gera uma página imprimível com seu perfil e todos os certificados, pronta para salvar como PDF pelo navegador.
             </p>
             <button
               onClick={() => exportPortfolioAsPdf(profile, certificates)}
               disabled={certificates.length === 0}
-              className="w-full py-2.5 rounded-xl bg-[#EA4335] hover:bg-[#D93025] text-white text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <FileDown className="w-4 h-4" />
               <span>Gerar Portfólio para Impressão</span>
@@ -122,18 +122,18 @@ export const BackupModal: React.FC<BackupModalProps> = ({
           </div>
 
           {/* Export Action */}
-          <div className="p-5 rounded-xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3">
+          <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <div className="flex items-center gap-2.5">
-              <Download className="w-5 h-5 text-[#1A73E8]" />
-              <h4 className="text-sm font-bold text-[#202124]">Exportar Backup Completo</h4>
+              <Download className="w-5 h-5 text-blue-600" />
+              <h4 className="text-sm font-bold text-gray-900">Exportar Backup Completo</h4>
             </div>
-            <p className="text-xs text-[#5F6368] leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               Gera um arquivo JSON contendo todos os seus certificados com imagens, banco de prompts categorizados e posts do Gemini.
             </p>
             <button
               onClick={handleExportBackup}
               disabled={isExporting}
-              className="w-full py-2.5 rounded-xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               <span>{isExporting ? 'Exportando...' : 'Baixar Arquivo de Backup'}</span>
@@ -141,12 +141,12 @@ export const BackupModal: React.FC<BackupModalProps> = ({
           </div>
 
           {/* Import Action */}
-          <div className="p-5 rounded-xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3">
+          <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <div className="flex items-center gap-2.5">
-              <Upload className="w-5 h-5 text-[#1E8E3E]" />
-              <h4 className="text-sm font-bold text-[#202124]">Restaurar / Importar Backup</h4>
+              <Upload className="w-5 h-5 text-green-700" />
+              <h4 className="text-sm font-bold text-gray-900">Restaurar / Importar Backup</h4>
             </div>
-            <p className="text-xs text-[#5F6368] leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               Selecione um arquivo de backup previamente exportado para recuperar todos os seus registros.
             </p>
             <input
@@ -159,9 +159,9 @@ export const BackupModal: React.FC<BackupModalProps> = ({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
-              className="w-full py-2.5 rounded-xl bg-white hover:bg-[#F1F3F4] border border-[#DADCE0] text-[#3C4043] text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-white hover:bg-gray-100 border border-gray-200 text-gray-800 text-xs font-bold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Upload className="w-4 h-4 text-[#1E8E3E]" />
+              <Upload className="w-4 h-4 text-green-700" />
               <span>{isImporting ? 'Importando...' : 'Selecionar Arquivo JSON'}</span>
             </button>
           </div>
@@ -171,7 +171,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({
         <div className="pt-2 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-[#202124] hover:bg-[#3C4043] text-white text-xs font-bold"
+            className="px-5 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold"
           >
             Concluído
           </button>

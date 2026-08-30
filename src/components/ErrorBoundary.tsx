@@ -24,15 +24,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] dark:bg-gray-950 p-6">
-          <div className="max-w-md w-full bg-white dark:bg-gray-900 border border-[#E8EAED] dark:border-gray-800 rounded-3xl shadow-sm p-8 text-center space-y-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-6">
+          <div className="max-w-md w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-sm p-8 text-center space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-[#EA4335]/10 text-[#EA4335] flex items-center justify-center mx-auto">
               <AlertTriangle className="w-7 h-7" />
             </div>
-            <h1 className="text-lg font-bold text-[#202124] dark:text-gray-100">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
               Algo deu errado
             </h1>
-            <p className="text-sm text-[#5F6368] dark:text-gray-400 leading-relaxed">
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               Ocorreu um erro inesperado nesta tela. Seus certificados, prompts e posts continuam salvos localmente. Tente recarregar a página.
             </p>
             <button

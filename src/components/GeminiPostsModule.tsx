@@ -230,12 +230,12 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
           {/* Search Bar */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
+              <input
               type="text"
               placeholder="Buscar posts por tema, conteúdo ou hashtags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#EA4335]/30 focus:border-[#EA4335] bg-[#F8FAFD]"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#EA4335]/30 focus:border-[#EA4335] bg-gray-50"
             />
             {searchQuery && (
               <button
@@ -488,7 +488,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                     placeholder="Ex: Conclusão do curso de GenAI do Google Cloud ou Workshop no Campus"
                     value={generatorData.topic}
                     onChange={(e) => setGeneratorData({ ...generatorData, topic: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD] focus:ring-2 focus:ring-[#EA4335]/30"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
                   />
                 </div>
 
@@ -501,7 +501,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                     <select
                       value={generatorData.platform}
                       onChange={(e) => setGeneratorData({ ...generatorData, platform: e.target.value as PostPlatform })}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
                     >
                       {PLATFORMS.map((plt) => (
                         <option key={plt} value={plt}>{plt}</option>
@@ -516,7 +516,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                     <select
                       value={generatorData.tone}
                       onChange={(e) => setGeneratorData({ ...generatorData, tone: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
                     >
                       {TONES.map((t) => (
                         <option key={t} value={t}>{t}</option>
@@ -535,7 +535,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                     placeholder="Ex: 120 alunos presentes, demonstração ao vivo de Gemini Flash, entrega de certificados..."
                     value={generatorData.keyPoints}
                     onChange={(e) => setGeneratorData({ ...generatorData, keyPoints: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   />
                 </div>
 
@@ -596,7 +596,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                       type="text"
                       value={editingPost.title || ''}
                       onChange={(e) => setEditingPost({ ...editingPost, title: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                      className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
                     />
                   </div>
 
@@ -630,7 +630,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                     rows={8}
                     value={editingPost.content || ''}
                     onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl text-xs sm:text-sm border border-gray-200 bg-[#F8FAFD] focus:ring-2 focus:ring-[#EA4335]/30 leading-relaxed font-sans"
+                    className="w-full px-4 py-3 rounded-2xl text-xs sm:text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30 leading-relaxed font-sans"
                   />
                 </div>
 
@@ -743,7 +743,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-gray-900">{selectedPostDetail.title}</h3>
 
-              <div className="p-4 rounded-2xl bg-[#F8FAFD] border border-gray-200 text-xs sm:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
                 {selectedPostDetail.content}
               </div>
 

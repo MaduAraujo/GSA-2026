@@ -19,7 +19,7 @@ export const BadgeUnlockToast: React.FC<BadgeUnlockToastProps> = ({ badge, onDis
   return (
     <div
       role="status"
-      className="badge-toast-enter fixed top-4 right-4 z-[100] w-[calc(100%-2rem)] max-w-sm bg-white rounded-2xl border border-gray-200 shadow-2xl p-4 flex items-start gap-3"
+      className="badge-toast-enter fixed right-4 bottom-4 z-100 w-[calc(100%-2rem)] max-w-sm bg-white rounded-2xl border border-gray-200 shadow-2xl p-4 flex items-start gap-3"
     >
       <div className={`w-11 h-11 rounded-xl ${style.bg} ${style.text} flex items-center justify-center shrink-0`}>
         <Icon className="w-5.5 h-5.5" />

@@ -657,7 +657,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 {/* Visual Header / Certificate Preview */}
                 <div 
                   onClick={() => setSelectedCert(cert)}
-                  className="relative h-44 w-full bg-gradient-to-br from-[#F1F5F9] via-[#E2E8F0] to-[#EEF2F6] flex items-center justify-center p-4 cursor-pointer overflow-hidden group-hover:opacity-95"
+                  className="relative h-44 w-full bg-linear-to-br from-[#F1F5F9] via-[#E2E8F0] to-[#EEF2F6] flex items-center justify-center p-4 cursor-pointer overflow-hidden group-hover:opacity-95"
                 >
                   {cert.fileData ? (
                     cert.fileType === 'pdf' ? (
@@ -915,7 +915,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                     <img src={filePreview} alt="Preview" className="h-20 max-w-xs object-contain rounded-lg shadow-xs" />
                   )}
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-800 truncate max-w-[200px]">{fileName}</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate max-w-50">{fileName}</p>
                     <p className="text-xs text-green-600 font-medium">Arquivo carregado com sucesso!</p>
                   </div>
                 </div>
@@ -946,7 +946,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 type="button"
                 onClick={handleAiAutoFill}
                 disabled={isAnalyzing}
-                className="px-4 py-2 rounded-full bg-gradient-to-r from-[#1A73E8] to-[#34A853] hover:shadow-md text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100"
+                className="px-4 py-2 rounded-full bg-linear-to-r from-[#1A73E8] to-[#34A853] hover:shadow-md text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100"
               >
                 {isAnalyzing ? (
                   <>
