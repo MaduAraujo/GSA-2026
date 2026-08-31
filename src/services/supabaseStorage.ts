@@ -5,6 +5,8 @@ import {
   GeminiPost,
   AmbassadorProfile,
   UserBadge,
+  Challenge,
+  GalleryPhoto,
   ChatSession,
   ChatMessageRecord,
   PushSubscriptionKeys,
@@ -195,6 +197,70 @@ function rowToUserBadge(row: any): UserBadge {
   };
 }
 
+function rowToChallenge(row: any): Challenge {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? '',
+    category: row.category ?? '',
+    status: row.status,
+    deadline: row.deadline ?? undefined,
+    link: row.link ?? undefined,
+    points: row.points ?? undefined,
+    result: row.result ?? undefined,
+    resultImage: row.result_image ?? undefined,
+    resultLink: row.result_link ?? undefined,
+    resultPlatform: row.result_platform ?? undefined,
+    linkedPostId: row.linked_post_id ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function challengeToRow(challenge: Challenge, userId: string) {
+  return {
+    id: challenge.id,
+    user_id: userId,
+    title: challenge.title,
+    description: challenge.description ?? '',
+    category: challenge.category ?? '',
+    status: challenge.status,
+    deadline: challenge.deadline || null,
+    link: challenge.link || null,
+    points: challenge.points ?? null,
+    result: challenge.result || null,
+    result_image: challenge.resultImage || null,
+    result_link: challenge.resultLink || null,
+    result_platform: challenge.resultPlatform || null,
+    linked_post_id: challenge.linkedPostId || null,
+    created_at: challenge.createdAt,
+    updated_at: challenge.updatedAt,
+  };
+}
+
+function rowToGalleryPhoto(row: any): GalleryPhoto {
+  return {
+    id: row.id,
+    imageData: row.image_data,
+    caption: row.caption ?? '',
+    category: row.category ?? '',
+    takenAt: row.taken_at ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function galleryPhotoToRow(photo: GalleryPhoto, userId: string) {
+  return {
+    id: photo.id,
+    user_id: userId,
+    image_data: photo.imageData,
+    caption: photo.caption ?? '',
+    category: photo.category ?? '',
+    taken_at: photo.takenAt || null,
+    created_at: photo.createdAt,
+  };
+}
+
 async function requireUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw new Error('Não autenticado.');
@@ -233,6 +299,46 @@ export const SupabaseStorageService = {
 
   async deleteCertificate(id: string): Promise<void> {
     const { error } = await supabase.from('certificates').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getChallenges(): Promise<Challenge[]> {
+    const { data, error } = await supabase
+      .from('challenges')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToChallenge);
+  },
+
+  async saveChallenge(challenge: Challenge): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('challenges').upsert(challengeToRow(challenge, userId));
+    if (error) throw error;
+  },
+
+  async deleteChallenge(id: string): Promise<void> {
+    const { error } = await supabase.from('challenges').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getGalleryPhotos(): Promise<GalleryPhoto[]> {
+    const { data, error } = await supabase
+      .from('gallery_photos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToGalleryPhoto);
+  },
+
+  async saveGalleryPhoto(photo: GalleryPhoto): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('gallery_photos').upsert(galleryPhotoToRow(photo, userId));
+    if (error) throw error;
+  },
+
+  async deleteGalleryPhoto(id: string): Promise<void> {
+    const { error } = await supabase.from('gallery_photos').delete().eq('id', id);
     if (error) throw error;
   },
 
@@ -402,11 +508,13 @@ export const SupabaseStorageService = {
   },
 
   async exportAllData(): Promise<string> {
-    const [profile, certificates, prompts, posts] = await Promise.all([
+    const [profile, certificates, prompts, posts, challenges, galleryPhotos] = await Promise.all([
       this.getProfile(),
       this.getCertificates(),
       this.getPrompts(),
       this.getPosts(),
+      this.getChallenges(),
+      this.getGalleryPhotos(),
     ]);
 
     const payload = {
@@ -416,6 +524,8 @@ export const SupabaseStorageService = {
       certificates,
       prompts,
       posts,
+      challenges,
+      galleryPhotos,
     };
 
     return JSON.stringify(payload, null, 2);
@@ -437,9 +547,19 @@ export const SupabaseStorageService = {
           await this.savePrompt(p);
         }
       }
+      if (Array.isArray(parsed.challenges)) {
+        for (const c of parsed.challenges) {
+          await this.saveChallenge(c);
+        }
+      }
       if (Array.isArray(parsed.posts)) {
         for (const post of parsed.posts) {
           await this.savePost(post);
+        }
+      }
+      if (Array.isArray(parsed.galleryPhotos)) {
+        for (const photo of parsed.galleryPhotos) {
+          await this.saveGalleryPhoto(photo);
         }
       }
       return true;

@@ -46,28 +46,28 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
             onClick={() => onNavigate('certificates')}
             className="group cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-blue-600/5 border border-gray-200 hover:border-blue-600/30 transition-all"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Certificados</span>
+            <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#1A73E8]/10 flex items-center justify-center text-[#1A73E8] group-hover:scale-105 transition-transform">
                 <Award className="w-4 h-4" />
               </div>
+              <span className="hidden sm:inline text-xs font-semibold text-gray-600 uppercase tracking-wider">Certificados</span>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-2 flex items-baseline justify-center gap-2">
               <span className="text-2xl sm:text-3xl font-bold text-gray-900">{certificates.length}</span>
-              <span className="text-xs text-gray-600 font-medium">conquistados</span>
+              <span className="hidden sm:inline text-xs text-gray-600 font-medium">conquistados</span>
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Horas de Estudo</span>
+            <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-green-600/10 flex items-center justify-center text-green-600">
                 <Clock className="w-4 h-4" />
               </div>
+              <span className="hidden sm:inline text-xs font-semibold text-gray-600 uppercase tracking-wider">Horas de Estudo</span>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-2 flex items-baseline justify-center gap-2">
               <span className="text-2xl sm:text-3xl font-bold text-gray-900">{totalHours}h</span>
-              <span className="text-xs text-gray-600 font-medium">acumuladas</span>
+              <span className="hidden sm:inline text-xs text-gray-600 font-medium">acumuladas</span>
             </div>
           </div>
 
@@ -75,15 +75,15 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
             onClick={() => onNavigate('prompts')}
             className="group cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-amber-400/10 border border-gray-200 hover:border-amber-400/40 transition-all"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Prompts</span>
+            <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-amber-400/15 flex items-center justify-center text-amber-700 group-hover:scale-105 transition-transform">
                 <Sparkles className="w-4 h-4" />
               </div>
+              <span className="hidden sm:inline text-xs font-semibold text-gray-600 uppercase tracking-wider">Prompts</span>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-2 flex items-baseline justify-center gap-2">
               <span className="text-2xl sm:text-3xl font-bold text-gray-900">{prompts.length}</span>
-              <span className="text-xs text-gray-600 font-medium">por seção</span>
+              <span className="hidden sm:inline text-xs text-gray-600 font-medium">por seção</span>
             </div>
           </div>
 
@@ -91,15 +91,17 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
             onClick={() => onNavigate('posts')}
             className="group cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-red-600/10 border border-gray-200 hover:border-red-600/30 transition-all"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Posts Criados</span>
+            <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center text-red-600 group-hover:scale-105 transition-transform">
                 <FileText className="w-4 h-4" />
               </div>
+              <span className="hidden sm:inline text-xs font-semibold text-gray-600 uppercase tracking-wider">Posts Criados</span>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
+            <div className="mt-2 flex items-baseline justify-center gap-2">
               <span className="text-2xl sm:text-3xl font-bold text-gray-900">{posts.length}</span>
-              <span className="text-xs text-green-600 font-medium">{publishedPosts} pub.</span>
+              <span className="hidden sm:inline text-xs text-gray-600 font-medium">
+                {publishedPosts > 0 ? `${publishedPosts} pub.` : 'pub.'}
+              </span>
             </div>
           </div>
         </div>

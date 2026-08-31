@@ -482,7 +482,8 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
 
       {isGeneratorModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
             
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
@@ -736,14 +737,16 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
               </div>
             )}
 
+            </div>
           </div>
         </div>
       )}
 
       {selectedPostDetail && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
-            
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#EA4335] text-white">
@@ -806,6 +809,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
               </button>
             </div>
 
+            </div>
           </div>
         </div>
       )}

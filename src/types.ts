@@ -58,6 +58,39 @@ export interface GeminiPost {
   updatedAt: string;
 }
 
+export type ChallengeStatus = 'Pendente' | 'Em Andamento' | 'Concluído';
+
+export type ChallengeCategory = string;
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  category: ChallengeCategory;
+  status: ChallengeStatus;
+  deadline?: string;
+  link?: string;
+  points?: number;
+  result?: string;
+  resultImage?: string;
+  resultLink?: string;
+  resultPlatform?: PostPlatform;
+  linkedPostId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GalleryCategory = string;
+
+export interface GalleryPhoto {
+  id: string;
+  imageData: string;
+  caption: string;
+  category: GalleryCategory;
+  takenAt?: string;
+  createdAt: string;
+}
+
 export interface UserBadge {
   badgeId: string;
   unlockedAt: string;

@@ -79,19 +79,38 @@
 
 .dark .hover\:border-gray-300:hover { border-color: #454E63; }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #DADCE0 transparent;
+}
+.dark * {
+  scrollbar-color: #363E50 transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #DADCE0;
+  background-color: #DADCE0;
   border-radius: 9999px;
+  transition: background-color 0.15s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #BDC1C6;
+  background-color: #BDC1C6;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #363E50;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #454E63;
+}
+
+[role="dialog"] {
+  overscroll-behavior: contain;
 }
 
 .clean-card {

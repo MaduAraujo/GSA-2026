@@ -203,14 +203,19 @@ Por favor, forneça:
 
 app.post("/api/gemini/analyze-certificate", async (req, res) => {
   try {
-    const { title, issuer } = req.body;
+    const { title, issuer, imageBase64 } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: "Envie o arquivo do certificado antes de usar o preenchimento automático." });
+    }
 
     const groq = getGroqClient();
 
     const systemInstruction = `Você é um assistente de reconhecimento de conquistas para a Embaixadora Estudantil do Google 2026.
-Você analisa certificados e badges de cursos, workshops e eventos de tecnologia (Google Cloud, Gemini AI, Android, Machine Learning, Liderança, etc.).
-Você deve sugerir tags, um resumo do impacto do aprendizado e um rascunho de postagem celebratória para o LinkedIn.
-Responda sempre em JSON válido com a seguinte estrutura:
+Você analisa o CONTEÚDO REAL de certificados e badges (imagens ou documentos) de cursos, workshops e eventos de tecnologia.
+Extraia apenas informações que estejam de fato escritas no certificado anexado — nunca invente título, emissor ou habilidades que não constem no documento.
+Você também deve sugerir tags, um resumo fiel do aprendizado e um rascunho de postagem celebratória para o LinkedIn com base no que foi extraído.
+Responda sempre em JSON válido, e apenas em JSON, com a seguinte estrutura:
 {
   "suggestedTitle": "string",
   "issuer": "string",
@@ -220,32 +225,66 @@ Responda sempre em JSON válido com a seguinte estrutura:
   "linkedinCaption": "string"
 }`;
 
-    const userText = `Analise este certificado de Embaixadora do Google 2026.
-Título informado: ${title || "Não especificado"}
-Emissor informado: ${issuer || "Google / Parceiro"}
-Extraia e complete os detalhes em formato JSON.`;
+    const referenceHints = [
+      title ? `Título digitado pelo usuário até agora (use apenas como referência secundária, priorize o que está escrito no certificado): ${title}` : null,
+      issuer ? `Emissor digitado pelo usuário até agora (use apenas como referência secundária, priorize o que está escrito no certificado): ${issuer}` : null,
+    ].filter(Boolean).join("\n");
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: userText },
-      ],
-    });
+    const instructionText = `Analise atentamente o certificado anexado e extraia título exato, instituição emissora, categoria, habilidades trabalhadas e um resumo fiel do conteúdo.
+${referenceHints}
+Responda apenas com o JSON no formato especificado, sem texto adicional.`;
 
-    let parsedData = {};
+    const mimeMatch = /^data:([^;]+);base64,/.exec(imageBase64);
+    const mimeType = mimeMatch?.[1] || "";
+
+    let rawContent = "";
+
+    if (mimeType.startsWith("image/")) {
+      const completion = await groq.chat.completions.create({
+        model: GROQ_VISION_MODEL,
+        messages: [
+          { role: "system", content: systemInstruction },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: instructionText },
+              { type: "image_url", image_url: { url: imageBase64 } },
+            ],
+          },
+        ],
+      });
+      rawContent = completion.choices[0]?.message?.content || "";
+    } else {
+      const extractedText = await extractDocumentText(imageBase64, mimeType);
+      if (!extractedText) {
+        return res.status(400).json({
+          error: "Não foi possível ler o conteúdo do arquivo. Tente uma imagem (PNG/JPG) ou verifique se o PDF contém texto selecionável.",
+        });
+      }
+
+      const completion = await groq.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: `${instructionText}\n\n--- Conteúdo extraído do certificado ---\n${extractedText}` },
+        ],
+      });
+      rawContent = completion.choices[0]?.message?.content || "";
+    }
+
+    let parsedData;
     try {
-      parsedData = JSON.parse(completion.choices[0]?.message?.content || "{}");
+      // The vision model isn't asked for structured JSON output (some Groq
+      // vision models reject response_format alongside image content), so
+      // its reply may wrap the JSON in prose/markdown fences — pull out the
+      // first {...} block before parsing.
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+      parsedData = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
     } catch {
-      parsedData = {
-        suggestedTitle: title || "Certificado Google 2026",
-        issuer: issuer || "Google",
-        category: "GenAI & Gemini",
-        skills: ["Google AI", "Gemini", "Inovação"],
-        summary: "Conquista completada com sucesso durante o programa Google Student Ambassador.",
-        linkedinCaption: "Muito feliz em concluir mais uma certificação do programa Google Student Ambassador 2026! 🚀💙",
-      };
+      return res.status(502).json({
+        error: "Não foi possível interpretar a resposta da IA para este certificado. Tente novamente ou preencha manualmente.",
+      });
     }
 
     return res.json({ success: true, data: parsedData });

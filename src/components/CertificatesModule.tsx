@@ -210,6 +210,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
   };
 
   const handleAiAutoFill = async () => {
+    if (!filePreview) return;
     setIsAnalyzing(true);
     try {
       const res = await GeminiApiService.analyzeCertificate({
@@ -431,7 +432,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
             {isExportMenuOpen && (
               <div
                 role="menu"
-                className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-40 rounded-xl bg-white border border-gray-200 shadow-lg p-1.5 z-20"
+                className="absolute right-0 top-full mt-2 w-40 rounded-xl bg-white border border-gray-200 shadow-lg p-1.5 z-20"
               >
                 <button
                   role="menuitem"
@@ -611,7 +612,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center mx-auto">
             <Award className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900">Nada encontrado</h3>
+          <h3 className="text-lg font-bold text-gray-900">Nenhum certificado encontrado</h3>
           {(searchQuery || selectedCategory !== 'Todos') && (
             <p className="text-sm text-gray-500 max-w-md mx-auto">
               Tente ajustar seus filtros ou termo de busca.
@@ -832,7 +833,8 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
       {isAddModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div ref={addModalRef} className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
+          <div ref={addModalRef} className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
@@ -889,9 +891,8 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-800">
-                      Arraste ou clique para selecionar o certificado
+                      Arraste ou clique para selecionar
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">Suporta imagens (PNG, JPG, WebP) e arquivos PDF, até 4MB</p>
                   </div>
                 </>
               )}
@@ -907,8 +908,9 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               <button
                 type="button"
                 onClick={handleAiAutoFill}
-                disabled={isAnalyzing}
-                className="px-4 py-2 rounded-full bg-linear-to-r from-[#1A73E8] to-[#34A853] hover:shadow-md text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100"
+                disabled={isAnalyzing || !filePreview}
+                title={!filePreview ? 'Envie o arquivo do certificado primeiro' : undefined}
+                className="px-4 py-2 rounded-full bg-linear-to-r from-[#1A73E8] to-[#34A853] hover:shadow-md text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100 disabled:cursor-not-allowed"
               >
                 {isAnalyzing ? (
                   <>
@@ -1098,23 +1100,25 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 <button
                   id="submit-cert-form"
                   type="submit"
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#1A73E8] hover:bg-[#1A73E8] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                  disabled={isSaving || !formData.title?.trim()}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#1A73E8] hover:bg-[#1A73E8] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isSaving ? 'Salvando...' : isEditMode ? 'Salvar' : 'Salvar Certificado'}
+                  {isSaving ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
 
             </form>
 
+            </div>
           </div>
         </div>
       )}
 
       {selectedCert && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div ref={detailModalRef} className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
+          <div ref={detailModalRef} className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
             <div className="flex items-center justify-end pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <button
@@ -1257,6 +1261,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </button>
             </div>
 
+            </div>
           </div>
         </div>
       )}

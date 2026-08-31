@@ -6,7 +6,9 @@ import {
   PromptItem,
   GeminiPost,
   AmbassadorProfile,
-  UserBadge
+  UserBadge,
+  Challenge,
+  GalleryPhoto
 } from './types';
 import { SupabaseStorageService as StorageService } from './services/supabaseStorage';
 import { supabase } from './services/supabaseClient';
@@ -21,6 +23,8 @@ import { CertificatesModule } from './components/CertificatesModule';
 import { PromptsVaultModule } from './components/PromptsVaultModule';
 import { GeminiPostsModule } from './components/GeminiPostsModule';
 import { GeminiCopilotModule } from './components/GeminiCopilotModule';
+import { ChallengesModule } from './components/ChallengesModule';
+import { GalleryModule } from './components/GalleryModule';
 import { PwaGuideModal } from './components/PwaGuideModal';
 import { ProfileModal } from './components/ProfileModal';
 import { BackupModal } from './components/BackupModal';
@@ -49,6 +53,8 @@ export default function App() {
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [posts, setPosts] = useState<GeminiPost[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
   const [profile, setProfile] = useState<AmbassadorProfile>(EMPTY_PROFILE);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [badgeToastQueue, setBadgeToastQueue] = useState<BadgeDefinition[]>([]);
@@ -88,6 +94,8 @@ export default function App() {
         setCertificates([]);
         setPrompts([]);
         setPosts([]);
+        setChallenges([]);
+        setGalleryPhotos([]);
         setProfile(EMPTY_PROFILE);
         setUserBadges([]);
         setBadgeToastQueue([]);
@@ -128,10 +136,12 @@ export default function App() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [certsData, promptsData, postsData, profData, badgesData] = await Promise.all([
+      const [certsData, promptsData, postsData, challengesData, galleryData, profData, badgesData] = await Promise.all([
         StorageService.getCertificates(),
         StorageService.getPrompts(),
         StorageService.getPosts(),
+        StorageService.getChallenges(),
+        StorageService.getGalleryPhotos(),
         StorageService.getProfile(),
         StorageService.getUserBadges(),
       ]);
@@ -139,6 +149,8 @@ export default function App() {
       setCertificates(certsData);
       setPrompts(promptsData);
       setPosts(postsData);
+      setChallenges(challengesData);
+      setGalleryPhotos(galleryData);
       setUserBadges(badgesData);
       if (profData) {
         setProfile(profData);
@@ -243,6 +255,30 @@ export default function App() {
     setPosts(updated);
   };
 
+  const handleSaveChallenge = async (challenge: Challenge) => {
+    await StorageService.saveChallenge(challenge);
+    const updated = await StorageService.getChallenges();
+    setChallenges(updated);
+  };
+
+  const handleDeleteChallenge = async (id: string) => {
+    await StorageService.deleteChallenge(id);
+    const updated = await StorageService.getChallenges();
+    setChallenges(updated);
+  };
+
+  const handleSaveGalleryPhoto = async (photo: GalleryPhoto) => {
+    await StorageService.saveGalleryPhoto(photo);
+    const updated = await StorageService.getGalleryPhotos();
+    setGalleryPhotos(updated);
+  };
+
+  const handleDeleteGalleryPhoto = async (id: string) => {
+    await StorageService.deleteGalleryPhoto(id);
+    const updated = await StorageService.getGalleryPhotos();
+    setGalleryPhotos(updated);
+  };
+
   const handleSaveProfile = async (newProfile: AmbassadorProfile) => {
     setProfile(newProfile);
     await StorageService.saveProfile(newProfile);
@@ -331,6 +367,24 @@ export default function App() {
 
           <div hidden={activeTab !== 'copilot'}>
             <GeminiCopilotModule />
+          </div>
+
+          <div hidden={activeTab !== 'challenges'}>
+            <ChallengesModule
+              challenges={challenges}
+              posts={posts}
+              onSaveChallenge={handleSaveChallenge}
+              onDeleteChallenge={handleDeleteChallenge}
+              onSavePost={handleSavePost}
+            />
+          </div>
+
+          <div hidden={activeTab !== 'gallery'}>
+            <GalleryModule
+              photos={galleryPhotos}
+              onSavePhoto={handleSaveGalleryPhoto}
+              onDeletePhoto={handleDeleteGalleryPhoto}
+            />
           </div>
 
           <div hidden={activeTab !== 'analytics'}>

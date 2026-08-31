@@ -198,6 +198,97 @@ create policy "user_badges_insert_own" on public.user_badges
   with check ( (select auth.uid()) = user_id );
 
 -- ---------------------------------------------------------------------------
+-- challenges
+-- ---------------------------------------------------------------------------
+create table if not exists public.challenges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title text not null,
+  description text not null default '',
+  category text not null default '',
+  status text not null default 'Pendente',
+  deadline date,
+  link text,
+  points integer,
+  result text,
+  result_image text,
+  result_link text,
+  result_platform text,
+  linked_post_id uuid references public.posts (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.challenges add column if not exists result text;
+alter table public.challenges add column if not exists result_image text;
+alter table public.challenges add column if not exists result_link text;
+alter table public.challenges add column if not exists result_platform text;
+alter table public.challenges add column if not exists linked_post_id uuid references public.posts (id) on delete set null;
+
+create index if not exists challenges_user_id_idx on public.challenges (user_id);
+
+alter table public.challenges enable row level security;
+
+drop policy if exists "challenges_select_own" on public.challenges;
+create policy "challenges_select_own" on public.challenges
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "challenges_insert_own" on public.challenges;
+create policy "challenges_insert_own" on public.challenges
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "challenges_update_own" on public.challenges;
+create policy "challenges_update_own" on public.challenges
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "challenges_delete_own" on public.challenges;
+create policy "challenges_delete_own" on public.challenges
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- gallery_photos — photos related to the program (welcome kit, events, etc.)
+-- ---------------------------------------------------------------------------
+create table if not exists public.gallery_photos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  image_data text not null,
+  caption text not null default '',
+  category text not null default '',
+  taken_at date,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists gallery_photos_user_id_idx on public.gallery_photos (user_id);
+
+alter table public.gallery_photos enable row level security;
+
+drop policy if exists "gallery_photos_select_own" on public.gallery_photos;
+create policy "gallery_photos_select_own" on public.gallery_photos
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "gallery_photos_insert_own" on public.gallery_photos;
+create policy "gallery_photos_insert_own" on public.gallery_photos
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "gallery_photos_update_own" on public.gallery_photos;
+create policy "gallery_photos_update_own" on public.gallery_photos
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "gallery_photos_delete_own" on public.gallery_photos;
+create policy "gallery_photos_delete_own" on public.gallery_photos
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
 -- profiles: public portfolio sharing
 -- ---------------------------------------------------------------------------
 alter table public.profiles add column if not exists is_public boolean not null default false;

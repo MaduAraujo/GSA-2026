@@ -185,7 +185,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   return (
     <>
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-xl p-6 sm:p-8 space-y-6">
+      <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-xl flex flex-col">
+        <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
@@ -496,6 +497,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
         </form>
 
+        </div>
       </div>
     </div>
 

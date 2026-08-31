@@ -359,7 +359,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
             {isExportMenuOpen && (
               <div
                 role="menu"
-                className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-40 rounded-xl bg-white border border-gray-200 shadow-lg p-1.5 z-20"
+                className="absolute right-0 top-full mt-2 w-40 rounded-xl bg-white border border-gray-200 shadow-lg p-1.5 z-20"
               >
                 <button
                   role="menuitem"
@@ -598,8 +598,9 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
 
       {isAddModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
-            
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#FBBC04]/20 text-[#8F5200] flex items-center justify-center">
@@ -802,14 +803,16 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
 
             </form>
 
+            </div>
           </div>
         </div>
       )}
 
       {testingPrompt && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
-            
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
@@ -981,14 +984,16 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </button>
             </div>
 
+            </div>
           </div>
         </div>
       )}
 
       {enhancingPrompt && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
-            
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#FBBC04]/20 text-[#8F5200] flex items-center justify-center">
@@ -1040,6 +1045,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </div>
             ) : null}
 
+            </div>
           </div>
         </div>
       )}
