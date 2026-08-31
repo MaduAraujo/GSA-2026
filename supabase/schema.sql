@@ -196,3 +196,120 @@ drop policy if exists "user_badges_insert_own" on public.user_badges;
 create policy "user_badges_insert_own" on public.user_badges
   for insert to authenticated
   with check ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- profiles: public portfolio sharing
+-- ---------------------------------------------------------------------------
+alter table public.profiles add column if not exists is_public boolean not null default false;
+alter table public.profiles add column if not exists public_slug text unique;
+
+drop policy if exists "profiles_select_public" on public.profiles;
+create policy "profiles_select_public" on public.profiles
+  for select to anon
+  using ( is_public = true );
+
+drop policy if exists "certificates_select_public" on public.certificates;
+create policy "certificates_select_public" on public.certificates
+  for select to anon
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = certificates.user_id and p.is_public = true
+    )
+  );
+
+-- ---------------------------------------------------------------------------
+-- chat_sessions / chat_messages 
+-- ---------------------------------------------------------------------------
+create table if not exists public.chat_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title text not null default 'Nova conversa',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists chat_sessions_user_id_idx on public.chat_sessions (user_id);
+
+alter table public.chat_sessions enable row level security;
+
+drop policy if exists "chat_sessions_select_own" on public.chat_sessions;
+create policy "chat_sessions_select_own" on public.chat_sessions
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "chat_sessions_insert_own" on public.chat_sessions;
+create policy "chat_sessions_insert_own" on public.chat_sessions
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "chat_sessions_update_own" on public.chat_sessions;
+create policy "chat_sessions_update_own" on public.chat_sessions
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "chat_sessions_delete_own" on public.chat_sessions;
+create policy "chat_sessions_delete_own" on public.chat_sessions
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.chat_sessions (id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  sender text not null check (sender in ('user', 'gemini')),
+  text text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists chat_messages_session_id_idx on public.chat_messages (session_id);
+
+alter table public.chat_messages enable row level security;
+
+drop policy if exists "chat_messages_select_own" on public.chat_messages;
+create policy "chat_messages_select_own" on public.chat_messages
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "chat_messages_insert_own" on public.chat_messages;
+create policy "chat_messages_insert_own" on public.chat_messages
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "chat_messages_delete_own" on public.chat_messages;
+create policy "chat_messages_delete_own" on public.chat_messages
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- push_subscriptions — Web Push endpoints for real (app-closed) notifications
+-- ---------------------------------------------------------------------------
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  last_notified_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists push_subscriptions_user_id_idx on public.push_subscriptions (user_id);
+
+alter table public.push_subscriptions enable row level security;
+
+drop policy if exists "push_subscriptions_select_own" on public.push_subscriptions;
+create policy "push_subscriptions_select_own" on public.push_subscriptions
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "push_subscriptions_insert_own" on public.push_subscriptions;
+create policy "push_subscriptions_insert_own" on public.push_subscriptions
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "push_subscriptions_delete_own" on public.push_subscriptions;
+create policy "push_subscriptions_delete_own" on public.push_subscriptions
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );

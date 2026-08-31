@@ -3,6 +3,12 @@ export interface ChatHistoryMessage {
   text: string;
 }
 
+export interface ChatAttachment {
+  dataUrl: string;
+  mimeType: string;
+  fileName?: string;
+}
+
 export interface GeneratePostParams {
   topic: string;
   platform: string;
@@ -84,11 +90,11 @@ export const GeminiApiService = {
     return data.data;
   },
 
-  async sendChatMessage(message: string, history?: ChatHistoryMessage[]): Promise<string> {
+  async sendChatMessage(message: string, history?: ChatHistoryMessage[], attachment?: ChatAttachment): Promise<string> {
     const res = await fetch('/api/gemini/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({ message, history, attachment }),
     });
 
     if (!res.ok) {

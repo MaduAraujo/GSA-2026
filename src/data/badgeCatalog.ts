@@ -62,9 +62,7 @@ export interface BadgeDefinition {
   hint: string;
   icon: LucideIcon;
   tier: BadgeTier;
-  /** Whether this badge is met, given current stats and the set of badge ids already unlocked. */
   isMet: (stats: BadgeStats, unlockedIds: Set<string>) => boolean;
-  /** Optional numeric progress towards the badge, for a progress bar on locked cards. */
   progress?: (stats: BadgeStats) => { current: number; target: number };
 }
 
@@ -212,7 +210,6 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
       return others.every((b) => unlockedIds.has(b.id));
     },
     progress: (_s) => {
-      // Filled in by the caller (needs unlockedIds); see BadgesShowcase.
       return { current: 0, target: BADGE_CATALOG.length - 1 };
     },
   },

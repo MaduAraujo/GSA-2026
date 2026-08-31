@@ -3,7 +3,7 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DatePickerProps {
   id?: string;
-  value: string; // YYYY-MM-DD
+  value: string; 
   onChange: (date: string) => void;
 }
 
@@ -47,7 +47,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange }) =
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const goToMonth = (offset: number) => {
@@ -101,7 +100,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange }) =
           aria-label="Selecionar data"
           className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-gray-200 shadow-lg p-3 z-20"
         >
-          {/* Month navigation */}
           <div className="flex items-center justify-between mb-2 px-1">
             <button
               type="button"
@@ -124,7 +122,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange }) =
             </button>
           </div>
 
-          {/* Weekday headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {WEEKDAY_LABELS.map((label, idx) => (
               <div key={idx} className="text-center text-[11px] font-semibold text-gray-400 py-1">
@@ -133,7 +130,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange }) =
             ))}
           </div>
 
-          {/* Day grid */}
           <div className="grid grid-cols-7 gap-1">
             {cells.map((day, idx) =>
               day === null ? (

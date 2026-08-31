@@ -4,6 +4,7 @@ import {
   Sparkles,
   FileText,
   Bot,
+  BarChart3,
   Download,
   User,
   HardDrive,
@@ -17,9 +18,11 @@ import {
 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 
+export type AppTab = 'certificates' | 'prompts' | 'posts' | 'copilot' | 'analytics';
+
 interface NavbarProps {
-  activeTab: 'certificates' | 'prompts' | 'posts' | 'copilot';
-  setActiveTab: (tab: 'certificates' | 'prompts' | 'posts' | 'copilot') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   profile: AmbassadorProfile;
   onOpenProfile: () => void;
   onOpenBackup: () => void;
@@ -73,11 +76,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems = [
     { id: 'certificates', label: 'Certificados', icon: Award, color: 'text-[#1A73E8]' },
     { id: 'prompts', label: 'Banco de Prompts', icon: Sparkles, color: 'text-[#F9AB00]' },
-    { id: 'posts', label: 'Posts com Gemini', icon: FileText, color: 'text-[#EA4335]' },
-    { id: 'copilot', label: 'Assistente Gemini', icon: Bot, color: 'text-[#34A853]' },
+    { id: 'posts', label: 'Posts', icon: FileText, color: 'text-[#EA4335]' },
+    { id: 'copilot', label: 'Assistente IA', icon: Bot, color: 'text-[#34A853]' },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-[#1A73E8]' },
   ];
 
-  // Shared style for the borderless, circular icon buttons in the action cluster.
   const iconBtnClass =
     'p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors';
 
@@ -87,7 +90,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         isScrolled ? 'shadow-sm border-b border-transparent' : 'border-b border-gray-200 dark:border-gray-800'
       }`}
     >
-      {/* Google 4-Color Top Brand Strip */}
       <div className="h-0.75 w-full grid grid-cols-4">
         <div className="bg-[#1A73E8]" />
         <div className="bg-[#EA4335]" />
@@ -97,8 +99,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 h-16">
-
-          {/* Brand Logo */}
           <div className="flex items-center shrink-0">
             <svg viewBox="0 0 192 192" className="w-8 h-8">
               <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke="#1A73E8" strokeWidth="14" strokeLinecap="round" />
@@ -110,34 +110,32 @@ export const Navbar: React.FC<NavbarProps> = ({
             </svg>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  id={`nav-tab-${item.id}`}
-                  onClick={() => setActiveTab(item.id as any)}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? item.color : ''}`} />
-                  <span className="hidden lg:inline">{item.label}</span>
-                </button>
-              );
-            })}
+          <nav className="hidden md:flex flex-1 items-center justify-center">
+            <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    id={`nav-tab-${item.id}`}
+                    onClick={() => setActiveTab(item.id as any)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? item.color : ''}`} />
+                    <span className="hidden lg:inline">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </nav>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-0.5 ml-auto">
-
-            {/* Dark Mode Toggle */}
             <button
               id="dark-mode-toggle"
               onClick={onToggleDarkMode}
@@ -148,7 +146,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               {isDarkMode ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
             </button>
 
-            {/* Account Menu */}
             <div className="relative" ref={accountMenuRef}>
               <button
                 id="account-menu-btn"
@@ -223,7 +220,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
@@ -235,7 +231,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Navigation Dropdown */}
         {mobileMenuOpen && (
           <div className="md:hidden py-3 border-t border-gray-100 dark:border-gray-800 space-y-1">
             {navItems.map((item) => {

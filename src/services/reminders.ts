@@ -28,12 +28,6 @@ export const RemindersService = {
     localStorage.setItem(REMINDER_ENABLED_KEY, 'false');
   },
 
-  /**
-   * Shows a gentle local notification if it's been more than REMINDER_INTERVAL_DAYS
-   * since the last time one was shown and the ambassador has been inactive
-   * (no post created in that window). Best-effort: only fires while the app is open,
-   * since there is no push server backing this PWA.
-   */
   checkAndNotify(lastPostDate: string | null): void {
     if (!this.isSupported() || !this.isEnabled() || Notification.permission !== 'granted') return;
 

@@ -1,27 +1,32 @@
-import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  Copy, 
-  Check, 
-  Plus, 
-  Search, 
-  Star, 
-  Play, 
-  Wand2, 
-  Trash2, 
-  X, 
-  Tag, 
-  BookOpen, 
-  Layers, 
-  Send,
+import React, { useState, useRef, useEffect } from 'react';
+import { usePersistedState } from '../hooks/usePersistedState';
+import {
+  Sparkles,
+  Copy,
+  Check,
+  Plus,
+  Search,
+  Star,
+  Play,
+  Wand2,
+  Trash2,
+  X,
+  Tag,
+  BookOpen,
+  Layers,
   Zap,
   CheckCircle2,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Paperclip,
+  FileText,
+  FileDown,
+  ChevronDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { PromptItem, PromptSection } from '../types';
+import { PromptItem } from '../types';
 import { GeminiApiService } from '../services/geminiApi';
+import { exportPromptsAsPdf } from '../utils/promptsExport';
 
 interface PromptsVaultModuleProps {
   prompts: PromptItem[];
@@ -29,14 +34,16 @@ interface PromptsVaultModuleProps {
   onDeletePrompt: (id: string) => Promise<void>;
 }
 
-const SECTIONS: PromptSection[] = [
-  'Estudos',
-  'Workshops & Eventos',
-  'Criação de Conteúdo',
-  'Carreira Tech',
-  'Pesquisa & IA',
-  'Comunidade & Liderança',
-];
+const DEFAULT_PROMPT_FORM: Partial<PromptItem> = {
+  title: '',
+  promptText: '',
+  section: 'Estudos',
+  tags: [],
+  variables: [],
+  recommendedModel: 'gemini-3.7-flash',
+  isFavorite: false,
+  usageCount: 0,
+};
 
 export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   prompts,
@@ -48,40 +55,58 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Modals & Runners
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+  const [isExportSelectOpen, setIsExportSelectOpen] = useState(false);
+  const [selectedExportIds, setSelectedExportIds] = useState<Set<string>>(new Set());
+
+  const [isAddModalOpen, setIsAddModalOpen] = usePersistedState('gsa_prompt_modal_open', false);
   const [testingPrompt, setTestingPrompt] = useState<PromptItem | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [aiExecutionResult, setAiExecutionResult] = useState<string | null>(null);
   const [isExecutingAi, setIsExecutingAi] = useState(false);
 
-  // AI Prompt Enhancer
+  const [testFilePreview, setTestFilePreview] = useState<string | null>(null);
+  const [testFileName, setTestFileName] = useState('');
+  const [testFileMimeType, setTestFileMimeType] = useState('');
+  const [testFileError, setTestFileError] = useState<string | null>(null);
+  const [isDraggingTestFile, setIsDraggingTestFile] = useState(false);
+  const testFileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_TEST_FILE_SIZE_BYTES = 4 * 1024 * 1024; 
+  const ACCEPTED_TEST_FILE_TYPES = [
+    'image/png',
+    'image/jpeg',
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+  ];
+
   const [enhancingPrompt, setEnhancingPrompt] = useState<PromptItem | null>(null);
   const [enhancedResult, setEnhancedResult] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
 
-  // New Prompt Form
-  const [formData, setFormData] = useState<Partial<PromptItem>>({
-    title: '',
-    promptText: '',
-    section: 'Estudos',
-    tags: [],
-    variables: [],
-    recommendedModel: 'gemini-3.7-flash',
-    isFavorite: false,
-    usageCount: 0,
-  });
-  const [tagInput, setTagInput] = useState('');
-  const [varInput, setVarInput] = useState('');
+  const [formData, setFormData] = usePersistedState<Partial<PromptItem>>('gsa_prompt_form_draft', DEFAULT_PROMPT_FORM);
+  const [tagInput, setTagInput] = usePersistedState('gsa_prompt_tag_draft', '');
+  const [varInput, setVarInput] = usePersistedState('gsa_prompt_var_draft', '');
 
-  // Filtering
+  const dynamicSections = Array.from(
+    prompts.reduce((map, p) => {
+      const trimmed = p.section?.trim();
+      if (trimmed && !map.has(trimmed.toLowerCase())) {
+        map.set(trimmed.toLowerCase(), trimmed);
+      }
+      return map;
+    }, new Map<string, string>()).values()
+  );
+
   const filteredPrompts = prompts.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.promptText.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesSection = selectedSection === 'Todos' || p.section === selectedSection;
+    const matchesSection =
+      selectedSection === 'Todos' || p.section.trim().toLowerCase() === selectedSection.trim().toLowerCase();
     const matchesFav = !onlyFavorites || p.isFavorite;
 
     return matchesSearch && matchesSection && matchesFav;
@@ -92,7 +117,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     setCopiedId(prompt.id);
     setTimeout(() => setCopiedId(null), 2000);
 
-    // Increase usage count
     onSavePrompt({
       ...prompt,
       usageCount: (prompt.usageCount || 0) + 1,
@@ -107,10 +131,13 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     });
   };
 
-  // Open Live Tester for a prompt
   const openTester = (prompt: PromptItem) => {
     setTestingPrompt(prompt);
     setAiExecutionResult(null);
+    setTestFilePreview(null);
+    setTestFileName('');
+    setTestFileMimeType('');
+    setTestFileError(null);
     const initialVars: Record<string, string> = {};
     prompt.variables?.forEach((v) => {
       initialVars[v] = '';
@@ -118,7 +145,51 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     setVariableValues(initialVars);
   };
 
-  // Run Prompt Live on Gemini
+  const loadTestFile = (file: File) => {
+    setTestFileError(null);
+    if (!ACCEPTED_TEST_FILE_TYPES.includes(file.type)) {
+      setTestFileError('Formato não suportado. Anexe uma imagem (PNG/JPG), um PDF, um DOCX ou um XLSX.');
+      return;
+    }
+    if (file.size > MAX_TEST_FILE_SIZE_BYTES) {
+      setTestFileError(`Arquivo muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 4MB.`);
+      return;
+    }
+
+    setTestFileName(file.name);
+    setTestFileMimeType(file.type);
+    const reader = new FileReader();
+    reader.onload = (event) => setTestFilePreview(event.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleTestFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    loadTestFile(file);
+  };
+
+  const handleTestFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingTestFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    loadTestFile(file);
+  };
+
+  const handleRemoveTestFile = () => {
+    setTestFilePreview(null);
+    setTestFileName('');
+    setTestFileMimeType('');
+    setTestFileError(null);
+    if (testFileInputRef.current) testFileInputRef.current.value = '';
+  };
+
+  const closeTester = () => {
+    setTestingPrompt(null);
+    handleRemoveTestFile();
+  };
+
   const handleExecuteLivePrompt = async () => {
     if (!testingPrompt) return;
     setIsExecutingAi(true);
@@ -133,10 +204,15 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
         }
       });
 
-      const reply = await GeminiApiService.sendChatMessage(finalPrompt);
+      const reply = await GeminiApiService.sendChatMessage(
+        finalPrompt,
+        undefined,
+        testFilePreview
+          ? { dataUrl: testFilePreview, mimeType: testFileMimeType, fileName: testFileName }
+          : undefined
+      );
       setAiExecutionResult(reply);
 
-      // Increase usage
       await onSavePrompt({
         ...testingPrompt,
         usageCount: (testingPrompt.usageCount || 0) + 1,
@@ -149,7 +225,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     }
   };
 
-  // Enhance Prompt with Gemini
   const handleEnhanceWithGemini = async (prompt: PromptItem) => {
     setEnhancingPrompt(prompt);
     setIsEnhancing(true);
@@ -169,7 +244,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     }
   };
 
-  // Add Tag / Variable
   const handleAddTag = () => {
     if (!tagInput.trim()) return;
     const tag = tagInput.trim();
@@ -190,13 +264,13 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
 
   const handleSubmitPrompt = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.promptText) return;
+    if (!formData.title?.trim() || !formData.promptText?.trim()) return;
 
     const newPrompt: PromptItem = {
       id: formData.id || crypto.randomUUID(),
       title: formData.title || 'Novo Prompt',
       promptText: formData.promptText || '',
-      section: (formData.section as PromptSection) || 'Estudos',
+      section: formData.section || 'Estudos',
       tags: formData.tags || [],
       variables: formData.variables || [],
       recommendedModel: formData.recommendedModel || 'gemini-3.7-flash',
@@ -218,59 +292,114 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   };
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      promptText: '',
-      section: 'Estudos',
-      tags: [],
-      variables: [],
-      recommendedModel: 'gemini-3.7-flash',
-      isFavorite: false,
-      usageCount: 0,
-    });
+    setFormData(DEFAULT_PROMPT_FORM);
     setTagInput('');
     setVarInput('');
   };
 
+  const toggleExportSelection = (id: string) => {
+    setSelectedExportIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleConfirmExport = () => {
+    const toExport = prompts.filter((p) => selectedExportIds.has(p.id));
+    exportPromptsAsPdf(toExport);
+    setIsExportSelectOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isExportMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsExportMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isExportMenuOpen]);
+
   return (
     <div className="space-y-6">
-      
-      {/* Header & New Prompt Button */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 pt-15">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Sparkles className="w-6 h-6 text-[#FBBC04]" />
-            <span>Banco de Prompts por Seção</span>
+            <span>Banco de Prompts</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Biblioteca de prompts testados para acelerar seus estudos, workshops universitários e liderança com Gemini.
-          </p>
         </div>
 
-        <button
-          id="btn-new-prompt"
-          onClick={() => {
-            resetForm();
-            setIsAddModalOpen(true);
-          }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#FBBC04] hover:bg-[#F59E0B] text-gray-950 font-bold text-sm shadow-sm transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Criar Novo Prompt</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setIsExportMenuOpen((v) => !v)}
+              disabled={prompts.length === 0}
+              aria-haspopup="menu"
+              aria-expanded={isExportMenuOpen}
+              aria-label="Exportar prompts"
+              className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exportar prompts do banco"
+            >
+              <FileDown className="w-4 h-4" />
+              <span className="hidden sm:inline">Exportar</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isExportMenuOpen && (
+              <div
+                role="menu"
+                className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-40 rounded-xl bg-white border border-gray-200 shadow-lg p-1.5 z-20"
+              >
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setSelectedExportIds(new Set(prompts.map((p) => p.id)));
+                    setIsExportMenuOpen(false);
+                    setIsExportSelectOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <FileText className="w-4 h-4 text-[#EA4335]" />
+                  <span>.pdf</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            id="btn-new-prompt"
+            onClick={() => {
+              resetForm();
+              setIsAddModalOpen(true);
+            }}
+            aria-label="Novo prompt"
+            title="Novo prompt"
+            className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Novo prompt</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filter and Section Selector */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
-          
-          {/* Search Bar */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               id="search-prompts-input"
               type="text"
-              placeholder="Buscar prompt por palavra-chave, tema ou seção (ex: Feynman, Workshop, Instagram)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#FBBC04]/40 focus:border-[#FBBC04] bg-gray-50"
@@ -285,24 +414,26 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
             )}
           </div>
 
-          {/* Favorites Filter */}
-          <button
-            id="filter-favorites-prompts"
-            onClick={() => setOnlyFavorites(!onlyFavorites)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              onlyFavorites
-                ? 'bg-[#FBBC04]/20 border-[#FBBC04] text-[#9E5D00]'
-                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-[#FBBC04] text-[#FBBC04]' : 'text-gray-400'}`} />
-            <span>Favoritos</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              id="filter-favorites-prompts"
+              onClick={() => setOnlyFavorites(!onlyFavorites)}
+              aria-pressed={onlyFavorites}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                onlyFavorites
+                  ? 'bg-[#FBBC04]/20 border-[#FBBC04] text-[#9E5D00]'
+                  : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-[#FBBC04] text-[#FBBC04]' : 'text-gray-400'}`} />
+              <span>Favoritos</span>
+            </button>
+          </div>
         </div>
 
-        {/* Section Tabs */}
+        {dynamicSections.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
-          {['Todos', ...SECTIONS].map((sec) => {
+          {['Todos', ...dynamicSections].map((sec) => {
             const isSelected = selectedSection === sec;
             return (
               <button
@@ -319,28 +450,15 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
             );
           })}
         </div>
+        )}
       </div>
 
-      {/* Prompts Cards Grid */}
       {filteredPrompts.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
           <div className="w-16 h-16 rounded-full bg-[#FBBC04]/15 text-[#B06000] flex items-center justify-center mx-auto">
             <Sparkles className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-gray-900">Nenhum prompt encontrado</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto">
-            Tente outro termo de busca ou adicione um novo prompt para a seção selecionada.
-          </p>
-          <button
-            onClick={() => {
-              resetForm();
-              setIsAddModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FBBC04] text-gray-900 text-sm font-bold hover:bg-[#F59E0B]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Criar Prompt</span>
-          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -350,7 +468,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               id={`prompt-card-${prompt.id}`}
               className="bg-white rounded-3xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-[#FBBC04]/60 transition-all p-6 flex flex-col justify-between space-y-4"
             >
-              {/* Header Info */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -384,14 +501,12 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   {prompt.title}
                 </h3>
 
-                {/* Prompt Code Container */}
                 <div className="relative group bg-gray-50 rounded-2xl p-4 border border-gray-200">
                   <p className="text-xs sm:text-sm text-gray-700 font-mono whitespace-pre-wrap line-clamp-4 leading-relaxed">
                     {prompt.promptText}
                   </p>
                 </div>
 
-                {/* Tags & Variables Pills */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
                   {prompt.tags.map((tag, idx) => (
                     <span
@@ -415,10 +530,8 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons Footer */}
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  {/* Test / Run Live with Gemini */}
                   <button
                     onClick={() => openTester(prompt)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A73E8]/10 hover:bg-[#1A73E8]/20 text-[#1A73E8] text-xs font-bold transition-all active:scale-95"
@@ -426,10 +539,9 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                     title="Testar prompt com Gemini"
                   >
                     <Play className="w-3.5 h-3.5 fill-[#1A73E8]" />
-                    <span>Testar com Gemini</span>
+                    <span>Testar</span>
                   </button>
 
-                  {/* AI Enhance */}
                   <button
                     onClick={() => handleEnhanceWithGemini(prompt)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-gray-700 text-xs font-semibold transition-all"
@@ -455,7 +567,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  {/* Copy Prompt Button */}
                   <button
                     onClick={() => handleCopyPrompt(prompt)}
                     className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
@@ -472,7 +583,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                     ) : (
                       <>
                         <Copy className="w-3.5 h-3.5" />
-                        <span>Copiar Prompt</span>
+                        <span>Copiar</span>
                       </>
                     )}
                   </button>
@@ -485,7 +596,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: CREATE / NEW PROMPT -------------------- */}
       {isAddModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
@@ -497,7 +607,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                    Cadastrar Prompt por Seção
+                    Cadastrar Prompt
                   </h3>
                   <p className="text-xs text-gray-500">
                     Salve prompts reutilizáveis com parâmetros e variáveis.
@@ -514,8 +624,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
             </div>
 
             <form onSubmit={handleSubmitPrompt} className="space-y-4">
-              
-              {/* Title */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Título do Prompt *
@@ -523,28 +631,31 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="Ex: Simulação de Entrevista Técnica Google"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
                 />
               </div>
 
-              {/* Section & Recommended Model */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Seção / Categoria *
+                    Categoria
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    list="prompt-section-suggestions"
                     value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value as PromptSection })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
-                  >
-                    {SECTIONS.map((sec) => (
-                      <option key={sec} value={sec}>{sec}</option>
-                    ))}
-                  </select>
+                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
+                  />
+                  {dynamicSections.length > 0 && (
+                    <datalist id="prompt-section-suggestions">
+                      {dynamicSections.map((sec) => (
+                        <option key={sec} value={sec} />
+                      ))}
+                    </datalist>
+                  )}
                 </div>
 
                 <div>
@@ -563,7 +674,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </div>
               </div>
 
-              {/* Prompt Text Area */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Texto do Prompt *
@@ -571,22 +681,19 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 <textarea
                   rows={6}
                   required
-                  placeholder="Escreva a instrução completa. Dica: Use colchetes para variáveis como [TÓPICO] ou [PÚBLICO]..."
                   value={formData.promptText}
                   onChange={(e) => setFormData({ ...formData, promptText: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm font-mono border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
                 />
               </div>
 
-              {/* Variables Management */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Variáveis / Parâmetros do Prompt
+                  Parâmetros do Prompt
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Adicionar variável (ex: TEMA, PÚBLICO, NÍVEL)..."
                     value={varInput}
                     onChange={(e) => setVarInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -600,9 +707,11 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   <button
                     type="button"
                     onClick={handleAddVar}
-                    className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold"
+                    aria-label="Adicionar variável"
+                    title="Adicionar variável"
+                    className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-bold"
                   >
-                    + Variável
+                    +
                   </button>
                 </div>
                 {formData.variables && formData.variables.length > 0 && (
@@ -626,7 +735,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 )}
               </div>
 
-              {/* Tags */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Tags de Busca
@@ -634,7 +742,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Adicionar tag (ex: Estudos, Produtividade, Python)..."
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -648,9 +755,11 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold"
+                    aria-label="Adicionar tag"
+                    title="Adicionar tag"
+                    className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-bold"
                   >
-                    + Tag
+                    +
                   </button>
                 </div>
                 {formData.tags && formData.tags.length > 0 && (
@@ -674,7 +783,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 )}
               </div>
 
-              {/* Modal Actions */}
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -685,9 +793,10 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#FBBC04] hover:bg-[#F59E0B] text-gray-950 shadow-sm transition-all active:scale-95"
+                  disabled={!formData.title?.trim() || !formData.promptText?.trim()}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#FBBC04] hover:bg-[#F59E0B] text-gray-950 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#FBBC04]"
                 >
-                  Salvar no Banco de Prompts
+                  Salvar
                 </button>
               </div>
 
@@ -697,7 +806,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: TEST PROMPT LIVE WITH GEMINI -------------------- */}
       {testingPrompt && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
@@ -709,7 +817,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                    Testar Prompt com Gemini 3.7
+                    Testar Prompt
                   </h3>
                   <p className="text-xs text-gray-500">
                     {testingPrompt.title} • {testingPrompt.section}
@@ -717,7 +825,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 </div>
               </div>
               <button
-                onClick={() => setTestingPrompt(null)}
+                onClick={closeTester}
                 aria-label="Fechar"
                 className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
               >
@@ -725,7 +833,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </button>
             </div>
 
-            {/* Variable Inputs */}
             {testingPrompt.variables && testingPrompt.variables.length > 0 && (
               <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
                 <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -750,17 +857,79 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </div>
             )}
 
-            {/* Prompt Template Preview */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                Prompt Base
+                Prompt
               </label>
               <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs font-mono text-gray-800 whitespace-pre-wrap max-h-40 overflow-y-auto">
                 {testingPrompt.promptText}
               </div>
             </div>
 
-            {/* AI Output Area */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Anexar (opcional)
+              </label>
+              <input
+                ref={testFileInputRef}
+                type="file"
+                accept=".png,.jpg,.jpeg,.pdf,.docx,.xlsx,image/png,image/jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden"
+                onChange={handleTestFileChange}
+              />
+              {testFilePreview ? (
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-200">
+                  {testFileMimeType.startsWith('image/') ? (
+                    <img
+                      src={testFilePreview}
+                      alt="Anexo"
+                      className="w-14 h-14 rounded-xl object-cover shrink-0 border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                      <FileText className="w-6 h-6 text-[#EA4335]" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-gray-800 truncate">{testFileName}</p>
+                    <p className="text-[11px] text-green-600 font-medium">Anexo pronto para o teste</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveTestFile}
+                    aria-label="Remover anexo"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => testFileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingTestFile(true);
+                  }}
+                  onDragLeave={() => setIsDraggingTestFile(false)}
+                  onDrop={handleTestFileDrop}
+                  className={`w-full flex items-center gap-2.5 p-3 rounded-2xl border-2 border-dashed bg-[#F8FAFD] text-left transition-all ${
+                    isDraggingTestFile ? 'border-[#1A73E8] bg-[#1A73E8]/5' : 'border-gray-300 hover:border-[#1A73E8]'
+                  }`}
+                >
+                  <Paperclip className="w-4 h-4 text-gray-500 shrink-0" />
+                  <span className="text-xs text-gray-600">
+                    Anexe imagem (PNG/JPG) ou um documento (PDF/DOCX/XLSX) se a IA precisar de contexto.
+                  </span>
+                </button>
+              )}
+              {testFileError && (
+                <p role="alert" className="mt-2 text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5">
+                  {testFileError}
+                </p>
+              )}
+            </div>
+
             {aiExecutionResult && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -785,11 +954,10 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </div>
             )}
 
-            {/* Execute Button */}
             <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setTestingPrompt(null)}
+                onClick={closeTester}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
               >
                 Fechar
@@ -807,8 +975,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4" />
-                    <span>Executar no Gemini Agora</span>
+                    <span>Executar</span>
                   </>
                 )}
               </button>
@@ -818,7 +985,6 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: AI PROMPT ENHANCER -------------------- */}
       {enhancingPrompt && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
@@ -874,6 +1040,87 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </div>
             ) : null}
 
+          </div>
+        </div>
+      )}
+
+      {isExportSelectOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Selecionar prompts para exportar" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FBBC04]/20 text-[#8F5200] flex items-center justify-center">
+                  <FileDown className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Exportar Prompts</h3>
+                  <p className="text-xs text-gray-500">Escolha o que deve ser exportado</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsExportSelectOpen(false)}
+                aria-label="Fechar"
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-3 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-500">
+                {selectedExportIds.size} de {prompts.length} selecionado{prompts.length === 1 ? '' : 's'}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedExportIds(
+                    selectedExportIds.size === prompts.length ? new Set() : new Set(prompts.map((p) => p.id))
+                  )
+                }
+                className="text-xs font-bold text-[#1A73E8] hover:underline"
+              >
+                {selectedExportIds.size === prompts.length ? 'Desmarcar todos' : 'Selecionar todos'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5">
+              {prompts.map((prompt) => (
+                <label
+                  key={prompt.id}
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedExportIds.has(prompt.id)}
+                    onChange={() => toggleExportSelection(prompt.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#1A73E8] focus:ring-[#1A73E8]/30 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{prompt.title}</p>
+                    <p className="text-xs text-gray-500 truncate">{prompt.section}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="p-6 pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsExportSelectOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmExport}
+                disabled={selectedExportIds.size === 0}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#FBBC04] hover:bg-[#F59E0B] text-gray-950 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileDown className="w-4 h-4" />
+                <span>Exportar {selectedExportIds.size > 0 ? `(${selectedExportIds.size})` : ''}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

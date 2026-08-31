@@ -1,5 +1,3 @@
-// Freeform: the user types their own category when creating a certificate
-// (e.g. "Onboarding"), so this isn't a fixed set of options.
 export type CertificateCategory = string;
 
 export interface Certificate {
@@ -9,7 +7,7 @@ export interface Certificate {
   issueDate: string;
   category: CertificateCategory;
   description: string;
-  fileData?: string; // base64 or object URL
+  fileData?: string; 
   fileName?: string;
   fileType?: 'image' | 'pdf' | 'document';
   skills: string[];
@@ -21,14 +19,7 @@ export interface Certificate {
 }
 
 export type CertificateItem = Certificate;
-
-export type PromptSection =
-  | 'Estudos'
-  | 'Workshops & Eventos'
-  | 'Criação de Conteúdo'
-  | 'Carreira Tech'
-  | 'Pesquisa & IA'
-  | 'Comunidade & Liderança';
+export type PromptSection = string;
 
 export interface PromptItem {
   id: string;
@@ -85,4 +76,27 @@ export interface AmbassadorProfile {
   githubUrl?: string;
   instagramUrl?: string;
   goal2026: string;
+  isPublic?: boolean;
+  publicSlug?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessageRecord {
+  id: string;
+  sessionId: string;
+  sender: 'user' | 'gemini';
+  text: string;
+  createdAt: string;
+}
+
+export interface PushSubscriptionKeys {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }

@@ -35,6 +35,7 @@ import { GeminiApiService } from '../services/geminiApi';
 import { exportPortfolioAsPdf } from '../utils/portfolioExport';
 import { DatePicker } from './DatePicker';
 import { BadgesShowcase } from './BadgesShowcase';
+import { usePersistedState } from '../hooks/usePersistedState';
 
 interface CertificatesModuleProps {
   certificates: Certificate[];
@@ -48,6 +49,19 @@ interface CertificatesModuleProps {
 }
 
 type SortOption = 'date-desc' | 'date-asc' | 'hours-desc' | 'name-asc';
+
+const DEFAULT_CERT_FORM: Partial<Certificate> = {
+  title: '',
+  issuer: 'Google Cloud Skills Boost',
+  issueDate: new Date().toISOString().split('T')[0],
+  category: '',
+  description: '',
+  skills: [],
+  credentialId: '',
+  credentialUrl: '',
+  hours: 10,
+  isFavorite: false,
+};
 
 const SORT_LABELS: Record<SortOption, string> = {
   'date-desc': 'Mais recentes',
@@ -82,28 +96,16 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
   const [isExportSelectOpen, setIsExportSelectOpen] = useState(false);
   const [selectedExportIds, setSelectedExportIds] = useState<Set<string>>(new Set());
   const exportSelectModalRef = useRef<HTMLDivElement>(null);
-
-  // Modals
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = usePersistedState('gsa_cert_modal_open', false);
+  const [selectedCertId, setSelectedCertId] = usePersistedState<string | null>('gsa_cert_selected_id', null);
+  const [isEditMode, setIsEditMode] = usePersistedState('gsa_cert_edit_mode', false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const addModalRef = useRef<HTMLDivElement>(null);
   const detailModalRef = useRef<HTMLDivElement>(null);
 
-  // Form State
-  const [formData, setFormData] = useState<Partial<Certificate>>({
-    title: '',
-    issuer: 'Google Cloud Skills Boost',
-    issueDate: new Date().toISOString().split('T')[0],
-    category: '',
-    description: '',
-    skills: [],
-    credentialId: '',
-    credentialUrl: '',
-    hours: 10,
-    isFavorite: false,
-  });
+  const selectedCert = selectedCertId ? certificates.find((c) => c.id === selectedCertId) ?? null : null;
+
+  const [formData, setFormData] = usePersistedState<Partial<Certificate>>('gsa_cert_form_draft', DEFAULT_CERT_FORM);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [fileType, setFileType] = useState<'image' | 'pdf' | 'document'>('image');
@@ -116,8 +118,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
   const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
 
-  // Categories the user has actually typed in, deduped case-insensitively
-  // (keeps the casing of whichever certificate used that category first).
   const dynamicCategories = Array.from(
     certificates.reduce((map, c) => {
       const trimmed = c.category?.trim();
@@ -128,7 +128,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     }, new Map<string, string>()).values()
   );
 
-  // Filtered + Sorted Certificates
   const filteredCertificates = certificates
     .filter((c) => {
       const matchesSearch =
@@ -210,7 +209,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     });
   };
 
-  // AI Auto-Fill Certificate with Gemini
   const handleAiAutoFill = async () => {
     setIsAnalyzing(true);
     try {
@@ -229,7 +227,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         skills: Array.from(new Set([...(prev.skills || []), ...(res.skills || [])])),
       }));
 
-      // Trigger soft celebratory confetti
       confetti({
         particleCount: 40,
         spread: 60,
@@ -270,7 +267,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
       await onSaveCertificate(newCert);
 
-      // Trigger Confetti!
       confetti({
         particleCount: 100,
         spread: 70,
@@ -289,18 +285,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
   };
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      issuer: 'Google Cloud Skills Boost',
-      issueDate: new Date().toISOString().split('T')[0],
-      category: '',
-      description: '',
-      skills: [],
-      credentialId: '',
-      credentialUrl: '',
-      hours: 10,
-      isFavorite: false,
-    });
+    setFormData({ ...DEFAULT_CERT_FORM, issueDate: new Date().toISOString().split('T')[0] });
     setFilePreview(null);
     setFileName('');
     setFileError(null);
@@ -314,7 +299,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     setFileType(cert.fileType || 'image');
     setFileError(null);
     setIsEditMode(true);
-    setSelectedCert(null);
+    setSelectedCertId(null);
     setIsAddModalOpen(true);
   };
 
@@ -323,7 +308,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     setDeletingId(cert.id);
     try {
       await onDeleteCertificate(cert.id);
-      setSelectedCert(null);
+      setSelectedCertId(null);
     } catch (err) {
       console.error(err);
       alert('Não foi possível excluir o certificado. Tente novamente.');
@@ -354,7 +339,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     });
   };
 
-  // Close the export menu on outside click or Esc
   useEffect(() => {
     if (!isExportMenuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -373,7 +357,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     };
   }, [isExportMenuOpen]);
 
-  // Esc-to-close + basic focus trap for whichever modal is open
   useEffect(() => {
     const modalRef = isAddModalOpen
       ? addModalRef
@@ -397,7 +380,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
       if (e.key === 'Escape') {
         if (isAddModalOpen) setIsAddModalOpen(false);
         else if (isExportSelectOpen) setIsExportSelectOpen(false);
-        else setSelectedCert(null);
+        else setSelectedCertId(null);
         return;
       }
       if (e.key === 'Tab') {
@@ -421,9 +404,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Header & Action Controls */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-15">
+      <div className="flex items-center justify-between gap-4 pt-15">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Award className="w-6 h-6 text-[#1A73E8]" />
@@ -431,14 +412,15 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="relative" ref={exportMenuRef}>
             <button
               onClick={() => setIsExportMenuOpen((v) => !v)}
               disabled={certificates.length === 0}
               aria-haspopup="menu"
               aria-expanded={isExportMenuOpen}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Exportar certificados"
+              className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Exportar todos os certificados do portfólio"
             >
               <FileDown className="w-4 h-4" />
@@ -473,48 +455,48 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               resetForm();
               setIsAddModalOpen(true);
             }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1A73E8] hover:bg-[#1A73E8] text-white font-semibold text-sm shadow-sm transition-all active:scale-95"
+            aria-label="Novo certificado"
+            title="Novo certificado"
+            className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95"
           >
             <Upload className="w-4 h-4" />
-            <span>Novo certificado</span>
+            <span className="hidden sm:inline">Novo certificado</span>
           </button>
         </div>
       </div>
 
-      {/* Quick Stats */}
       {certificates.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center shrink-0">
               <Layers className="w-4.5 h-4.5" />
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900 leading-tight">{certificates.length}</p>
-              <p className="text-[11px] text-gray-500 font-medium">Certificados</p>
+              <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Certificados</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#34A853]/10 text-[#34A853] flex items-center justify-center shrink-0">
               <Clock className="w-4.5 h-4.5" />
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900 leading-tight">{totalHours}h</p>
-              <p className="text-[11px] text-gray-500 font-medium">Horas de estudo</p>
+              <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Horas de estudo</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#FBBC04]/10 text-[#9E5D00] flex items-center justify-center shrink-0">
               <Star className="w-4.5 h-4.5" />
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900 leading-tight">{favoriteCount}</p>
-              <p className="text-[11px] text-gray-500 font-medium">Favoritos</p>
+              <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Favoritos</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Badges / Gamification Showcase */}
       <BadgesShowcase
         certificates={certificates}
         prompts={prompts}
@@ -522,11 +504,8 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         userBadges={userBadges}
       />
 
-      {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
-
-          {/* Search Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -547,7 +526,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
             )}
           </div>
 
-          {/* Favorites Filter & View Mode Toggle */}
           <div className="flex items-center gap-2">
             <button
               id="filter-favorites-cert"
@@ -606,7 +584,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
           </div>
         </div>
 
-        {/* Category Pills */}
         {dynamicCategories.length > 0 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
             {['Todos', ...dynamicCategories].map((cat) => {
@@ -629,7 +606,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         )}
       </div>
 
-      {/* Certificates Content Area */}
       {filteredCertificates.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
           <div className="w-16 h-16 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center mx-auto">
@@ -643,8 +619,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
           )}
         </div>
       ) : viewMode === 'grid' ? (
-        
-        /* Grid Cards View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredCertificates.map((cert) => {
             const isGoogleTheme = cert.category.includes('Google') || cert.category.includes('Gemini');
@@ -654,9 +628,8 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 id={`cert-card-${cert.id}`}
                 className="group relative flex flex-col bg-white rounded-3xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-[#1A73E8]/40 transition-all overflow-hidden"
               >
-                {/* Visual Header / Certificate Preview */}
                 <div 
-                  onClick={() => setSelectedCert(cert)}
+                  onClick={() => setSelectedCertId(cert.id)}
                   className="relative h-44 w-full bg-linear-to-br from-[#F1F5F9] via-[#E2E8F0] to-[#EEF2F6] flex items-center justify-center p-4 cursor-pointer overflow-hidden group-hover:opacity-95"
                 >
                   {cert.fileData ? (
@@ -675,7 +648,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                       />
                     )
                   ) : (
-                    /* Default Google Emblem */
                     <div className="relative flex flex-col items-center justify-center text-center p-4">
                       <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-200 flex items-center justify-center mb-2">
                         <Award className={`w-8 h-8 ${isGoogleTheme ? 'text-[#1A73E8]' : 'text-[#34A853]'}`} />
@@ -685,7 +657,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                     </div>
                   )}
 
-                  {/* Favorite Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -699,7 +670,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   </button>
                 </div>
 
-                {/* Card Body */}
                 <div className="flex-1 p-5 flex flex-col justify-between space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs text-gray-500">
@@ -711,7 +681,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                     </div>
 
                     <h3 
-                      onClick={() => setSelectedCert(cert)}
+                      onClick={() => setSelectedCertId(cert.id)}
                       className="font-bold text-gray-900 text-base leading-snug cursor-pointer hover:text-[#1A73E8] line-clamp-2"
                     >
                       {cert.title}
@@ -724,7 +694,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                     )}
                   </div>
 
-                  {/* Skills Chips */}
                   {cert.skills && cert.skills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {cert.skills.slice(0, 3).map((skill, idx) => (
@@ -743,7 +712,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                     </div>
                   )}
 
-                  {/* Card Footer Actions */}
                   <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {cert.hours ? (
@@ -771,7 +739,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                       </button>
 
                       <button
-                        onClick={() => setSelectedCert(cert)}
+                        onClick={() => setSelectedCertId(cert.id)}
                         className="p-1.5 rounded-xl bg-gray-100 hover:bg-[#1A73E8]/10 hover:text-[#1A73E8] text-gray-600 transition-all"
                         aria-label="Visualizar Detalhes"
                         title="Visualizar Detalhes"
@@ -788,7 +756,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         </div>
       ) : (
         
-        /* Table / List View */
         <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-center text-sm">
@@ -809,7 +776,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                       <div className="flex items-center justify-center gap-2.5">
                         <Award className="w-4 h-4 text-[#1A73E8] shrink-0" />
                         <span
-                          onClick={() => setSelectedCert(cert)}
+                          onClick={() => setSelectedCertId(cert.id)}
                           className="hover:text-[#1A73E8] cursor-pointer"
                         >
                           {cert.title}
@@ -846,7 +813,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setSelectedCert(cert)}
+                          onClick={() => setSelectedCertId(cert.id)}
                           className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
                           aria-label="Visualizar detalhes"
                           title="Visualizar Detalhes"
@@ -863,12 +830,9 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: ADD/EDIT CERTIFICATE -------------------- */}
       {isAddModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div ref={addModalRef} className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
-
-            {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
@@ -892,7 +856,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </button>
             </div>
 
-            {/* Dropzone Area */}
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
@@ -940,7 +903,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </p>
             )}
 
-            {/* AI Auto-Fill */}
             <div className="flex items-center justify-end">
               <button
                 type="button"
@@ -962,10 +924,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </button>
             </div>
 
-            {/* Form Fields */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              
-              {/* Title */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Título do Certificado *
@@ -980,7 +939,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 />
               </div>
 
-              {/* Issuer & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1017,7 +975,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 </div>
               </div>
 
-              {/* Issue Date & Hours */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1045,7 +1002,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 </div>
               </div>
 
-              {/* Skills Tags Manager */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Habilidades e Competências
@@ -1093,7 +1049,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 )}
               </div>
 
-              {/* Description / Summary */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                   Descrição
@@ -1106,7 +1061,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 />
               </div>
 
-              {/* Credential URL / ID */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1133,7 +1087,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 </div>
               </div>
 
-              {/* Modal Action Buttons */}
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -1159,12 +1112,9 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: VIEW CERTIFICATE DETAILS -------------------- */}
       {selectedCert && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div ref={detailModalRef} className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-2xl p-6 sm:p-8 space-y-6">
-
-            {/* Top Bar */}
             <div className="flex items-center justify-end pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <button
@@ -1176,7 +1126,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   <Star className={`w-5 h-5 ${selectedCert.isFavorite ? 'fill-[#FBBC04] text-[#FBBC04]' : ''}`} />
                 </button>
                 <button
-                  onClick={() => setSelectedCert(null)}
+                  onClick={() => setSelectedCertId(null)}
                   aria-label="Fechar"
                   className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
                 >
@@ -1185,7 +1135,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </div>
             </div>
 
-            {/* Certificate Preview Display */}
             {selectedCert.fileData && (
               <div className="bg-gray-900/5 rounded-2xl p-4 flex items-center justify-center max-h-80 overflow-hidden border border-gray-200">
                 {selectedCert.fileType === 'pdf' ? (
@@ -1211,7 +1160,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </div>
             )}
 
-            {/* Info Body */}
             <div className="space-y-4">
               <div>
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{selectedCert.issuer}</span>
@@ -1224,7 +1172,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 </div>
               )}
 
-              {/* Skills */}
               {selectedCert.skills && selectedCert.skills.length > 0 && (
                 <div>
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Habilidades Desenvolvidas</h4>
@@ -1241,7 +1188,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 </div>
               )}
 
-              {/* Extra Details Ribbon */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
                 <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
                   <span className="text-[11px] text-gray-500 uppercase font-semibold">Data de Emissão</span>
@@ -1282,7 +1228,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               </div>
             </div>
 
-            {/* Bottom Actions */}
             <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
               <button
                 onClick={() => handleDelete(selectedCert)}
@@ -1301,7 +1246,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               <button
                 onClick={() => {
                   const certToUse = selectedCert;
-                  setSelectedCert(null);
+                  setSelectedCertId(null);
                   onCreatePostFromCertificate(certToUse);
                 }}
                 aria-label="Gerar post comemorativo no Gemini"
@@ -1316,7 +1261,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: SELECT CERTIFICATES TO EXPORT -------------------- */}
       {isExportSelectOpen && (
         <div role="dialog" aria-modal="true" aria-label="Selecionar certificados para exportar" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div ref={exportSelectModalRef} className="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
@@ -1397,7 +1341,6 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };

@@ -5,8 +5,21 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import Groq from "groq-sdk";
 import dotenv from "dotenv";
+import { PDFParse } from "pdf-parse";
+import mammoth from "mammoth";
+import ExcelJS from "exceljs";
+import webpush from "web-push";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
+
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+const VAPID_CONTACT = process.env.VAPID_CONTACT_EMAIL || "mailto:no-reply@example.com";
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_CONTACT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,8 +31,56 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 const GROQ_TEXT_MODEL = "openai/gpt-oss-120b";
+const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-// Lazy Groq Client
+const DOCX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const XLSX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const MAX_DOCUMENT_CHARS = 12000;
+
+function extractXlsxText(workbook: ExcelJS.Workbook): string {
+  const parts: string[] = [];
+  workbook.eachSheet((worksheet) => {
+    parts.push(`## ${worksheet.name}`);
+    worksheet.eachRow((row) => {
+      const cells = (row.values as ExcelJS.CellValue[]).slice(1).map((v) => (v == null ? "" : String(v)));
+      parts.push(cells.join(" | "));
+    });
+  });
+  return parts.join("\n");
+}
+
+async function extractDocumentText(dataUrl: string, mimeType: string): Promise<string> {
+  const base64 = dataUrl.split(",")[1] || "";
+  const buffer: Buffer = Buffer.from(base64, "base64");
+  const nodeBuffer: Buffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as any);
+
+  try {
+    if (mimeType === "application/pdf") {
+      const parser = new PDFParse({ data: nodeBuffer });
+      try {
+        const result = await parser.getText();
+        return (result.text || "").trim().slice(0, MAX_DOCUMENT_CHARS);
+      } finally {
+        await parser.destroy();
+      }
+    }
+    if (mimeType === DOCX_MIME_TYPE) {
+      const result = await mammoth.extractRawText({ buffer: nodeBuffer });
+      return (result.value || "").trim().slice(0, MAX_DOCUMENT_CHARS);
+    }
+    if (mimeType === XLSX_MIME_TYPE) {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(nodeBuffer as any);
+      return extractXlsxText(workbook).trim().slice(0, MAX_DOCUMENT_CHARS);
+    }
+  } catch (error) {
+    console.error("Erro ao extrair texto do arquivo anexado:", error);
+    return "";
+  }
+
+  return "";
+}
+
 let groqClient: Groq | null = null;
 
 function getGroqClient(): Groq {
@@ -33,7 +94,6 @@ function getGroqClient(): Groq {
   return groqClient;
 }
 
-// 1. Health check
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -42,7 +102,6 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-// 2. Generate Post for Google Ambassador
 app.post("/api/gemini/generate-post", async (req, res) => {
   try {
     const {
@@ -100,7 +159,6 @@ Gere uma postagem pronta para copiar e publicar, formatada em Markdown de forma 
   }
 });
 
-// 3. Enhance / Optimize Prompt by Section
 app.post("/api/gemini/enhance-prompt", async (req, res) => {
   try {
     const { prompt, section = "Estudos", objective = "Melhorar clareza e resultados" } = req.body;
@@ -143,7 +201,6 @@ Por favor, forneça:
   }
 });
 
-// 4. Analyze Certificate / Suggest Metadata & Post
 app.post("/api/gemini/analyze-certificate", async (req, res) => {
   try {
     const { title, issuer } = req.body;
@@ -200,10 +257,13 @@ Extraia e complete os detalhes em formato JSON.`;
   }
 });
 
-// 5. Ambassador AI Copilot Chat
 app.post("/api/gemini/chat", async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], attachment } = req.body as {
+      message?: string;
+      history?: { sender: string; text: string }[];
+      attachment?: { dataUrl: string; mimeType: string; fileName?: string };
+    };
     if (!message) {
       return res.status(400).json({ error: "A mensagem é obrigatória." });
     }
@@ -219,8 +279,6 @@ Você auxilia com:
 - Dicas de prompt engineering e uso avançado do Gemini.
 Seu estilo é acolhedor, altamente inteligente, prático, motivador e focado no sucesso da embaixadora. Utilize formatação Markdown limpa.`;
 
-    // The client sends the full transcript on every turn (stateless server),
-    // so the chat session is reconstructed with that history before replying.
     const chatHistory: Groq.Chat.ChatCompletionMessageParam[] = Array.isArray(history)
       ? history.map((h: { sender: string; text: string }) => ({
           role: h.sender === "user" ? "user" : "assistant",
@@ -228,13 +286,36 @@ Seu estilo é acolhedor, altamente inteligente, prático, motivador e focado no 
         } as const))
       : [];
 
+    let userMessage: Groq.Chat.ChatCompletionUserMessageParam = { role: "user", content: message };
+    let model = GROQ_TEXT_MODEL;
+
+    if (attachment?.dataUrl && attachment.mimeType?.startsWith("image/")) {
+      model = GROQ_VISION_MODEL;
+      userMessage = {
+        role: "user",
+        content: [
+          { type: "text", text: message },
+          { type: "image_url", image_url: { url: attachment.dataUrl } },
+        ],
+      };
+    } else if (attachment?.dataUrl) {
+      const extractedText = await extractDocumentText(attachment.dataUrl, attachment.mimeType);
+      if (extractedText) {
+        const label = attachment.fileName ? ` (${attachment.fileName})` : "";
+        userMessage = {
+          role: "user",
+          content: `${message}\n\n--- Conteúdo do arquivo anexado${label} ---\n${extractedText}`,
+        };
+      }
+    }
+
     const completion = await groq.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
+      model,
       temperature: 0.7,
       messages: [
         { role: "system", content: systemInstruction },
         ...chatHistory,
-        { role: "user", content: message },
+        userMessage,
       ],
     });
 
@@ -247,7 +328,89 @@ Seu estilo é acolhedor, altamente inteligente, prático, motivador e focado no 
   }
 });
 
-// Vite & Static serving configuration
+app.get("/api/push/vapid-public-key", (_req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY || null });
+});
+
+app.post("/api/push/test", async (req, res) => {
+  try {
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      return res.status(500).json({ error: "Notificações push não configuradas no servidor (faltando VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY)." });
+    }
+    const { subscription } = req.body;
+    if (!subscription?.endpoint) {
+      return res.status(400).json({ error: "Assinatura de push inválida." });
+    }
+
+    await webpush.sendNotification(
+      subscription,
+      JSON.stringify({
+        title: "Embaixadora Google 2026",
+        body: "Notificação de teste — as notificações push estão funcionando! 🚀",
+        url: "/",
+      })
+    );
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error("Erro ao enviar push de teste:", error);
+    return res.status(500).json({ error: error.message || "Falha ao enviar notificação de teste." });
+  }
+});
+
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const INACTIVITY_THRESHOLD_DAYS = 7;
+const SCHEDULER_INTERVAL_MS = 6 * 60 * 60 * 1000; 
+
+async function runInactivityPushScan() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const cutoff = new Date(Date.now() - INACTIVITY_THRESHOLD_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: subscriptions, error } = await admin
+    .from("push_subscriptions")
+    .select("*")
+    .or(`last_notified_at.is.null,last_notified_at.lt.${cutoff}`);
+  if (error || !subscriptions?.length) return;
+
+  for (const sub of subscriptions) {
+    try {
+      const { data: lastPost } = await admin
+        .from("posts")
+        .select("created_at")
+        .eq("user_id", sub.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const lastPostDate = lastPost?.created_at ? new Date(lastPost.created_at) : null;
+      const isInactive = !lastPostDate || lastPostDate.toISOString() < cutoff;
+      if (!isInactive) continue;
+
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify({
+          title: "Embaixadora Google 2026",
+          body: "Já faz um tempo desde o seu último post! Que tal gerar um novo conteúdo com o Gemini hoje?",
+          url: "/",
+        })
+      );
+      await admin.from("push_subscriptions").update({ last_notified_at: new Date().toISOString() }).eq("id", sub.id);
+    } catch (err: any) {
+      if (err?.statusCode === 404 || err?.statusCode === 410) {
+        await admin.from("push_subscriptions").delete().eq("id", sub.id);
+      } else {
+        console.error("Erro ao enviar push de inatividade:", err);
+      }
+    }
+  }
+}
+
+if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  setInterval(() => runInactivityPushScan().catch((err) => console.error("Erro no scan de inatividade:", err)), SCHEDULER_INTERVAL_MS);
+}
+
 async function startServer() {
   const httpServer = http.createServer(app);
 

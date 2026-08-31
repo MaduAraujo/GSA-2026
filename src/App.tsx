@@ -13,7 +13,8 @@ import { supabase } from './services/supabaseClient';
 import { RemindersService } from './services/reminders';
 import { evaluateNewlyEarnedBadges } from './utils/badgeEngine';
 import { BadgeDefinition } from './data/badgeCatalog';
-import { Navbar } from './components/Navbar';
+import { Navbar, AppTab } from './components/Navbar';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { AuthScreen } from './components/AuthScreen';
 import { StatsBanner } from './components/StatsBanner';
 import { CertificatesModule } from './components/CertificatesModule';
@@ -24,6 +25,7 @@ import { PwaGuideModal } from './components/PwaGuideModal';
 import { ProfileModal } from './components/ProfileModal';
 import { BackupModal } from './components/BackupModal';
 import { BadgeUnlockToast } from './components/BadgeUnlockToast';
+import { usePersistedState, clearPersistedDrafts } from './hooks/usePersistedState';
 
 const EMPTY_PROFILE: AmbassadorProfile = {
   name: '',
@@ -37,14 +39,13 @@ const EMPTY_PROFILE: AmbassadorProfile = {
 };
 
 export default function App() {
-  // Auth
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [activeTab, setActiveTab] = usePersistedState<AppTab>(
+    'gsa_active_tab',
+    'certificates'
+  );
 
-  // Navigation
-  const [activeTab, setActiveTab] = useState<'certificates' | 'prompts' | 'posts' | 'copilot'>('certificates');
-
-  // Application Data States
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [posts, setPosts] = useState<GeminiPost[]>([]);
@@ -52,20 +53,16 @@ export default function App() {
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [badgeToastQueue, setBadgeToastQueue] = useState<BadgeDefinition[]>([]);
 
-  // Cross-module state triggers
   const [draftPostTopic, setDraftPostTopic] = useState<string>('');
 
-  // Modals
-  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isPwaModalOpen, setIsPwaModalOpen] = usePersistedState('gsa_pwa_modal_open', false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = usePersistedState('gsa_profile_modal_open', false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = usePersistedState('gsa_backup_modal_open', false);
 
-  // PWA Install Prompt
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Dark Mode
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const stored = localStorage.getItem('google_ambassador_dark_mode');
     if (stored !== null) return stored === 'true';
@@ -79,7 +76,6 @@ export default function App() {
 
   const handleToggleDarkMode = () => setIsDarkMode((prev) => !prev);
 
-  // Track Supabase auth session
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -89,22 +85,20 @@ export default function App() {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       if (!newSession) {
-        // Reset local state so the next user never sees a stale account's data.
         setCertificates([]);
         setPrompts([]);
         setPosts([]);
         setProfile(EMPTY_PROFILE);
         setUserBadges([]);
         setBadgeToastQueue([]);
+        clearPersistedDrafts();
       }
     });
 
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // Initialize PWA and Data
   useEffect(() => {
-    // Listen for PWA install event
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -112,7 +106,6 @@ export default function App() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
-    // Check if running standalone
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
       setIsInstalled(true);
     }
@@ -122,7 +115,6 @@ export default function App() {
     };
   }, []);
 
-  // Load data from Supabase once a session exists
   useEffect(() => {
     if (session) {
       loadAllData();
@@ -155,8 +147,6 @@ export default function App() {
       const lastPost = [...postsData].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
       RemindersService.checkAndNotify(lastPost?.createdAt || null);
 
-      // Silently persist any badge unlocked before this feature existed (or
-      // missed by a previous session) — no toast/confetti on login.
       await syncNewBadges(certsData, promptsData, postsData, badgesData, { silent: true });
     } catch (e) {
       console.error('Erro ao carregar dados do armazenamento:', e);
@@ -165,9 +155,6 @@ export default function App() {
     }
   };
 
-  // Evaluates the badge catalog against the given data, persists any newly
-  // earned badge to Supabase, and (unless silent) queues a celebratory toast
-  // + confetti for each one.
   const syncNewBadges = async (
     certsData: CertificateItem[],
     promptsData: PromptItem[],
@@ -212,7 +199,6 @@ export default function App() {
     }
   };
 
-  // Certificate Actions
   const handleSaveCertificate = async (cert: CertificateItem) => {
     await StorageService.saveCertificate(cert);
     const updated = await StorageService.getCertificates();
@@ -226,13 +212,11 @@ export default function App() {
     setCertificates(updated);
   };
 
-  // Trigger Post Generator from Certificate
   const handleCreatePostFromCert = (cert: CertificateItem) => {
     setDraftPostTopic(`Conquista do certificado oficial: "${cert.title}" emitido por ${cert.issuer}`);
     setActiveTab('posts');
   };
 
-  // Prompt Actions
   const handleSavePrompt = async (prompt: PromptItem) => {
     await StorageService.savePrompt(prompt);
     const updated = await StorageService.getPrompts();
@@ -246,7 +230,6 @@ export default function App() {
     setPrompts(updated);
   };
 
-  // Post Actions
   const handleSavePost = async (post: GeminiPost) => {
     await StorageService.savePost(post);
     const updated = await StorageService.getPosts();
@@ -260,7 +243,6 @@ export default function App() {
     setPosts(updated);
   };
 
-  // Profile Action
   const handleSaveProfile = async (newProfile: AmbassadorProfile) => {
     setProfile(newProfile);
     await StorageService.saveProfile(newProfile);
@@ -280,8 +262,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 flex flex-col font-sans selection:bg-blue-600/20 selection:text-blue-600 transition-colors">
-
-      {/* Top Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -297,9 +277,7 @@ export default function App() {
         onToggleDarkMode={handleToggleDarkMode}
       />
 
-      {/* Main App Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
         {isLoading ? (
           <div className="space-y-6 animate-pulse" role="status" aria-label="Carregando seus dados">
             <div className="h-40 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
@@ -312,7 +290,6 @@ export default function App() {
           </div>
         ) : (
         <>
-        {/* Metric / Summary Banner */}
         <StatsBanner
           certificates={certificates}
           prompts={prompts}
@@ -321,9 +298,8 @@ export default function App() {
           onNavigate={(tab) => setActiveTab(tab)}
         />
 
-        {/* Dynamic Active Module Render */}
         <div className="transition-all duration-200 ease-in-out">
-          {activeTab === 'certificates' && (
+          <div hidden={activeTab !== 'certificates'}>
             <CertificatesModule
               certificates={certificates}
               prompts={prompts}
@@ -334,35 +310,37 @@ export default function App() {
               onDeleteCertificate={handleDeleteCertificate}
               onCreatePostFromCertificate={handleCreatePostFromCert}
             />
-          )}
+          </div>
 
-          {activeTab === 'prompts' && (
+          <div hidden={activeTab !== 'prompts'}>
             <PromptsVaultModule
               prompts={prompts}
               onSavePrompt={handleSavePrompt}
               onDeletePrompt={handleDeletePrompt}
             />
-          )}
+          </div>
 
-          {activeTab === 'posts' && (
+          <div hidden={activeTab !== 'posts'}>
             <GeminiPostsModule
               posts={posts}
               onSavePost={handleSavePost}
               onDeletePost={handleDeletePost}
               initialDraftTopic={draftPostTopic}
             />
-          )}
+          </div>
 
-          {activeTab === 'copilot' && (
+          <div hidden={activeTab !== 'copilot'}>
             <GeminiCopilotModule />
-          )}
+          </div>
+
+          <div hidden={activeTab !== 'analytics'}>
+            <AnalyticsDashboard certificates={certificates} posts={posts} />
+          </div>
         </div>
         </>
         )}
-
       </main>
 
-      {/* Footer */}
         <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600 dark:text-gray-400">
           <div className="flex items-center gap-2">
@@ -391,7 +369,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Modals */}
       <PwaGuideModal
         isOpen={isPwaModalOpen}
         onClose={() => setIsPwaModalOpen(false)}
@@ -414,7 +391,6 @@ export default function App() {
         certificates={certificates}
       />
 
-      {/* Badge unlock celebration toasts (queued, shown one at a time) */}
       {badgeToastQueue[0] && (
         <BadgeUnlockToast
           key={badgeToastQueue[0].id}

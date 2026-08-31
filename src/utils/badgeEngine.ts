@@ -1,12 +1,6 @@
 import { Certificate, PromptItem, GeminiPost, UserBadge } from '../types';
 import { BADGE_CATALOG, BadgeDefinition, computeBadgeStats } from '../data/badgeCatalog';
 
-/**
- * Given current app data and the badges already unlocked, returns the badge
- * definitions that just became eligible. Runs two passes so meta-badges
- * (e.g. "all_star", which depends on other badges being unlocked) can react
- * to badges unlocked in the same evaluation.
- */
 export function evaluateNewlyEarnedBadges(
   certificates: Certificate[],
   prompts: PromptItem[],

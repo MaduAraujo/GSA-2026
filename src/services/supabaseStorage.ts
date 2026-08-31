@@ -1,7 +1,14 @@
 import { supabase } from './supabaseClient';
-import { Certificate, PromptItem, GeminiPost, AmbassadorProfile, UserBadge } from '../types';
-
-// --- Row <-> App type mappers (DB uses snake_case, app uses camelCase) ---
+import {
+  Certificate,
+  PromptItem,
+  GeminiPost,
+  AmbassadorProfile,
+  UserBadge,
+  ChatSession,
+  ChatMessageRecord,
+  PushSubscriptionKeys,
+} from '../types';
 
 function rowToCertificate(row: any): Certificate {
   return {
@@ -136,6 +143,8 @@ function rowToProfile(row: any): AmbassadorProfile {
     githubUrl: row.github_url ?? '',
     instagramUrl: row.instagram_url ?? '',
     goal2026: row.goal_2026 ?? '',
+    isPublic: row.is_public ?? false,
+    publicSlug: row.public_slug ?? undefined,
   };
 }
 
@@ -154,7 +163,28 @@ function profileToRow(profile: AmbassadorProfile, userId: string) {
     github_url: profile.githubUrl ?? '',
     instagram_url: profile.instagramUrl ?? '',
     goal_2026: profile.goal2026 ?? '',
+    is_public: profile.isPublic ?? false,
+    public_slug: profile.publicSlug || null,
     updated_at: new Date().toISOString(),
+  };
+}
+
+function rowToChatSession(row: any): ChatSession {
+  return {
+    id: row.id,
+    title: row.title,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function rowToChatMessage(row: any): ChatMessageRecord {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    sender: row.sender,
+    text: row.text,
+    createdAt: row.created_at,
   };
 }
 
@@ -172,7 +202,6 @@ async function requireUserId(): Promise<string> {
 }
 
 export const SupabaseStorageService = {
-  // --- Profile ---
   async getProfile(): Promise<AmbassadorProfile> {
     const userId = await requireUserId();
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -187,7 +216,6 @@ export const SupabaseStorageService = {
     if (error) throw error;
   },
 
-  // --- Certificates ---
   async getCertificates(): Promise<Certificate[]> {
     const { data, error } = await supabase
       .from('certificates')
@@ -208,7 +236,6 @@ export const SupabaseStorageService = {
     if (error) throw error;
   },
 
-  // --- Badges ---
   async getUserBadges(): Promise<UserBadge[]> {
     const { data, error } = await supabase
       .from('user_badges')
@@ -229,7 +256,6 @@ export const SupabaseStorageService = {
     if (error) throw error;
   },
 
-  // --- Prompts ---
   async getPrompts(): Promise<PromptItem[]> {
     const { data, error } = await supabase
       .from('prompts')
@@ -250,7 +276,6 @@ export const SupabaseStorageService = {
     if (error) throw error;
   },
 
-  // --- Posts ---
   async getPosts(): Promise<GeminiPost[]> {
     const { data, error } = await supabase
       .from('posts')
@@ -271,7 +296,111 @@ export const SupabaseStorageService = {
     if (error) throw error;
   },
 
-  // --- Full Backup Export & Import ---
+  async listChatSessions(): Promise<ChatSession[]> {
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToChatSession);
+  },
+
+  async createChatSession(title: string): Promise<ChatSession> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .insert({ user_id: userId, title })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToChatSession(data);
+  },
+
+  async renameChatSession(id: string, title: string): Promise<void> {
+    const { error } = await supabase
+      .from('chat_sessions')
+      .update({ title, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async touchChatSession(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('chat_sessions')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteChatSession(id: string): Promise<void> {
+    const { error } = await supabase.from('chat_sessions').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getChatMessages(sessionId: string): Promise<ChatMessageRecord[]> {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToChatMessage);
+  },
+
+  async appendChatMessage(sessionId: string, sender: 'user' | 'gemini', text: string): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from('chat_messages')
+      .insert({ session_id: sessionId, user_id: userId, sender, text });
+    if (error) throw error;
+    await this.touchChatSession(sessionId);
+  },
+
+  async getPublicProfileBySlug(slug: string): Promise<{ userId: string; profile: AmbassadorProfile } | null> {
+    const { data, error } = await supabase.from('profiles').select('*').eq('public_slug', slug).maybeSingle();
+    if (error) throw error;
+    return data ? { userId: data.id, profile: rowToProfile(data) } : null;
+  },
+
+  async getPublicCertificates(userId: string): Promise<Certificate[]> {
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .eq('user_id', userId)
+      .order('issue_date', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToCertificate);
+  },
+
+  async savePushSubscription(keys: PushSubscriptionKeys): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('push_subscriptions').upsert(
+      {
+        user_id: userId,
+        endpoint: keys.endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      },
+      { onConflict: 'endpoint' }
+    );
+    if (error) throw error;
+  },
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    if (error) throw error;
+  },
+
+  async listPushSubscriptions(): Promise<PushSubscriptionKeys[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({ endpoint: r.endpoint, p256dh: r.p256dh, auth: r.auth }));
+  },
+
   async exportAllData(): Promise<string> {
     const [profile, certificates, prompts, posts] = await Promise.all([
       this.getProfile(),

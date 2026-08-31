@@ -101,8 +101,6 @@ export const BackupModal: React.FC<BackupModalProps> = ({
         )}
 
         <div className="space-y-4">
-
-          {/* Portfolio Export Action */}
           <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <div className="flex items-center gap-2.5">
               <FileDown className="w-5 h-5 text-red-600" />
@@ -121,7 +119,6 @@ export const BackupModal: React.FC<BackupModalProps> = ({
             </button>
           </div>
 
-          {/* Export Action */}
           <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <div className="flex items-center gap-2.5">
               <Download className="w-5 h-5 text-blue-600" />
@@ -140,7 +137,6 @@ export const BackupModal: React.FC<BackupModalProps> = ({
             </button>
           </div>
 
-          {/* Import Action */}
           <div className="p-5 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
             <div className="flex items-center gap-2.5">
               <Upload className="w-5 h-5 text-green-700" />

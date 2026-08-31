@@ -23,12 +23,8 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
 
   return (
     <div className="mb-6">
-      {/* Hero Welcome Card */}
       <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-6 sm:p-8">
-        
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          
-          {/* Welcome Text */}
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600/10 text-blue-600 border border-blue-600/20 mb-8">
               <Trophy className="w-3.5 h-3.5 text-[#FBBC04]" />
@@ -45,10 +41,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
           </div>
         </div>
 
-        {/* 4-Stat Metric Cards Grid */}
         <div className="mt-8 pt-6 border-t border-gray-200 grid grid-cols-2 md:grid-cols-4 gap-4">
-          
-          {/* 1. Certificados */}
           <div 
             onClick={() => onNavigate('certificates')}
             className="group cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-blue-600/5 border border-gray-200 hover:border-blue-600/30 transition-all"
@@ -65,7 +58,6 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
             </div>
           </div>
 
-          {/* 2. Horas de Capacitação */}
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Horas de Estudo</span>
@@ -79,7 +71,6 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
             </div>
           </div>
 
-          {/* 3. Prompts Salvos */}
           <div 
             onClick={() => onNavigate('prompts')}
             className="group cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-amber-400/10 border border-gray-200 hover:border-amber-400/40 transition-all"
@@ -96,7 +87,6 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
             </div>
           </div>
 
-          {/* 4. Posts Gemini */}
           <div 
             onClick={() => onNavigate('posts')}
             className="group cursor-pointer p-4 rounded-xl bg-gray-50 hover:bg-red-600/10 border border-gray-200 hover:border-red-600/30 transition-all"
@@ -112,9 +102,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
               <span className="text-xs text-green-600 font-medium">{publishedPosts} pub.</span>
             </div>
           </div>
-
         </div>
-
       </div>
     </div>
   );

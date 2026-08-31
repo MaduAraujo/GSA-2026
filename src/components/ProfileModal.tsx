@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Trophy, Mail, Globe, Sparkles, X, Save, CheckCircle2, Award, Bell, BellOff, Upload, Trash2, ChevronDown } from 'lucide-react';
+import { User, Trophy, Mail, Globe, Sparkles, X, Save, CheckCircle2, Award, Bell, BellOff, Upload, Trash2, ChevronDown, Link2, Copy, Check, Smartphone, Loader2 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 import { RemindersService } from '../services/reminders';
+import { PushNotificationsService } from '../services/pushNotifications';
+import { usePersistedState } from '../hooks/usePersistedState';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -16,7 +18,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   profile,
   onSaveProfile,
 }) => {
-  const [formData, setFormData] = useState<AmbassadorProfile>({ ...profile });
+  const [formData, setFormData] = usePersistedState<AmbassadorProfile>('gsa_profile_form_draft', profile);
   const [saved, setSaved] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(RemindersService.isEnabled());
   const [reminderStatus, setReminderStatus] = useState<string | null>(null);
@@ -25,8 +27,81 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [isTogglingPush, setIsTogglingPush] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    PushNotificationsService.getCurrentSubscription()
+      .then((sub) => setPushSubscribed(!!sub))
+      .catch(() => setPushSubscribed(false));
+  }, [isOpen]);
+
+  const handleTogglePush = async () => {
+    setIsTogglingPush(true);
+    setPushStatus(null);
+    try {
+      if (pushSubscribed) {
+        await PushNotificationsService.unsubscribe();
+        setPushSubscribed(false);
+      } else {
+        await PushNotificationsService.subscribe();
+        setPushSubscribed(true);
+      }
+    } catch (err: any) {
+      setPushStatus(err.message || 'Não foi possível ativar as notificações push.');
+    } finally {
+      setIsTogglingPush(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setIsSendingTestPush(true);
+    setPushStatus(null);
+    try {
+      await PushNotificationsService.sendTestPush();
+      setPushStatus('Notificação de teste enviada!');
+    } catch (err: any) {
+      setPushStatus(err.message || 'Falha ao enviar notificação de teste.');
+    } finally {
+      setIsSendingTestPush(false);
+    }
+  };
+
+  const slugify = (value: string) => {
+    const stripped = value
+      .normalize('NFD')
+      .split('')
+      .filter((ch) => ch.charCodeAt(0) < 0x0300 || ch.charCodeAt(0) > 0x036f)
+      .join('');
+    return stripped
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  const handleTogglePublicPortfolio = () => {
+    const turningOn = !formData.isPublic;
+    setFormData((prev) => ({
+      ...prev,
+      isPublic: turningOn,
+      publicSlug: turningOn && !prev.publicSlug ? `${slugify(prev.name || 'embaixadora')}-${Math.random().toString(36).slice(2, 6)}` : prev.publicSlug,
+    }));
+  };
+
+  const handleCopyPortfolioLink = () => {
+    if (!formData.publicSlug) return;
+    const url = `${window.location.origin}/p/${formData.publicSlug}`;
+    navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024; 
 
   useEffect(() => {
     if (!avatarMenuOpen) return;
@@ -55,8 +130,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       setPendingAvatar(base64);
     };
     reader.readAsDataURL(file);
-
-    // Allow re-selecting the same file later (e.g. after canceling).
     e.target.value = '';
   };
 
@@ -68,16 +141,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   const cancelPendingAvatar = () => setPendingAvatar(null);
 
-  // The modal stays mounted while closed, so its own form state can go
-  // stale relative to `profile` (e.g. it loads from storage after mount).
-  // Re-sync whenever the modal is (re)opened.
+  const wasOpenRef = useRef(isOpen);
   useEffect(() => {
-    if (isOpen) {
+    const justOpened = isOpen && !wasOpenRef.current;
+    wasOpenRef.current = isOpen;
+    if (justOpened) {
       setFormData({ ...profile });
       setPendingAvatar(null);
       setAvatarError(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -114,8 +186,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     <>
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 shadow-xl p-6 sm:p-8 space-y-6">
-        
-        {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
@@ -139,7 +209,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
-        {/* Profile Card Preview */}
         <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-4">
           <div className="relative shrink-0" ref={avatarMenuRef}>
             <img
@@ -212,8 +281,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          {/* Name & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
@@ -241,7 +308,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          {/* University & Course */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
@@ -268,7 +334,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Bio */}
           <div>
             <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
               Mini Biografia
@@ -281,7 +346,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             />
           </div>
 
-          {/* 2026 Goal */}
           <div>
             <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
               Meta para o Programa
@@ -294,7 +358,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             />
           </div>
 
-          {/* Weekly Content Reminders */}
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${remindersEnabled ? 'bg-blue-600/10 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
@@ -321,7 +384,90 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </button>
           </div>
 
-          {/* Footer Actions */}
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${pushSubscribed ? 'bg-blue-600/10 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900">Notificações push (app fechado)</h4>
+                  <p className="text-[11px] text-gray-600">
+                    {pushStatus || 'Recebe avisos mesmo com o navegador fechado, incluindo o lembrete semanal de conteúdo.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleTogglePush}
+                disabled={isTogglingPush}
+                aria-pressed={pushSubscribed}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-60 ${
+                  pushSubscribed
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-white border border-gray-200 text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                {isTogglingPush ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : pushSubscribed ? 'Ativado' : 'Ativar'}
+              </button>
+            </div>
+            {pushSubscribed && (
+              <button
+                type="button"
+                onClick={handleSendTestPush}
+                disabled={isSendingTestPush}
+                className="text-[11px] font-bold text-blue-600 hover:underline disabled:opacity-60"
+              >
+                {isSendingTestPush ? 'Enviando...' : 'Enviar notificação de teste'}
+              </button>
+            )}
+          </div>
+
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${formData.isPublic ? 'bg-blue-600/10 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
+                  <Link2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900">Portfólio público</h4>
+                  <p className="text-[11px] text-gray-600">
+                    Gera um link somente-leitura com seu perfil e certificados, para compartilhar no LinkedIn ou currículo.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleTogglePublicPortfolio}
+                aria-pressed={formData.isPublic}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  formData.isPublic
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-white border border-gray-200 text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                {formData.isPublic ? 'Ativado' : 'Ativar'}
+              </button>
+            </div>
+
+            {formData.isPublic && formData.publicSlug && (
+              <div className="flex items-center gap-2">
+                <code className="flex-1 truncate text-[11px] font-mono px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-700">
+                  {window.location.origin}/p/{formData.publicSlug}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopyPortfolioLink}
+                  className="shrink-0 p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                  aria-label="Copiar link do portfólio"
+                  title="Copiar link"
+                >
+                  {linkCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
             <button
               type="button"
@@ -353,18 +499,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       </div>
     </div>
 
-    {/* Pending Avatar Preview Modal — a sibling of the dialog above, not
-        nested inside it, so it isn't clipped by the outer backdrop-blur
-        container's containing block (backdrop-filter creates one, which
-        would confine a nested `fixed inset-0` to the parent's padded box
-        instead of the real viewport). */}
         {pendingAvatar && (
   <div className="flex items-center gap-3">
     <button
       type="button"
       className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all"
       onClick={() => {
-        // ...salvar avatar...
       }}
     >
       Confirmar avatar
@@ -373,7 +513,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       type="button"
       className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-all"
       onClick={() => {
-        // ...cancelar...
       }}
     >
       Cancelar
