@@ -7,14 +7,10 @@ import {
   Flag,
   Camera,
   BarChart3,
-  Download,
   User,
-  HardDrive,
-  CheckCircle2,
+  Settings,
   Menu,
   X,
-  Moon,
-  Sun,
   LogOut,
   ChevronDown
 } from 'lucide-react';
@@ -27,14 +23,8 @@ interface NavbarProps {
   setActiveTab: (tab: AppTab) => void;
   profile: AmbassadorProfile;
   onOpenProfile: () => void;
-  onOpenBackup: () => void;
-  onOpenPwaGuide: () => void;
-  onInstallPwa: () => void;
+  onOpenSettings: () => void;
   onSignOut: () => void;
-  isInstalled: boolean;
-  hasInstallPrompt: boolean;
-  isDarkMode: boolean;
-  onToggleDarkMode: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -42,14 +32,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   profile,
   onOpenProfile,
-  onOpenBackup,
-  onOpenPwaGuide,
-  onInstallPwa,
+  onOpenSettings,
   onSignOut,
-  isInstalled,
-  hasInstallPrompt,
-  isDarkMode,
-  onToggleDarkMode,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -140,16 +124,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           <div className="flex items-center gap-0.5 ml-auto">
-            <button
-              id="dark-mode-toggle"
-              onClick={onToggleDarkMode}
-              aria-label={isDarkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              className={iconBtnClass}
-              title={isDarkMode ? 'Ativar modo claro' : 'Ativar modo escuro'}
-            >
-              {isDarkMode ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
-            </button>
-
             <div className="relative" ref={accountMenuRef}>
               <button
                 id="account-menu-btn"
@@ -186,29 +160,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   <button
-                    id="backup-btn"
-                    onClick={() => { setAccountMenuOpen(false); onOpenBackup(); }}
+                    id="settings-btn"
+                    onClick={() => { setAccountMenuOpen(false); onOpenSettings(); }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
-                    <HardDrive className="w-4 h-4 text-gray-500" />
-                    <span>Backup & Dados</span>
+                    <Settings className="w-4 h-4 text-gray-500" />
+                    <span>Configurações</span>
                   </button>
-
-                  {isInstalled ? (
-                    <div className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-[#1E8E3E]">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>App instalado</span>
-                    </div>
-                  ) : (
-                    <button
-                      id="pwa-install-btn"
-                      onClick={() => { setAccountMenuOpen(false); hasInstallPrompt ? onInstallPwa() : onOpenPwaGuide(); }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <Download className="w-4 h-4 text-gray-500" />
-                      <span>Instalar App</span>
-                    </button>
-                  )}
 
                   <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
 

@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import {
   CertificateItem,
   PromptItem,
+  PromptDoc,
   GeminiPost,
   AmbassadorProfile,
   UserBadge,
@@ -18,6 +19,7 @@ import { BadgeDefinition } from './data/badgeCatalog';
 import { Navbar, AppTab } from './components/Navbar';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { AuthScreen } from './components/AuthScreen';
+import { HomePage } from './components/HomePage';
 import { StatsBanner } from './components/StatsBanner';
 import { CertificatesModule } from './components/CertificatesModule';
 import { PromptsVaultModule } from './components/PromptsVaultModule';
@@ -25,9 +27,8 @@ import { GeminiPostsModule } from './components/GeminiPostsModule';
 import { GeminiCopilotModule } from './components/GeminiCopilotModule';
 import { ChallengesModule } from './components/ChallengesModule';
 import { GalleryModule } from './components/GalleryModule';
-import { PwaGuideModal } from './components/PwaGuideModal';
 import { ProfileModal } from './components/ProfileModal';
-import { BackupModal } from './components/BackupModal';
+import { SettingsModal } from './components/SettingsModal';
 import { BadgeUnlockToast } from './components/BadgeUnlockToast';
 import { usePersistedState, clearPersistedDrafts } from './hooks/usePersistedState';
 
@@ -45,6 +46,7 @@ const EMPTY_PROFILE: AmbassadorProfile = {
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authView, setAuthView] = useState<'home' | 'signIn' | 'signUp'>('home');
   const [activeTab, setActiveTab] = usePersistedState<AppTab>(
     'gsa_active_tab',
     'certificates'
@@ -52,6 +54,7 @@ export default function App() {
 
   const [certificates, setCertificates] = useState<CertificateItem[]>([]);
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
+  const [promptDocs, setPromptDocs] = useState<PromptDoc[]>([]);
   const [posts, setPosts] = useState<GeminiPost[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
@@ -63,7 +66,7 @@ export default function App() {
 
   const [isPwaModalOpen, setIsPwaModalOpen] = usePersistedState('gsa_pwa_modal_open', false);
   const [isProfileModalOpen, setIsProfileModalOpen] = usePersistedState('gsa_profile_modal_open', false);
-  const [isBackupModalOpen, setIsBackupModalOpen] = usePersistedState('gsa_backup_modal_open', false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = usePersistedState('gsa_settings_modal_open', false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
@@ -93,6 +96,7 @@ export default function App() {
       if (!newSession) {
         setCertificates([]);
         setPrompts([]);
+        setPromptDocs([]);
         setPosts([]);
         setChallenges([]);
         setGalleryPhotos([]);
@@ -136,9 +140,10 @@ export default function App() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [certsData, promptsData, postsData, challengesData, galleryData, profData, badgesData] = await Promise.all([
+      const [certsData, promptsData, promptDocsData, postsData, challengesData, galleryData, profData, badgesData] = await Promise.all([
         StorageService.getCertificates(),
         StorageService.getPrompts(),
+        StorageService.getPromptDocs(),
         StorageService.getPosts(),
         StorageService.getChallenges(),
         StorageService.getGalleryPhotos(),
@@ -148,6 +153,7 @@ export default function App() {
 
       setCertificates(certsData);
       setPrompts(promptsData);
+      setPromptDocs(promptDocsData);
       setPosts(postsData);
       setChallenges(challengesData);
       setGalleryPhotos(galleryData);
@@ -242,6 +248,18 @@ export default function App() {
     setPrompts(updated);
   };
 
+  const handleSavePromptDoc = async (doc: PromptDoc) => {
+    await StorageService.savePromptDoc(doc);
+    const updated = await StorageService.getPromptDocs();
+    setPromptDocs(updated);
+  };
+
+  const handleDeletePromptDoc = async (id: string) => {
+    await StorageService.deletePromptDoc(id);
+    const updated = await StorageService.getPromptDocs();
+    setPromptDocs(updated);
+  };
+
   const handleSavePost = async (post: GeminiPost) => {
     await StorageService.savePost(post);
     const updated = await StorageService.getPosts();
@@ -293,7 +311,27 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthScreen />;
+    if (authView === 'home') {
+      return (
+        <HomePage
+          onLogin={() => setAuthView('signIn')}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+          deferredPrompt={deferredPrompt}
+          onInstallPwa={handleInstallPwa}
+          isPwaModalOpen={isPwaModalOpen}
+          onClosePwaModal={() => setIsPwaModalOpen(false)}
+        />
+      );
+    }
+    return (
+      <AuthScreen
+        initialMode={authView}
+        onBack={() => setAuthView('home')}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
+      />
+    );
   }
 
   return (
@@ -303,14 +341,8 @@ export default function App() {
         setActiveTab={setActiveTab}
         profile={profile}
         onOpenProfile={() => setIsProfileModalOpen(true)}
-        onOpenBackup={() => setIsBackupModalOpen(true)}
-        onOpenPwaGuide={() => setIsPwaModalOpen(true)}
-        onInstallPwa={handleInstallPwa}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
         onSignOut={handleSignOut}
-        isInstalled={isInstalled}
-        hasInstallPrompt={!!deferredPrompt}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={handleToggleDarkMode}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -353,6 +385,9 @@ export default function App() {
               prompts={prompts}
               onSavePrompt={handleSavePrompt}
               onDeletePrompt={handleDeletePrompt}
+              promptDocs={promptDocs}
+              onSavePromptDoc={handleSavePromptDoc}
+              onDeletePromptDoc={handleDeletePromptDoc}
             />
           </div>
 
@@ -395,40 +430,11 @@ export default function App() {
         )}
       </main>
 
-        <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600 dark:text-gray-400">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-            <span className="font-semibold text-gray-900">Embaixadora Estudantil Google 2026</span>
-            <span>• PWA &amp; AI Studio</span>
+        <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
+            <p>© 2026 Embaixadores Estudantis do Google. Todos os direitos reservados.</p>
           </div>
-
-            <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsPwaModalOpen(true)}
-              className="hover:text-gray-900 underline underline-offset-2 transition-colors"
-            >
-              Instalar Aplicativo
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsBackupModalOpen(true)}
-              className="hover:text-gray-900 underline underline-offset-2 transition-colors"
-            >
-              Backup &amp; Dados
-            </button>
-            <span>•</span>
-            <span className="font-medium text-gray-800">Desenvolvido com Gemini 3.7</span>
-          </div>
-        </div>
-      </footer>
-
-      <PwaGuideModal
-        isOpen={isPwaModalOpen}
-        onClose={() => setIsPwaModalOpen(false)}
-        deferredPrompt={deferredPrompt}
-        onInstall={handleInstallPwa}
-      />
+        </footer>
 
       <ProfileModal
         isOpen={isProfileModalOpen}
@@ -437,12 +443,11 @@ export default function App() {
         onSaveProfile={handleSaveProfile}
       />
 
-      <BackupModal
-        isOpen={isBackupModalOpen}
-        onClose={() => setIsBackupModalOpen(false)}
-        onRefreshData={loadAllData}
-        profile={profile}
-        certificates={certificates}
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
       />
 
       {badgeToastQueue[0] && (

@@ -33,7 +33,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               Algo deu errado
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Ocorreu um erro inesperado nesta tela. Seus certificados, prompts e posts continuam salvos localmente. Tente recarregar a página.
+              Ocorreu um erro inesperado nesta tela.
+              <br />
+              Tente recarregar a página.
             </p>
             <button
               onClick={() => window.location.reload()}

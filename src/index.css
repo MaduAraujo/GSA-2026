@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 @layer base {
   :root {
     --color-gray-50: #F8F9FA;
@@ -45,6 +53,7 @@
 
 .dark .bg-white { background-color: #161B27; }
 .dark .bg-gray-50 { background-color: #1B2130; }
+.dark .bg-gray-50\/90 { background-color: rgba(27, 33, 48, 0.9); }
 .dark .bg-gray-100 { background-color: #202737; }
 .dark .bg-\[\#F8FAFD\] { background-color: #161B27; }
 .dark .bg-\[\#F8F9FA\] { background-color: #10141F; }

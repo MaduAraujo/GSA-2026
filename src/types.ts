@@ -29,10 +29,22 @@ export interface PromptItem {
   description?: string;
   tags: string[];
   variables?: string[];
+  sharedDocs?: string[];
   recommendedModel: 'gemini-3.7-flash' | 'gemini-3.1-pro-preview' | 'gemini-3.1-flash-lite';
   isFavorite?: boolean;
   usageCount: number;
   lastUsed?: string;
+  createdAt: string;
+}
+
+export interface PromptDoc {
+  id: string;
+  name: string;
+  filePath: string;
+  fileData?: string;
+  downloadUrl?: string;
+  fileType: string;
+  fileSize?: number;
   createdAt: string;
 }
 

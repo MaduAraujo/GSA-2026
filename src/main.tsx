@@ -3,14 +3,26 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicPortfolioPage } from './components/PublicPortfolioPage';
+import { AboutPage } from './components/AboutPage';
 import './index.css';
 
 const publicPortfolioMatch = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
+const isAboutPage = /^\/sobre\/?$/.test(window.location.pathname);
+
+function Root() {
+  if (publicPortfolioMatch) {
+    return <PublicPortfolioPage slug={decodeURIComponent(publicPortfolioMatch[1])} />;
+  }
+  if (isAboutPage) {
+    return <AboutPage />;
+  }
+  return <App />;
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      {publicPortfolioMatch ? <PublicPortfolioPage slug={decodeURIComponent(publicPortfolioMatch[1])} /> : <App />}
+      <Root />
     </ErrorBoundary>
   </StrictMode>,
 );

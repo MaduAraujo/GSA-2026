@@ -21,17 +21,24 @@ import {
   Paperclip,
   FileText,
   FileDown,
-  ChevronDown
+  ChevronDown,
+  Link2,
+  Upload,
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { PromptItem } from '../types';
+import { PromptItem, PromptDoc } from '../types';
 import { GeminiApiService } from '../services/geminiApi';
+import { SupabaseStorageService } from '../services/supabaseStorage';
 import { exportPromptsAsPdf } from '../utils/promptsExport';
 
 interface PromptsVaultModuleProps {
   prompts: PromptItem[];
   onSavePrompt: (prompt: PromptItem) => Promise<void>;
   onDeletePrompt: (id: string) => Promise<void>;
+  promptDocs: PromptDoc[];
+  onSavePromptDoc: (doc: PromptDoc) => Promise<void>;
+  onDeletePromptDoc: (id: string) => Promise<void>;
 }
 
 const DEFAULT_PROMPT_FORM: Partial<PromptItem> = {
@@ -40,6 +47,7 @@ const DEFAULT_PROMPT_FORM: Partial<PromptItem> = {
   section: 'Estudos',
   tags: [],
   variables: [],
+  sharedDocs: [],
   recommendedModel: 'gemini-3.7-flash',
   isFavorite: false,
   usageCount: 0,
@@ -49,6 +57,9 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   prompts,
   onSavePrompt,
   onDeletePrompt,
+  promptDocs,
+  onSavePromptDoc,
+  onDeletePromptDoc,
 }) => {
   const [selectedSection, setSelectedSection] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +84,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   const [isDraggingTestFile, setIsDraggingTestFile] = useState(false);
   const testFileInputRef = useRef<HTMLInputElement>(null);
   const MAX_TEST_FILE_SIZE_BYTES = 4 * 1024 * 1024; 
+  const MAX_DOC_FILE_SIZE_BYTES = 1024 * 1024 * 1024; 
   const ACCEPTED_TEST_FILE_TYPES = [
     'image/png',
     'image/jpeg',
@@ -81,6 +93,12 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
   ];
 
+  const [isDocsLibraryOpen, setIsDocsLibraryOpen] = useState(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [docUploadError, setDocUploadError] = useState<string | null>(null);
+  const [isDraggingDocUpload, setIsDraggingDocUpload] = useState(false);
+  const docUploadInputRef = useRef<HTMLInputElement>(null);
+
   const [enhancingPrompt, setEnhancingPrompt] = useState<PromptItem | null>(null);
   const [enhancedResult, setEnhancedResult] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -88,6 +106,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   const [formData, setFormData] = usePersistedState<Partial<PromptItem>>('gsa_prompt_form_draft', DEFAULT_PROMPT_FORM);
   const [tagInput, setTagInput] = usePersistedState('gsa_prompt_tag_draft', '');
   const [varInput, setVarInput] = usePersistedState('gsa_prompt_var_draft', '');
+  const [docInput, setDocInput] = usePersistedState('gsa_prompt_doc_draft', '');
 
   const dynamicSections = Array.from(
     prompts.reduce((map, p) => {
@@ -262,6 +281,85 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     setVarInput('');
   };
 
+  const handleAddDoc = () => {
+    const raw = docInput.trim();
+    if (!raw) return;
+    const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    if (!formData.sharedDocs?.includes(url)) {
+      setFormData({ ...formData, sharedDocs: [...(formData.sharedDocs || []), url] });
+    }
+    setDocInput('');
+  };
+
+  const getDocLabel = (url: string) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url;
+    }
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)}KB` : `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  const loadDocUpload = (file: File) => {
+    setDocUploadError(null);
+    if (!ACCEPTED_TEST_FILE_TYPES.includes(file.type)) {
+      setDocUploadError('Formato não suportado. Envie uma imagem (PNG/JPG), um PDF, um DOCX ou um XLSX.');
+      return;
+    }
+    if (file.size > MAX_DOC_FILE_SIZE_BYTES) {
+      setDocUploadError(`Arquivo muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 1GB.`);
+      return;
+    }
+
+    setIsUploadingDoc(true);
+    (async () => {
+      try {
+        const docId = crypto.randomUUID();
+        const filePath = await SupabaseStorageService.uploadPromptDocFile(file, docId);
+        await onSavePromptDoc({
+          id: docId,
+          name: file.name,
+          filePath,
+          fileType: file.type,
+          fileSize: file.size,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        setDocUploadError(err.message || 'Não foi possível enviar o documento.');
+      } finally {
+        setIsUploadingDoc(false);
+      }
+    })();
+  };
+
+  const handleDocUploadInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    loadDocUpload(file);
+    e.target.value = '';
+  };
+
+  const handleDocUploadDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingDocUpload(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    loadDocUpload(file);
+  };
+
+  const handleDeleteDoc = async (doc: PromptDoc) => {
+    if (confirm(`Excluir "${doc.name}" da biblioteca de documentos?`)) {
+      await onDeletePromptDoc(doc.id);
+      if (doc.filePath) {
+        SupabaseStorageService.deletePromptDocFile(doc.filePath).catch(() => {});
+      }
+    }
+  };
+
   const handleSubmitPrompt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title?.trim() || !formData.promptText?.trim()) return;
@@ -273,6 +371,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
       section: formData.section || 'Estudos',
       tags: formData.tags || [],
       variables: formData.variables || [],
+      sharedDocs: formData.sharedDocs || [],
       recommendedModel: formData.recommendedModel || 'gemini-3.7-flash',
       isFavorite: formData.isFavorite || false,
       usageCount: formData.usageCount || 0,
@@ -295,6 +394,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     setFormData(DEFAULT_PROMPT_FORM);
     setTagInput('');
     setVarInput('');
+    setDocInput('');
   };
 
   const toggleExportSelection = (id: string) => {
@@ -376,6 +476,25 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               </div>
             )}
           </div>
+
+          <button
+            id="btn-docs-library"
+            onClick={() => {
+              setDocUploadError(null);
+              setIsDocsLibraryOpen(true);
+            }}
+            aria-label="Documentos para teste"
+            title="Documentos para teste"
+            className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95"
+          >
+            <Paperclip className="w-4 h-4" />
+            <span className="hidden sm:inline">Docs</span>
+            {promptDocs.length > 0 && (
+              <span className="inline-flex items-center justify-center min-w-4.5 h-4.5 px-1 rounded-full bg-[#34A853]/15 text-[#2E7D32] text-[10px] font-bold">
+                {promptDocs.length}
+              </span>
+            )}
+          </button>
 
           <button
             id="btn-new-prompt"
@@ -526,6 +645,13 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                         [{v}]
                       </span>
                     ))
+                  )}
+
+                  {prompt.sharedDocs && prompt.sharedDocs.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#34A853]/10 text-[#2E7D32]">
+                      <Link2 className="w-3 h-3" />
+                      {prompt.sharedDocs.length} doc{prompt.sharedDocs.length > 1 ? 's' : ''}
+                    </span>
                   )}
                 </div>
               </div>
@@ -784,6 +910,62 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 )}
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Documentos Compartilhados
+                </label>
+                <p className="text-[11px] text-gray-500 mb-1.5">
+                  Cole links de Google Docs, Sheets ou Slides para consultar enquanto testa este prompt.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://docs.google.com/document/d/..."
+                    value={docInput}
+                    onChange={(e) => setDocInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddDoc();
+                      }
+                    }}
+                    className="flex-1 px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddDoc}
+                    aria-label="Adicionar documento compartilhado"
+                    title="Adicionar documento compartilhado"
+                    className="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+                {formData.sharedDocs && formData.sharedDocs.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    {formData.sharedDocs.map((doc, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700"
+                      >
+                        <Link2 className="w-3.5 h-3.5 text-[#1A73E8] shrink-0" />
+                        <span className="flex-1 min-w-0 truncate">{doc}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({ ...formData, sharedDocs: formData.sharedDocs?.filter((d) => d !== doc) })
+                          }
+                          className="hover:text-[#EA4335] shrink-0"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -835,6 +1017,29 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {testingPrompt.sharedDocs && testingPrompt.sharedDocs.length > 0 && (
+              <div className="p-4 rounded-2xl bg-[#1A73E8]/5 border border-[#1A73E8]/20 space-y-2">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Documentos de Apoio
+                </h4>
+                <div className="flex flex-col gap-1.5">
+                  {testingPrompt.sharedDocs.map((doc, idx) => (
+                    <a
+                      key={idx}
+                      href={doc}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200 hover:border-[#1A73E8]/50 text-xs font-semibold text-[#1A73E8] transition-colors"
+                    >
+                      <Link2 className="w-3.5 h-3.5 shrink-0" />
+                      <span className="flex-1 min-w-0 truncate">{getDocLabel(doc)}</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {testingPrompt.variables && testingPrompt.variables.length > 0 && (
               <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
@@ -1125,6 +1330,128 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
               >
                 <FileDown className="w-4 h-4" />
                 <span>Exportar {selectedExportIds.size > 0 ? `(${selectedExportIds.size})` : ''}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDocsLibraryOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Documentos para teste" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#34A853]/15 text-[#2E7D32] flex items-center justify-center">
+                  <Paperclip className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Documentos</h3>
+                  <p className="text-xs text-gray-500">Envie arquivos de apoio para consultar enquanto testa seus prompts.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDocsLibraryOpen(false)}
+                aria-label="Fechar"
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+              <input
+                ref={docUploadInputRef}
+                type="file"
+                accept=".png,.jpg,.jpeg,.pdf,.docx,.xlsx,image/png,image/jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden"
+                onChange={handleDocUploadInputChange}
+              />
+              <button
+                type="button"
+                onClick={() => docUploadInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingDocUpload(true);
+                }}
+                onDragLeave={() => setIsDraggingDocUpload(false)}
+                onDrop={handleDocUploadDrop}
+                disabled={isUploadingDoc}
+                className={`w-full flex items-center gap-2.5 p-4 rounded-2xl border-2 border-dashed bg-[#F8FAFD] text-left transition-all disabled:opacity-60 ${
+                  isDraggingDocUpload ? 'border-[#1A73E8] bg-[#1A73E8]/5' : 'border-gray-300 hover:border-[#1A73E8]'
+                }`}
+              >
+                {isUploadingDoc ? (
+                  <div className="w-5 h-5 border-2 border-[#1A73E8] border-t-transparent rounded-full animate-spin shrink-0" />
+                ) : (
+                  <Upload className="w-5 h-5 text-gray-500 shrink-0" />
+                )}
+                <span className="text-xs text-gray-600">
+                  {isUploadingDoc
+                    ? 'Enviando documento...'
+                    : 'Clique ou arraste um arquivo'}
+                </span>
+              </button>
+              {docUploadError && (
+                <p role="alert" className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5">
+                  {docUploadError}
+                </p>
+              )}
+
+              {promptDocs.length === 0 ? (
+                <p className="text-center text-xs text-gray-400 py-6">Nenhum documento enviado ainda.</p>
+              ) : (
+                <div className="space-y-2">
+                  {promptDocs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-200"
+                    >
+                      {doc.fileType.startsWith('image/') ? (
+                        <img
+                          src={doc.fileData}
+                          alt={doc.name}
+                          className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                          <FileText className="w-5 h-5 text-[#EA4335]" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{doc.name}</p>
+                        <p className="text-[11px] text-gray-500">{formatFileSize(doc.fileSize)}</p>
+                      </div>
+                      <a
+                        href={doc.downloadUrl ?? doc.fileData}
+                        download={doc.name}
+                        aria-label={`Baixar ${doc.name}`}
+                        title="Baixar"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#1A73E8] hover:bg-[#1A73E8]/10 shrink-0"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDoc(doc)}
+                        aria-label={`Excluir ${doc.name}`}
+                        title="Excluir"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 pt-4 border-t border-gray-100 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setIsDocsLibraryOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                Fechar
               </button>
             </div>
           </div>

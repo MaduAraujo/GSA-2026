@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import {
   Certificate,
   PromptItem,
+  PromptDoc,
   GeminiPost,
   AmbassadorProfile,
   UserBadge,
@@ -62,6 +63,7 @@ function rowToPrompt(row: any): PromptItem {
     description: row.description ?? undefined,
     tags: row.tags ?? [],
     variables: row.variables ?? undefined,
+    sharedDocs: row.shared_docs ?? undefined,
     recommendedModel: row.recommended_model,
     isFavorite: row.is_favorite ?? undefined,
     usageCount: row.usage_count ?? 0,
@@ -80,11 +82,57 @@ function promptToRow(prompt: PromptItem, userId: string) {
     description: prompt.description ?? null,
     tags: prompt.tags ?? [],
     variables: prompt.variables ?? null,
+    shared_docs: prompt.sharedDocs ?? null,
     recommended_model: prompt.recommendedModel,
     is_favorite: prompt.isFavorite ?? false,
     usage_count: prompt.usageCount ?? 0,
     last_used: prompt.lastUsed ?? null,
     created_at: prompt.createdAt,
+  };
+}
+
+const PROMPT_DOCS_BUCKET = 'prompt-docs';
+const PROMPT_DOC_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+async function rowToPromptDoc(row: any): Promise<PromptDoc> {
+  let fileData: string | undefined;
+  let downloadUrl: string | undefined;
+  if (row.file_path) {
+    const [viewResult, downloadResult] = await Promise.all([
+      supabase.storage.from(PROMPT_DOCS_BUCKET).createSignedUrl(row.file_path, PROMPT_DOC_SIGNED_URL_TTL_SECONDS),
+      supabase.storage
+        .from(PROMPT_DOCS_BUCKET)
+        .createSignedUrl(row.file_path, PROMPT_DOC_SIGNED_URL_TTL_SECONDS, { download: row.name }),
+    ]);
+    fileData = viewResult.data?.signedUrl;
+    downloadUrl = downloadResult.data?.signedUrl;
+  } else if (row.file_data) {
+    // legacy rows uploaded before the migration to Supabase Storage
+    fileData = row.file_data;
+    downloadUrl = row.file_data;
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    filePath: row.file_path ?? '',
+    fileData,
+    downloadUrl,
+    fileType: row.file_type,
+    fileSize: row.file_size ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function promptDocToRow(doc: PromptDoc, userId: string) {
+  return {
+    id: doc.id,
+    user_id: userId,
+    name: doc.name,
+    file_path: doc.filePath || null,
+    file_type: doc.fileType,
+    file_size: doc.fileSize ?? null,
+    created_at: doc.createdAt,
   };
 }
 
@@ -379,6 +427,40 @@ export const SupabaseStorageService = {
 
   async deletePrompt(id: string): Promise<void> {
     const { error } = await supabase.from('prompts').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getPromptDocs(): Promise<PromptDoc[]> {
+    const { data, error } = await supabase
+      .from('prompt_docs')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return Promise.all((data ?? []).map(rowToPromptDoc));
+  },
+
+  async uploadPromptDocFile(file: File, docId: string): Promise<string> {
+    const userId = await requireUserId();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const path = `${userId}/${docId}-${safeName}`;
+    const { error } = await supabase.storage.from(PROMPT_DOCS_BUCKET).upload(path, file, { upsert: true });
+    if (error) throw error;
+    return path;
+  },
+
+  async deletePromptDocFile(filePath: string): Promise<void> {
+    const { error } = await supabase.storage.from(PROMPT_DOCS_BUCKET).remove([filePath]);
+    if (error) throw error;
+  },
+
+  async savePromptDoc(doc: PromptDoc): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('prompt_docs').upsert(promptDocToRow(doc, userId));
+    if (error) throw error;
+  },
+
+  async deletePromptDoc(id: string): Promise<void> {
+    const { error } = await supabase.from('prompt_docs').delete().eq('id', id);
     if (error) throw error;
   },
 

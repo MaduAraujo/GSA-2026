@@ -99,6 +99,8 @@ create table if not exists public.prompts (
   created_at timestamptz not null default now()
 );
 
+alter table public.prompts add column if not exists shared_docs text[];
+
 create index if not exists prompts_user_id_idx on public.prompts (user_id);
 
 alter table public.prompts enable row level security;
@@ -123,6 +125,67 @@ drop policy if exists "prompts_delete_own" on public.prompts;
 create policy "prompts_delete_own" on public.prompts
   for delete to authenticated
   using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- prompt_docs — document library uploaded to test alongside prompts
+-- ---------------------------------------------------------------------------
+create table if not exists public.prompt_docs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  name text not null,
+  file_path text,
+  file_data text,
+  file_type text not null,
+  file_size integer,
+  created_at timestamptz not null default now()
+);
+
+-- migrating from inline base64 (file_data) to Supabase Storage (file_path);
+-- keep file_data nullable so old rows already saved as base64 keep working
+alter table public.prompt_docs add column if not exists file_path text;
+alter table public.prompt_docs alter column file_data drop not null;
+
+create index if not exists prompt_docs_user_id_idx on public.prompt_docs (user_id);
+
+alter table public.prompt_docs enable row level security;
+
+drop policy if exists "prompt_docs_select_own" on public.prompt_docs;
+create policy "prompt_docs_select_own" on public.prompt_docs
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "prompt_docs_insert_own" on public.prompt_docs;
+create policy "prompt_docs_insert_own" on public.prompt_docs
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "prompt_docs_delete_own" on public.prompt_docs;
+create policy "prompt_docs_delete_own" on public.prompt_docs
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- storage: prompt-docs bucket — large file uploads for the Documentos library
+-- (up to 1GB per file; files are private, scoped by a "<user_id>/..." path)
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('prompt-docs', 'prompt-docs', false, 1073741824)
+on conflict (id) do update set file_size_limit = excluded.file_size_limit;
+
+drop policy if exists "prompt_docs_storage_select_own" on storage.objects;
+create policy "prompt_docs_storage_select_own" on storage.objects
+  for select to authenticated
+  using ( bucket_id = 'prompt-docs' and (select auth.uid())::text = (storage.foldername(name))[1] );
+
+drop policy if exists "prompt_docs_storage_insert_own" on storage.objects;
+create policy "prompt_docs_storage_insert_own" on storage.objects
+  for insert to authenticated
+  with check ( bucket_id = 'prompt-docs' and (select auth.uid())::text = (storage.foldername(name))[1] );
+
+drop policy if exists "prompt_docs_storage_delete_own" on storage.objects;
+create policy "prompt_docs_storage_delete_own" on storage.objects
+  for delete to authenticated
+  using ( bucket_id = 'prompt-docs' and (select auth.uid())::text = (storage.foldername(name))[1] );
 
 -- ---------------------------------------------------------------------------
 -- posts

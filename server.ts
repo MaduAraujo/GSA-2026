@@ -18,7 +18,11 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
 const VAPID_CONTACT = process.env.VAPID_CONTACT_EMAIL || "mailto:no-reply@example.com";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(VAPID_CONTACT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  const rawVapidSubject = VAPID_CONTACT;
+  const vapidSubject = (/^mailto:/i.test(rawVapidSubject) || /^https?:\/\//i.test(rawVapidSubject))
+    ? rawVapidSubject
+    : `mailto:${rawVapidSubject}`;
+  webpush.setVapidDetails(vapidSubject, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
 const __filename = fileURLToPath(import.meta.url);
