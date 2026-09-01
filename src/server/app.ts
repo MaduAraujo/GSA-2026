@@ -1,11 +1,9 @@
 import express from "express";
 import Groq from "groq-sdk";
 import dotenv from "dotenv";
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
-import ExcelJS from "exceljs";
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
+import type ExcelJS from "exceljs";
 
 dotenv.config();
 
@@ -51,7 +49,12 @@ async function extractDocumentText(dataUrl: string, mimeType: string): Promise<s
   const nodeBuffer: Buffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as any);
 
   try {
+    // Loaded on demand rather than at module top-level: these are heavy
+    // document-parsing libraries only needed for the (rare) attachment path,
+    // and importing them eagerly means a bundling issue in any one of them
+    // crashes every route in the serverless function, not just this one.
     if (mimeType === "application/pdf") {
+      const { PDFParse } = await import("pdf-parse");
       const parser = new PDFParse({ data: nodeBuffer });
       try {
         const result = await parser.getText();
@@ -61,11 +64,13 @@ async function extractDocumentText(dataUrl: string, mimeType: string): Promise<s
       }
     }
     if (mimeType === DOCX_MIME_TYPE) {
+      const mammoth = (await import("mammoth")).default;
       const result = await mammoth.extractRawText({ buffer: nodeBuffer });
       return (result.value || "").trim().slice(0, MAX_DOCUMENT_CHARS);
     }
     if (mimeType === XLSX_MIME_TYPE) {
-      const workbook = new ExcelJS.Workbook();
+      const ExcelJSRuntime = (await import("exceljs")).default;
+      const workbook = new ExcelJSRuntime.Workbook();
       await workbook.xlsx.load(nodeBuffer as any);
       return extractXlsxText(workbook).trim().slice(0, MAX_DOCUMENT_CHARS);
     }
