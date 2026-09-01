@@ -49,10 +49,6 @@ async function extractDocumentText(dataUrl: string, mimeType: string): Promise<s
   const nodeBuffer: Buffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer as any);
 
   try {
-    // Loaded on demand rather than at module top-level: these are heavy
-    // document-parsing libraries only needed for the (rare) attachment path,
-    // and importing them eagerly means a bundling issue in any one of them
-    // crashes every route in the serverless function, not just this one.
     if (mimeType === "application/pdf") {
       const { PDFParse } = await import("pdf-parse");
       const parser = new PDFParse({ data: nodeBuffer });
