@@ -1,6 +1,7 @@
 import React from 'react';
 import { Award, Sparkles, FileText, Clock, Trophy, ChevronRight } from 'lucide-react';
 import { Certificate, PromptItem, GeminiPost, AmbassadorProfile } from '../types';
+import { formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
 
 interface StatsBannerProps {
   certificates: Certificate[];
@@ -17,7 +18,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
   profile,
   onNavigate,
 }) => {
-  const totalHours = certificates.reduce((acc, c) => acc + (c.hours || 0), 0);
+  const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
   const favoritePrompts = prompts.filter((p) => p.isFavorite).length;
   const publishedPosts = posts.filter((p) => p.status === 'Publicado').length;
 
@@ -66,7 +67,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
               <span className="hidden sm:inline text-xs font-semibold text-gray-600 uppercase tracking-wider">Horas de Estudo</span>
             </div>
             <div className="mt-2 flex items-baseline justify-center gap-2">
-              <span className="text-2xl sm:text-3xl font-bold text-gray-900">{totalHours}h</span>
+              <span className="text-2xl sm:text-3xl font-bold text-gray-900">{totalHoursLabel}</span>
               <span className="hidden sm:inline text-xs text-gray-600 font-medium">acumuladas</span>
             </div>
           </div>
@@ -98,10 +99,8 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
               <span className="hidden sm:inline text-xs font-semibold text-gray-600 uppercase tracking-wider">Posts Criados</span>
             </div>
             <div className="mt-2 flex items-baseline justify-center gap-2">
-              <span className="text-2xl sm:text-3xl font-bold text-gray-900">{posts.length}</span>
-              <span className="hidden sm:inline text-xs text-gray-600 font-medium">
-                {publishedPosts > 0 ? `${publishedPosts} pub.` : 'pub.'}
-              </span>
+              <span className="text-2xl sm:text-3xl font-bold text-gray-900">{publishedPosts}</span>
+              <span className="hidden sm:inline text-xs text-gray-600 font-medium">pub.</span>
             </div>
           </div>
         </div>

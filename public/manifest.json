@@ -1,7 +1,7 @@
 {
   "name": "Embaixadora Estudantil Google 2026",
   "short_name": "Google Ambassador",
-  "description": "Portal PWA da Embaixadora Estudantil Google 2026: GestÃ£o de Certificados, Banco de Prompts por SeÃ§Ã£o e Criador de Posts com Gemini.",
+  "description": "Portal PWA da Embaixadora Estudantil Google 2026: Gestão de Certificados, Banco de Prompts por Seção e Criador de Posts com Gemini.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",

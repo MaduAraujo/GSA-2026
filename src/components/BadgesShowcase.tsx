@@ -22,7 +22,7 @@ export const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({
   posts,
   userBadges,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const stats = useMemo(
     () => computeBadgeStats(certificates, prompts, posts),

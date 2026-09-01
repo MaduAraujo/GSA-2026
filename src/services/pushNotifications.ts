@@ -1,4 +1,5 @@
 import { SupabaseStorageService } from './supabaseStorage';
+import { getAuthHeaders } from './supabaseClient';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -29,9 +30,17 @@ export const PushNotificationsService = {
     return data.publicKey;
   },
 
+  async ensureRegistration(): Promise<ServiceWorkerRegistration> {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing) return existing;
+    await navigator.serviceWorker.register('/sw.js');
+    return navigator.serviceWorker.ready;
+  },
+
   async getCurrentSubscription(): Promise<PushSubscription | null> {
     if (!this.isSupported()) return null;
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return null;
     return registration.pushManager.getSubscription();
   },
 
@@ -42,7 +51,7 @@ export const PushNotificationsService = {
     if (permission !== 'granted') throw new Error('Permissão de notificação negada.');
 
     const publicKey = await this.getVapidPublicKey();
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await this.ensureRegistration();
 
     let subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
@@ -70,7 +79,7 @@ export const PushNotificationsService = {
 
     const res = await fetch('/api/push/test', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ subscription: subscription.toJSON() }),
     });
     if (!res.ok) {

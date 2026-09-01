@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Trophy, Mail, Globe, Sparkles, X, Save, CheckCircle2, Award, Bell, BellOff, Upload, Trash2, ChevronDown, Link2, Copy, Check, Smartphone, Loader2 } from 'lucide-react';
+import { User, Trophy, Mail, Globe, Sparkles, X, Award, Bell, BellOff, Upload, Trash2, ChevronDown, Link2, Copy, Check, Smartphone, Loader2 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 import { RemindersService } from '../services/reminders';
 import { PushNotificationsService } from '../services/pushNotifications';
@@ -183,7 +183,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   };
 
   return (
-    <>
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-xl flex flex-col">
         <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
@@ -213,7 +212,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 flex items-center gap-4">
           <div className="relative shrink-0" ref={avatarMenuRef}>
             <img
-              src={formData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+              src={pendingAvatar || formData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
               alt="Avatar"
               className="w-14 h-14 rounded-xl object-cover ring-2 ring-blue-600/30"
             />
@@ -279,6 +278,25 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <p role="alert" className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">
             {avatarError}
           </p>
+        )}
+
+        {pendingAvatar && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all"
+              onClick={confirmPendingAvatar}
+            >
+              Confirmar avatar
+            </button>
+            <button
+              type="button"
+              className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-all"
+              onClick={cancelPendingAvatar}
+            >
+              Cancelar
+            </button>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -481,17 +499,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               type="submit"
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all active:scale-95 flex items-center gap-2"
             >
-              {saved ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Salvo!</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Salvar Perfil</span>
-                </>
-              )}
+              <span>{saved ? 'Salvo!' : 'Salvar'}</span>
             </button>
           </div>
 
@@ -500,27 +508,5 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
       </div>
     </div>
-
-        {pendingAvatar && (
-  <div className="flex items-center gap-3">
-    <button
-      type="button"
-      className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-all"
-      onClick={() => {
-      }}
-    >
-      Confirmar avatar
-    </button>
-    <button
-      type="button"
-      className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 transition-all"
-      onClick={() => {
-      }}
-    >
-      Cancelar
-    </button>
-  </div>
-)}
-    </>
   );
 };

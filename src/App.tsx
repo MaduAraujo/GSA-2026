@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import confetti from 'canvas-confetti';
 import {
@@ -17,20 +17,21 @@ import { RemindersService } from './services/reminders';
 import { evaluateNewlyEarnedBadges } from './utils/badgeEngine';
 import { BadgeDefinition } from './data/badgeCatalog';
 import { Navbar, AppTab } from './components/Navbar';
-import { AnalyticsDashboard } from './components/AnalyticsDashboard';
-import { AuthScreen } from './components/AuthScreen';
 import { HomePage } from './components/HomePage';
 import { StatsBanner } from './components/StatsBanner';
-import { CertificatesModule } from './components/CertificatesModule';
-import { PromptsVaultModule } from './components/PromptsVaultModule';
-import { GeminiPostsModule } from './components/GeminiPostsModule';
-import { GeminiCopilotModule } from './components/GeminiCopilotModule';
-import { ChallengesModule } from './components/ChallengesModule';
-import { GalleryModule } from './components/GalleryModule';
-import { ProfileModal } from './components/ProfileModal';
-import { SettingsModal } from './components/SettingsModal';
 import { BadgeUnlockToast } from './components/BadgeUnlockToast';
 import { usePersistedState, clearPersistedDrafts } from './hooks/usePersistedState';
+
+const AuthScreen = lazy(() => import('./components/AuthScreen').then((m) => ({ default: m.AuthScreen })));
+const CertificatesModule = lazy(() => import('./components/CertificatesModule').then((m) => ({ default: m.CertificatesModule })));
+const PromptsVaultModule = lazy(() => import('./components/PromptsVaultModule').then((m) => ({ default: m.PromptsVaultModule })));
+const GeminiPostsModule = lazy(() => import('./components/GeminiPostsModule').then((m) => ({ default: m.GeminiPostsModule })));
+const GeminiCopilotModule = lazy(() => import('./components/GeminiCopilotModule').then((m) => ({ default: m.GeminiCopilotModule })));
+const ChallengesModule = lazy(() => import('./components/ChallengesModule').then((m) => ({ default: m.ChallengesModule })));
+const GalleryModule = lazy(() => import('./components/GalleryModule').then((m) => ({ default: m.GalleryModule })));
+const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })));
+const ProfileModal = lazy(() => import('./components/ProfileModal').then((m) => ({ default: m.ProfileModal })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
 
 const EMPTY_PROFILE: AmbassadorProfile = {
   name: '',
@@ -325,12 +326,14 @@ export default function App() {
       );
     }
     return (
-      <AuthScreen
-        initialMode={authView}
-        onBack={() => setAuthView('home')}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={handleToggleDarkMode}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+        <AuthScreen
+          initialMode={authView}
+          onBack={() => setAuthView('home')}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+        />
+      </Suspense>
     );
   }
 
@@ -367,6 +370,11 @@ export default function App() {
         />
 
         <div className="transition-all duration-200 ease-in-out">
+        <Suspense
+          fallback={
+            <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 animate-pulse" />
+          }
+        >
           <div hidden={activeTab !== 'certificates'}>
             <CertificatesModule
               certificates={certificates}
@@ -425,6 +433,7 @@ export default function App() {
           <div hidden={activeTab !== 'analytics'}>
             <AnalyticsDashboard certificates={certificates} posts={posts} />
           </div>
+        </Suspense>
         </div>
         </>
         )}
@@ -432,23 +441,25 @@ export default function App() {
 
         <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
-            <p>© 2026 Embaixadores Estudantis do Google. Todos os direitos reservados.</p>
+            <p className="text-center">© 2026 Embaixadores Estudantis do Google.<br className="sm:hidden" /> Todos os direitos reservados.</p>
           </div>
         </footer>
 
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        profile={profile}
-        onSaveProfile={handleSaveProfile}
-      />
+      <Suspense fallback={null}>
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          profile={profile}
+          onSaveProfile={handleSaveProfile}
+        />
 
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={handleToggleDarkMode}
-      />
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+        />
+      </Suspense>
 
       {badgeToastQueue[0] && (
         <BadgeUnlockToast

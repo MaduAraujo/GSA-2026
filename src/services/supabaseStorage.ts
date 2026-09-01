@@ -28,6 +28,7 @@ function rowToCertificate(row: any): Certificate {
     credentialUrl: row.credential_url ?? undefined,
     credentialId: row.credential_id ?? undefined,
     hours: row.hours ?? undefined,
+    minutes: row.minutes ?? undefined,
     isFavorite: row.is_favorite ?? undefined,
     createdAt: row.created_at,
   };
@@ -49,6 +50,7 @@ function certificateToRow(cert: Certificate, userId: string) {
     credential_url: cert.credentialUrl ?? null,
     credential_id: cert.credentialId ?? null,
     hours: cert.hours ?? null,
+    minutes: cert.minutes ?? null,
     is_favorite: cert.isFavorite ?? false,
     created_at: cert.createdAt,
   };
@@ -246,26 +248,53 @@ function rowToUserBadge(row: any): UserBadge {
 }
 
 function rowToChallenge(row: any): Challenge {
+  const dates: string[] | undefined =
+    Array.isArray(row.dates) && row.dates.length > 0
+      ? row.dates
+      : row.deadline
+      ? [row.deadline]
+      : undefined;
+
+  const socialLinks =
+    Array.isArray(row.social_links) && row.social_links.length > 0
+      ? row.social_links
+      : row.result_link
+      ? [{ id: row.id, platform: row.result_platform ?? 'LinkedIn', link: row.result_link }]
+      : undefined;
+
+  const linkedPostIds: string[] | undefined =
+    Array.isArray(row.linked_post_ids) && row.linked_post_ids.length > 0
+      ? row.linked_post_ids
+      : row.linked_post_id
+      ? [row.linked_post_id]
+      : undefined;
+
   return {
     id: row.id,
     title: row.title,
     description: row.description ?? '',
     category: row.category ?? '',
     status: row.status,
-    deadline: row.deadline ?? undefined,
+    deadline: dates?.[0] ?? row.deadline ?? undefined,
+    dates,
     link: row.link ?? undefined,
     points: row.points ?? undefined,
     result: row.result ?? undefined,
     resultImage: row.result_image ?? undefined,
     resultLink: row.result_link ?? undefined,
     resultPlatform: row.result_platform ?? undefined,
+    socialLinks,
     linkedPostId: row.linked_post_id ?? undefined,
+    linkedPostIds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 function challengeToRow(challenge: Challenge, userId: string) {
+  const dates = challenge.dates && challenge.dates.length > 0 ? challenge.dates : undefined;
+  const firstLink = challenge.socialLinks?.[0];
+
   return {
     id: challenge.id,
     user_id: userId,
@@ -273,14 +302,18 @@ function challengeToRow(challenge: Challenge, userId: string) {
     description: challenge.description ?? '',
     category: challenge.category ?? '',
     status: challenge.status,
-    deadline: challenge.deadline || null,
+    deadline: dates?.[0] || challenge.deadline || null,
+    dates: dates || null,
     link: challenge.link || null,
     points: challenge.points ?? null,
     result: challenge.result || null,
     result_image: challenge.resultImage || null,
-    result_link: challenge.resultLink || null,
-    result_platform: challenge.resultPlatform || null,
-    linked_post_id: challenge.linkedPostId || null,
+    result_link: firstLink?.link || challenge.resultLink || null,
+    result_platform: firstLink?.platform || challenge.resultPlatform || null,
+    social_links: challenge.socialLinks && challenge.socialLinks.length > 0 ? challenge.socialLinks : null,
+    linked_post_id: challenge.linkedPostIds?.[0] || challenge.linkedPostId || null,
+    linked_post_ids:
+      challenge.linkedPostIds && challenge.linkedPostIds.length > 0 ? challenge.linkedPostIds : null,
     created_at: challenge.createdAt,
     updated_at: challenge.updatedAt,
   };

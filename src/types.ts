@@ -14,6 +14,7 @@ export interface Certificate {
   credentialUrl?: string;
   credentialId?: string;
   hours?: number;
+  minutes?: number;
   isFavorite?: boolean;
   createdAt: string;
 }
@@ -48,7 +49,7 @@ export interface PromptDoc {
   createdAt: string;
 }
 
-export type PostPlatform = 'LinkedIn' | 'Instagram' | 'Medium / Dev.to' | 'Twitter / X' | 'WhatsApp / Comunidade';
+export type PostPlatform = 'LinkedIn' | 'Instagram' | 'WhatsApp / Comunidade';
 export type PostStatus = 'Rascunho' | 'Agendado' | 'Publicado';
 
 export interface GeminiPost {
@@ -74,20 +75,33 @@ export type ChallengeStatus = 'Pendente' | 'Em Andamento' | 'Concluído';
 
 export type ChallengeCategory = string;
 
+export interface ChallengeSocialLink {
+  id: string;
+  platform: PostPlatform;
+  link: string;
+}
+
 export interface Challenge {
   id: string;
   title: string;
   description: string;
   category: ChallengeCategory;
   status: ChallengeStatus;
+  /** @deprecated kept for old rows; use `dates` (first entry) instead */
   deadline?: string;
+  dates?: string[];
   link?: string;
   points?: number;
   result?: string;
   resultImage?: string;
+  /** @deprecated kept for old rows; use `socialLinks` instead */
   resultLink?: string;
+  /** @deprecated kept for old rows; use `socialLinks` instead */
   resultPlatform?: PostPlatform;
+  socialLinks?: ChallengeSocialLink[];
+  /** @deprecated kept for old rows; use `linkedPostIds` instead */
   linkedPostId?: string;
+  linkedPostIds?: string[];
   createdAt: string;
   updatedAt: string;
 }

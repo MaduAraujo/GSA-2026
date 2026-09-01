@@ -85,7 +85,6 @@ const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-/** Floating replica of the app's own achievement cards (badge toast, stat chip, certificate row) — the hero's signature visual. */
 const AchievementStack: React.FC = () => {
   const reduceMotion = useReducedMotion();
   const float = (offset: number, duration: number) =>
@@ -377,7 +376,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
-          <p>© 2026 Embaixadores Estudantis do Google. Todos os direitos reservados.</p>
+          <p className="text-center">© 2026 Embaixadores Estudantis do Google.<br className="sm:hidden" /> Todos os direitos reservados.</p>
         </div>
       </footer>
 

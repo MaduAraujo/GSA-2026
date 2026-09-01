@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
+import { isPasswordLeaked } from '../utils/passwordSecurity';
 
 interface AuthScreenProps {
   initialMode?: 'signIn' | 'signUp';
@@ -84,6 +85,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
       } else {
+        if (await isPasswordLeaked(password)) {
+          throw new Error(
+            'Essa senha já apareceu em vazamentos conhecidos. Escolha outra senha para sua segurança.'
+          );
+        }
         const { error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
         setInfoMessage('Conta criada! Verifique seu e-mail para confirmar o cadastro, se necessário.');

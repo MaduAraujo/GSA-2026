@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Certificate, PromptItem, GeminiPost } from '../types';
+import { sumCertHours } from '../utils/duration';
 
 export interface BadgeStats {
   certificateCount: number;
@@ -42,7 +43,7 @@ export function computeBadgeStats(
 
   return {
     certificateCount: certificates.length,
-    totalHours: certificates.reduce((acc, c) => acc + (c.hours || 0), 0),
+    totalHours: sumCertHours(certificates),
     categoryCount: categories.size,
     uniqueSkillCount: skills.size,
     favoriteCertCount: certificates.filter((c) => c.isFavorite).length,

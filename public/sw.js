@@ -71,8 +71,17 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Pass through non-GET and API requests directly
-  if (event.request.method !== "GET" || event.request.url.includes("/api/")) {
+  // Pass through non-GET, API, and Vite dev-server requests directly — caching
+  // these would serve stale modules over HMR when the SW is registered locally
+  // to test push notifications during `npm run dev`.
+  const url = event.request.url;
+  const isDevAsset =
+    url.includes("/api/") ||
+    url.includes("/@vite") ||
+    url.includes("/@react-refresh") ||
+    url.includes("/src/") ||
+    url.includes("?t=");
+  if (event.request.method !== "GET" || isDevAsset) {
     return;
   }
 

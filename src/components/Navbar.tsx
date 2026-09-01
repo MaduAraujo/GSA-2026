@@ -212,7 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? item.color : 'text-gray-500'}`} />
-                  <span>{item.label}</span>
+                  <span>{item.id === 'prompts' ? 'Prompts' : item.label}</span>
                 </button>
               );
             })}

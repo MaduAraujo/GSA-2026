@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Award, Clock, Calendar, ExternalLink, FileText, Loader2, ShieldAlert } from 'lucide-react';
 import { AmbassadorProfile, Certificate } from '../types';
 import { SupabaseStorageService } from '../services/supabaseStorage';
+import { formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
 
 interface PublicPortfolioPageProps {
   slug: string;
@@ -63,7 +64,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
     );
   }
 
-  const totalHours = certificates.reduce((acc, c) => acc + (c.hours || 0), 0);
+  const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,7 +97,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
               </div>
               <div className="w-px h-8 bg-gray-200" />
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900">{totalHours}h</p>
+                <p className="text-lg font-bold text-gray-900">{totalHoursLabel}</p>
                 <p className="text-[11px] text-gray-500 uppercase font-semibold">Estudo</p>
               </div>
             </div>
@@ -126,10 +127,10 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
                   <h3 className="font-bold text-gray-900 text-sm leading-snug">{cert.title}</h3>
                   {cert.description && <p className="text-xs text-gray-600 leading-relaxed">{cert.description}</p>}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    {cert.hours ? (
+                    {cert.hours || cert.minutes ? (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600">
                         <Clock className="w-3 h-3 text-[#34A853]" />
-                        {cert.hours}h
+                        {formatDuration(cert.hours, cert.minutes)}
                       </span>
                     ) : <span />}
                     {cert.credentialUrl && (

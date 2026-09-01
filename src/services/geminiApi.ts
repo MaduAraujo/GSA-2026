@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './supabaseClient';
+
 export interface ChatHistoryMessage {
   sender: 'user' | 'gemini';
   text: string;
@@ -45,7 +47,7 @@ export const GeminiApiService = {
   async generatePost(params: GeneratePostParams): Promise<string> {
     const res = await fetch('/api/gemini/generate-post', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(params),
     });
 
@@ -61,7 +63,7 @@ export const GeminiApiService = {
   async enhancePrompt(params: EnhancePromptParams): Promise<string> {
     const res = await fetch('/api/gemini/enhance-prompt', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(params),
     });
 
@@ -77,7 +79,7 @@ export const GeminiApiService = {
   async analyzeCertificate(params: AnalyzeCertParams): Promise<AnalyzedCertificateResult> {
     const res = await fetch('/api/gemini/analyze-certificate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify(params),
     });
 
@@ -93,7 +95,7 @@ export const GeminiApiService = {
   async sendChatMessage(message: string, history?: ChatHistoryMessage[], attachment?: ChatAttachment): Promise<string> {
     const res = await fetch('/api/gemini/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ message, history, attachment }),
     });
 

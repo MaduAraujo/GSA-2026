@@ -1,4 +1,5 @@
 import { Certificate, AmbassadorProfile } from '../types';
+import { formatDuration, formatTotalHoursDecimal, sumCertHours } from './duration';
 
 function escapeHtml(value: string): string {
   return value
@@ -8,7 +9,7 @@ function escapeHtml(value: string): string {
 }
 
 export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: Certificate[]): void {
-  const totalHours = certificates.reduce((acc, c) => acc + (c.hours || 0), 0);
+  const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
   const sorted = [...certificates].sort((a, b) => (a.issueDate < b.issueDate ? 1 : -1));
 
   const certRows = sorted.map((cert) => `
@@ -17,7 +18,7 @@ export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: C
         <h3>${escapeHtml(cert.title)}</h3>
         <span class="badge">${escapeHtml(cert.category)}</span>
       </div>
-      <p class="meta">${escapeHtml(cert.issuer)} • ${escapeHtml(cert.issueDate)}${cert.hours ? ` • ${cert.hours}h` : ''}</p>
+      <p class="meta">${escapeHtml(cert.issuer)} • ${escapeHtml(cert.issueDate)}${cert.hours || cert.minutes ? ` • ${formatDuration(cert.hours, cert.minutes)}` : ''}</p>
       ${cert.description ? `<p class="desc">${escapeHtml(cert.description)}</p>` : ''}
       ${cert.skills?.length ? `<p class="skills">${cert.skills.map((s) => `#${escapeHtml(s)}`).join('  ')}</p>` : ''}
     </div>
@@ -56,7 +57,7 @@ export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: C
   </header>
   <div class="stats">
     <div class="stat"><b>${certificates.length}</b><span>Certificados</span></div>
-    <div class="stat"><b>${totalHours}h</b><span>Horas de estudo</span></div>
+    <div class="stat"><b>${totalHoursLabel}</b><span>Horas de estudo</span></div>
   </div>
   <h2>Certificados & Badges</h2>
   ${certRows || '<p>Nenhum certificado cadastrado ainda.</p>'}

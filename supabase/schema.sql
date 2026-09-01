@@ -55,6 +55,8 @@ create table if not exists public.certificates (
   created_at timestamptz not null default now()
 );
 
+alter table public.certificates add column if not exists minutes integer;
+
 create index if not exists certificates_user_id_idx on public.certificates (user_id);
 
 alter table public.certificates enable row level security;
@@ -140,8 +142,6 @@ create table if not exists public.prompt_docs (
   created_at timestamptz not null default now()
 );
 
--- migrating from inline base64 (file_data) to Supabase Storage (file_path);
--- keep file_data nullable so old rows already saved as base64 keep working
 alter table public.prompt_docs add column if not exists file_path text;
 alter table public.prompt_docs alter column file_data drop not null;
 
@@ -165,8 +165,7 @@ create policy "prompt_docs_delete_own" on public.prompt_docs
   using ( (select auth.uid()) = user_id );
 
 -- ---------------------------------------------------------------------------
--- storage: prompt-docs bucket — large file uploads for the Documentos library
--- (up to 1GB per file; files are private, scoped by a "<user_id>/..." path)
+-- storage
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('prompt-docs', 'prompt-docs', false, 1073741824)
@@ -287,6 +286,10 @@ alter table public.challenges add column if not exists result_image text;
 alter table public.challenges add column if not exists result_link text;
 alter table public.challenges add column if not exists result_platform text;
 alter table public.challenges add column if not exists linked_post_id uuid references public.posts (id) on delete set null;
+
+alter table public.challenges add column if not exists dates date[];
+alter table public.challenges add column if not exists social_links jsonb;
+alter table public.challenges add column if not exists linked_post_ids uuid[];
 
 create index if not exists challenges_user_id_idx on public.challenges (user_id);
 
@@ -467,3 +470,48 @@ drop policy if exists "push_subscriptions_delete_own" on public.push_subscriptio
 create policy "push_subscriptions_delete_own" on public.push_subscriptions
   for delete to authenticated
   using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- api_rate_limits 
+-- ---------------------------------------------------------------------------
+create table if not exists public.api_rate_limits (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  window_start timestamptz not null default now(),
+  request_count integer not null default 0
+);
+
+alter table public.api_rate_limits enable row level security;
+
+create or replace function public.check_and_increment_rate_limit(
+  p_user_id uuid,
+  p_window_seconds integer,
+  p_max_requests integer
+) returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_count integer;
+begin
+  insert into public.api_rate_limits (user_id, window_start, request_count)
+  values (p_user_id, now(), 1)
+  on conflict (user_id) do update
+    set request_count = case
+          when public.api_rate_limits.window_start < now() - make_interval(secs => p_window_seconds)
+            then 1
+          else public.api_rate_limits.request_count + 1
+        end,
+        window_start = case
+          when public.api_rate_limits.window_start < now() - make_interval(secs => p_window_seconds)
+            then now()
+          else public.api_rate_limits.window_start
+        end
+  returning request_count into v_count;
+
+  return v_count <= p_max_requests;
+end;
+$$;
+
+revoke all on function public.check_and_increment_rate_limit(uuid, integer, integer) from public;
+grant execute on function public.check_and_increment_rate_limit(uuid, integer, integer) to service_role;

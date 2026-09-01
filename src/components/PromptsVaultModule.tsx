@@ -436,7 +436,8 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Sparkles className="w-6 h-6 text-[#FBBC04]" />
-            <span>Banco de Prompts</span>
+            <span className="sm:hidden">Prompts</span>
+            <span className="hidden sm:inline">Banco de Prompts</span>
           </h2>
         </div>
 
@@ -789,15 +790,18 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Modelo Recomendado
                   </label>
-                  <select
-                    value={formData.recommendedModel}
-                    onChange={(e) => setFormData({ ...formData, recommendedModel: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
-                  >
-                    <option value="gemini-3.7-flash">Gemini 3.7 Flash (Rápido & Inteligente)</option>
-                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Raciocínio Profundo)</option>
-                    <option value="gemini-3.1-flash-lite">Gemini Flash Lite (Super Leve)</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.recommendedModel}
+                      onChange={(e) => setFormData({ ...formData, recommendedModel: e.target.value as any })}
+                      className="appearance-none w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
+                    >
+                      <option value="gemini-3.7-flash">Gemini 3.7 Flash (Rápido & Inteligente)</option>
+                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Raciocínio Profundo)</option>
+                      <option value="gemini-3.1-flash-lite">Gemini Flash Lite (Super Leve)</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Trophy,
   ArrowLeft,
   Globe2,
   MessagesSquare,
@@ -88,11 +87,6 @@ export const AboutPage: React.FC = () => {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-600/10 text-blue-600 border border-blue-600/20 text-xs font-bold uppercase tracking-wider mb-6">
-            <Trophy className="w-3.5 h-3.5 text-[#FBBC04]" />
-            Programa Oficial • Embaixadores Estudantis do Google 2026
-          </div>
-
           <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-tight">
             Sobre o Programa
           </h1>
@@ -158,7 +152,7 @@ export const AboutPage: React.FC = () => {
 
       <footer className="border-t border-gray-200 bg-white py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600">
-          <p>© 2026 Embaixadores Estudantis do Google. Todos os direitos reservados.</p>
+          <p className="text-center">© 2026 Embaixadores Estudantis do Google.<br className="sm:hidden" /> Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

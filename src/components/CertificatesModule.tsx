@@ -36,6 +36,7 @@ import { exportPortfolioAsPdf } from '../utils/portfolioExport';
 import { DatePicker } from './DatePicker';
 import { BadgesShowcase } from './BadgesShowcase';
 import { usePersistedState } from '../hooks/usePersistedState';
+import { certHoursDecimal, formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
 
 interface CertificatesModuleProps {
   certificates: Certificate[];
@@ -60,6 +61,7 @@ const DEFAULT_CERT_FORM: Partial<Certificate> = {
   credentialId: '',
   credentialUrl: '',
   hours: 10,
+  minutes: 0,
   isFavorite: false,
 };
 
@@ -146,7 +148,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         case 'date-asc':
           return a.issueDate.localeCompare(b.issueDate);
         case 'hours-desc':
-          return (b.hours || 0) - (a.hours || 0);
+          return certHoursDecimal(b) - certHoursDecimal(a);
         case 'name-asc':
           return a.title.localeCompare(b.title);
         case 'date-desc':
@@ -155,7 +157,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
       }
     });
 
-  const totalHours = certificates.reduce((acc, c) => acc + (c.hours || 0), 0);
+  const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
   const favoriteCount = certificates.filter((c) => c.isFavorite).length;
 
   const loadFileIntoForm = (file: File) => {
@@ -262,6 +264,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         credentialId: formData.credentialId,
         credentialUrl: formData.credentialUrl,
         hours: Number(formData.hours) || 0,
+        minutes: Number(formData.minutes) || 0,
         isFavorite: formData.isFavorite || false,
         createdAt: formData.createdAt || new Date().toISOString(),
       };
@@ -482,7 +485,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               <Clock className="w-4.5 h-4.5" />
             </div>
             <div>
-              <p className="text-lg font-bold text-gray-900 leading-tight">{totalHours}h</p>
+              <p className="text-lg font-bold text-gray-900 leading-tight">{totalHoursLabel}</p>
               <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Horas de estudo</p>
             </div>
           </div>
@@ -715,10 +718,10 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
                   <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {cert.hours ? (
+                      {cert.hours || cert.minutes ? (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
                           <Clock className="w-3 h-3 text-[#34A853]" />
-                          <span>{cert.hours}h</span>
+                          <span>{formatDuration(cert.hours, cert.minutes)}</span>
                         </span>
                       ) : null}
 
@@ -794,7 +797,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-xs text-gray-500">{formatDateBR(cert.issueDate)}</td>
-                    <td className="py-3.5 px-4 text-xs font-semibold text-gray-700">{cert.hours || 0}h</td>
+                    <td className="py-3.5 px-4 text-xs font-semibold text-gray-700">{formatDuration(cert.hours, cert.minutes)}</td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
@@ -977,18 +980,18 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Data de Emissão
-                  </label>
-                  <DatePicker
-                    id="cert-form-date"
-                    value={formData.issueDate || ''}
-                    onChange={(date) => setFormData({ ...formData, issueDate: date })}
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Data de Emissão
+                </label>
+                <DatePicker
+                  id="cert-form-date"
+                  value={formData.issueDate || ''}
+                  onChange={(date) => setFormData({ ...formData, issueDate: date })}
+                />
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Carga Horária (Horas)
@@ -999,6 +1002,21 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                     min="0"
                     value={formData.hours}
                     onChange={(e) => setFormData({ ...formData, hours: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Carga Horária (Minutos)
+                  </label>
+                  <input
+                    id="cert-form-minutes"
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={formData.minutes ?? 0}
+                    onChange={(e) => setFormData({ ...formData, minutes: Number(e.target.value) })}
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]"
                   />
                 </div>
@@ -1200,7 +1218,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
                 <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
                   <span className="text-[11px] text-gray-500 uppercase font-semibold">Carga Horária</span>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{selectedCert.hours || 0} horas</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{formatDuration(selectedCert.hours, selectedCert.minutes)}</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
