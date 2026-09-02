@@ -14,7 +14,7 @@ export function sumCertHours(certificates: DurationLike[]): number {
 export function formatDuration(hours?: number, minutes?: number): string {
   const h = hours || 0;
   const m = minutes || 0;
-  if (h && m) return `${h}h ${m}min`;
+  if (h && m) return `${h}h ${m}`;
   if (h) return `${h}h`;
   if (m) return `${m}min`;
   return '0h';

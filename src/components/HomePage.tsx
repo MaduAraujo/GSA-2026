@@ -3,10 +3,10 @@ import { motion, useReducedMotion } from 'motion/react';
 import {
   Award,
   FileText,
-  Bot,
   Flag,
   Camera,
   BarChart3,
+  GraduationCap,
   Trophy,
   Moon,
   Sun,
@@ -43,9 +43,9 @@ const FEATURES = [
     accent: '#34A853',
   },
   {
-    icon: Bot,
-    title: 'Copiloto de IA',
-    description: 'Gere ideias, textos e respostas rápidas com uma IA integrada ao seu fluxo.',
+    icon: GraduationCap,
+    title: 'Sessões',
+    description: 'Registre cada sessão de estudo: o dia, o desafio proposto, a ferramenta aprendida e a foto de comprovação.',
     accent: '#EA4335',
   },
   {

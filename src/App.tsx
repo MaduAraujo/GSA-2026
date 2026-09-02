@@ -9,7 +9,8 @@ import {
   AmbassadorProfile,
   UserBadge,
   Challenge,
-  GalleryPhoto
+  GalleryPhoto,
+  AmbassadorSession
 } from './types';
 import { SupabaseStorageService as StorageService } from './services/supabaseStorage';
 import { supabase } from './services/supabaseClient';
@@ -26,9 +27,9 @@ const AuthScreen = lazy(() => import('./components/AuthScreen').then((m) => ({ d
 const CertificatesModule = lazy(() => import('./components/CertificatesModule').then((m) => ({ default: m.CertificatesModule })));
 const PromptsVaultModule = lazy(() => import('./components/PromptsVaultModule').then((m) => ({ default: m.PromptsVaultModule })));
 const GeminiPostsModule = lazy(() => import('./components/GeminiPostsModule').then((m) => ({ default: m.GeminiPostsModule })));
-const GeminiCopilotModule = lazy(() => import('./components/GeminiCopilotModule').then((m) => ({ default: m.GeminiCopilotModule })));
 const ChallengesModule = lazy(() => import('./components/ChallengesModule').then((m) => ({ default: m.ChallengesModule })));
 const GalleryModule = lazy(() => import('./components/GalleryModule').then((m) => ({ default: m.GalleryModule })));
+const SessionsModule = lazy(() => import('./components/SessionsModule').then((m) => ({ default: m.SessionsModule })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })));
 const ProfileModal = lazy(() => import('./components/ProfileModal').then((m) => ({ default: m.ProfileModal })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
@@ -43,6 +44,70 @@ const EMPTY_PROFILE: AmbassadorProfile = {
   email: '',
   goal2026: '',
 };
+
+async function consolidateDuplicateChallengePosts(
+  challenges: Challenge[],
+  posts: GeminiPost[]
+): Promise<{ challenges: Challenge[]; posts: GeminiPost[] }> {
+  let nextChallenges = challenges;
+  let nextPosts = posts;
+
+  for (const challenge of challenges) {
+    const linkedIds = challenge.linkedPostIds && challenge.linkedPostIds.length > 0
+      ? challenge.linkedPostIds
+      : challenge.linkedPostId
+      ? [challenge.linkedPostId]
+      : [];
+    if (linkedIds.length <= 1) continue;
+
+    const linkedPosts = linkedIds
+      .map((id) => nextPosts.find((p) => p.id === id))
+      .filter((p): p is GeminiPost => !!p);
+    if (linkedPosts.length <= 1) continue;
+
+    const survivor = linkedPosts[0];
+    const staleIds = linkedPosts.slice(1).map((p) => p.id);
+
+    const socialLinks = challenge.socialLinks && challenge.socialLinks.length > 0
+      ? challenge.socialLinks
+      : linkedPosts
+          .filter((p) => p.publishedUrl)
+          .map((p) => ({ id: crypto.randomUUID(), platform: p.platform, link: p.publishedUrl as string }));
+
+    const mergedPost: GeminiPost = {
+      ...survivor,
+      platform: socialLinks[0]?.platform || survivor.platform,
+      publishedUrl: socialLinks[0]?.link || survivor.publishedUrl,
+      socialLinks,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mergedChallenge: Challenge = {
+      ...challenge,
+      linkedPostId: survivor.id,
+      linkedPostIds: [survivor.id],
+      socialLinks,
+      resultLink: socialLinks[0]?.link,
+      resultPlatform: socialLinks[0]?.platform,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await StorageService.savePost(mergedPost);
+      for (const staleId of staleIds) {
+        await StorageService.deletePost(staleId);
+      }
+      await StorageService.saveChallenge(mergedChallenge);
+
+      nextPosts = nextPosts.filter((p) => !staleIds.includes(p.id)).map((p) => (p.id === survivor.id ? mergedPost : p));
+      nextChallenges = nextChallenges.map((c) => (c.id === challenge.id ? mergedChallenge : c));
+    } catch (e) {
+      console.error('Falha ao consolidar posts duplicados do desafio', challenge.id, e);
+    }
+  }
+
+  return { challenges: nextChallenges, posts: nextPosts };
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -59,6 +124,7 @@ export default function App() {
   const [posts, setPosts] = useState<GeminiPost[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
+  const [sessions, setSessions] = useState<AmbassadorSession[]>([]);
   const [profile, setProfile] = useState<AmbassadorProfile>(EMPTY_PROFILE);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [badgeToastQueue, setBadgeToastQueue] = useState<BadgeDefinition[]>([]);
@@ -101,6 +167,7 @@ export default function App() {
         setPosts([]);
         setChallenges([]);
         setGalleryPhotos([]);
+        setSessions([]);
         setProfile(EMPTY_PROFILE);
         setUserBadges([]);
         setBadgeToastQueue([]);
@@ -141,16 +208,22 @@ export default function App() {
   const loadAllData = async () => {
     setIsLoading(true);
     try {
-      const [certsData, promptsData, promptDocsData, postsData, challengesData, galleryData, profData, badgesData] = await Promise.all([
+      const [certsData, promptsData, promptDocsData, rawPostsData, rawChallengesData, galleryData, sessionsData, profData, badgesData] = await Promise.all([
         StorageService.getCertificates(),
         StorageService.getPrompts(),
         StorageService.getPromptDocs(),
         StorageService.getPosts(),
         StorageService.getChallenges(),
         StorageService.getGalleryPhotos(),
+        StorageService.getSessions(),
         StorageService.getProfile(),
         StorageService.getUserBadges(),
       ]);
+
+      const { challenges: challengesData, posts: postsData } = await consolidateDuplicateChallengePosts(
+        rawChallengesData,
+        rawPostsData
+      );
 
       setCertificates(certsData);
       setPrompts(promptsData);
@@ -158,6 +231,7 @@ export default function App() {
       setPosts(postsData);
       setChallenges(challengesData);
       setGalleryPhotos(galleryData);
+      setSessions(sessionsData);
       setUserBadges(badgesData);
       if (profData) {
         setProfile(profData);
@@ -298,6 +372,18 @@ export default function App() {
     setGalleryPhotos(updated);
   };
 
+  const handleSaveSession = async (session: AmbassadorSession) => {
+    await StorageService.saveSession(session);
+    const updated = await StorageService.getSessions();
+    setSessions(updated);
+  };
+
+  const handleDeleteSession = async (id: string) => {
+    await StorageService.deleteSession(id);
+    const updated = await StorageService.getSessions();
+    setSessions(updated);
+  };
+
   const handleSaveProfile = async (newProfile: AmbassadorProfile) => {
     setProfile(newProfile);
     await StorageService.saveProfile(newProfile);
@@ -365,6 +451,8 @@ export default function App() {
           certificates={certificates}
           prompts={prompts}
           posts={posts}
+          challenges={challenges}
+          sessions={sessions}
           profile={profile}
           onNavigate={(tab) => setActiveTab(tab)}
         />
@@ -408,8 +496,12 @@ export default function App() {
             />
           </div>
 
-          <div hidden={activeTab !== 'copilot'}>
-            <GeminiCopilotModule />
+          <div hidden={activeTab !== 'sessions'}>
+            <SessionsModule
+              sessions={sessions}
+              onSaveSession={handleSaveSession}
+              onDeleteSession={handleDeleteSession}
+            />
           </div>
 
           <div hidden={activeTab !== 'challenges'}>
@@ -419,6 +511,7 @@ export default function App() {
               onSaveChallenge={handleSaveChallenge}
               onDeleteChallenge={handleDeleteChallenge}
               onSavePost={handleSavePost}
+              onDeletePost={handleDeletePost}
             />
           </div>
 
@@ -431,7 +524,7 @@ export default function App() {
           </div>
 
           <div hidden={activeTab !== 'analytics'}>
-            <AnalyticsDashboard certificates={certificates} posts={posts} />
+            <AnalyticsDashboard certificates={certificates} posts={posts} sessions={sessions} challenges={challenges} />
           </div>
         </Suspense>
         </div>

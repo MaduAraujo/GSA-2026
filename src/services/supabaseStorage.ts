@@ -8,12 +8,38 @@ import {
   UserBadge,
   Challenge,
   GalleryPhoto,
-  ChatSession,
-  ChatMessageRecord,
+  AmbassadorSession,
+  SessionFile,
   PushSubscriptionKeys,
 } from '../types';
 
-function rowToCertificate(row: any): Certificate {
+const USER_FILES_BUCKET = 'user-files';
+const USER_FILE_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+function isDataUrl(value?: string | null): value is string {
+  return !!value && value.startsWith('data:');
+}
+
+async function uploadUserFile(dataUrl: string, path: string): Promise<void> {
+  const blob = await (await fetch(dataUrl)).blob();
+  const { error } = await supabase.storage
+    .from(USER_FILES_BUCKET)
+    .upload(path, blob, { upsert: true, contentType: blob.type || undefined });
+  if (error) throw error;
+}
+
+async function getUserFileSignedUrl(path: string): Promise<string | undefined> {
+  const { data } = await supabase.storage.from(USER_FILES_BUCKET).createSignedUrl(path, USER_FILE_SIGNED_URL_TTL_SECONDS);
+  return data?.signedUrl;
+}
+
+async function removeUserFiles(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await supabase.storage.from(USER_FILES_BUCKET).remove(paths);
+}
+
+async function rowToCertificate(row: any): Promise<Certificate> {
+  const fileData = row.file_path ? await getUserFileSignedUrl(row.file_path) : row.file_data ?? undefined;
   return {
     id: row.id,
     title: row.title,
@@ -21,7 +47,7 @@ function rowToCertificate(row: any): Certificate {
     issueDate: row.issue_date,
     category: row.category,
     description: row.description,
-    fileData: row.file_data ?? undefined,
+    fileData,
     fileName: row.file_name ?? undefined,
     fileType: row.file_type ?? undefined,
     skills: row.skills ?? [],
@@ -34,7 +60,7 @@ function rowToCertificate(row: any): Certificate {
   };
 }
 
-function certificateToRow(cert: Certificate, userId: string) {
+function certificateToRow(cert: Certificate, userId: string, filePath: string | null) {
   return {
     id: cert.id,
     user_id: userId,
@@ -43,9 +69,10 @@ function certificateToRow(cert: Certificate, userId: string) {
     issue_date: cert.issueDate,
     category: cert.category,
     description: cert.description,
-    file_data: cert.fileData ?? null,
+    file_data: filePath ? null : cert.fileData ?? null,
     file_name: cert.fileName ?? null,
     file_type: cert.fileType ?? null,
+    file_path: filePath,
     skills: cert.skills ?? [],
     credential_url: cert.credentialUrl ?? null,
     credential_id: cert.credentialId ?? null,
@@ -94,7 +121,7 @@ function promptToRow(prompt: PromptItem, userId: string) {
 }
 
 const PROMPT_DOCS_BUCKET = 'prompt-docs';
-const PROMPT_DOC_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+const PROMPT_DOC_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; 
 
 async function rowToPromptDoc(row: any): Promise<PromptDoc> {
   let fileData: string | undefined;
@@ -109,7 +136,6 @@ async function rowToPromptDoc(row: any): Promise<PromptDoc> {
     fileData = viewResult.data?.signedUrl;
     downloadUrl = downloadResult.data?.signedUrl;
   } else if (row.file_data) {
-    // legacy rows uploaded before the migration to Supabase Storage
     fileData = row.file_data;
     downloadUrl = row.file_data;
   }
@@ -154,6 +180,8 @@ function rowToPost(row: any): GeminiPost {
     publishedUrl: row.published_url ?? undefined,
     likes: row.likes ?? undefined,
     comments: row.comments ?? undefined,
+    score: row.score ?? undefined,
+    socialLinks: row.social_links ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -176,6 +204,8 @@ function postToRow(post: GeminiPost, userId: string) {
     published_url: post.publishedUrl ?? null,
     likes: post.likes ?? null,
     comments: post.comments ?? null,
+    score: post.score ?? null,
+    social_links: post.socialLinks ?? null,
     created_at: post.createdAt,
     updated_at: post.updatedAt,
   };
@@ -218,25 +248,6 @@ function profileToRow(profile: AmbassadorProfile, userId: string) {
     is_public: profile.isPublic ?? false,
     public_slug: profile.publicSlug || null,
     updated_at: new Date().toISOString(),
-  };
-}
-
-function rowToChatSession(row: any): ChatSession {
-  return {
-    id: row.id,
-    title: row.title,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
-}
-
-function rowToChatMessage(row: any): ChatMessageRecord {
-  return {
-    id: row.id,
-    sessionId: row.session_id,
-    sender: row.sender,
-    text: row.text,
-    createdAt: row.created_at,
   };
 }
 
@@ -319,10 +330,11 @@ function challengeToRow(challenge: Challenge, userId: string) {
   };
 }
 
-function rowToGalleryPhoto(row: any): GalleryPhoto {
+async function rowToGalleryPhoto(row: any): Promise<GalleryPhoto> {
+  const imageData = row.image_path ? await getUserFileSignedUrl(row.image_path) : row.image_data ?? undefined;
   return {
     id: row.id,
-    imageData: row.image_data,
+    imageData: imageData || '',
     caption: row.caption ?? '',
     category: row.category ?? '',
     takenAt: row.taken_at ?? undefined,
@@ -330,15 +342,71 @@ function rowToGalleryPhoto(row: any): GalleryPhoto {
   };
 }
 
-function galleryPhotoToRow(photo: GalleryPhoto, userId: string) {
+function galleryPhotoToRow(photo: GalleryPhoto, userId: string, imagePath: string | null) {
   return {
     id: photo.id,
     user_id: userId,
-    image_data: photo.imageData,
+    image_data: imagePath ? null : photo.imageData ?? null,
+    image_path: imagePath,
     caption: photo.caption ?? '',
     category: photo.category ?? '',
     taken_at: photo.takenAt || null,
     created_at: photo.createdAt,
+  };
+}
+
+async function rowToSession(row: any): Promise<AmbassadorSession> {
+  const proofImage = row.proof_image_path
+    ? await getUserFileSignedUrl(row.proof_image_path)
+    : row.proof_image ?? undefined;
+
+  const rawChallengeFiles: any[] = Array.isArray(row.challenge_files) ? row.challenge_files : [];
+  const challengeFiles: SessionFile[] | undefined =
+    rawChallengeFiles.length > 0
+      ? await Promise.all(
+          rawChallengeFiles.map(async (f) => ({
+            id: f.id,
+            name: f.name,
+            fileType: f.fileType,
+            fileSize: f.fileSize,
+            dataUrl: f.path ? (await getUserFileSignedUrl(f.path)) || '' : f.dataUrl ?? '',
+          }))
+        )
+      : undefined;
+
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.session_date,
+    challenge: row.challenge ?? undefined,
+    challengeFiles,
+    toolLearned: row.tool_learned ?? '',
+    proofImage,
+    score: row.score ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function sessionToRow(
+  session: AmbassadorSession,
+  userId: string,
+  proofImagePath: string | null,
+  challengeFilesForRow: Array<{ id: string; name: string; fileType: string; fileSize?: number; path: string }> | null
+) {
+  return {
+    id: session.id,
+    user_id: userId,
+    title: session.title,
+    session_date: session.date,
+    challenge: session.challenge || null,
+    challenge_files: challengeFilesForRow,
+    tool_learned: session.toolLearned ?? '',
+    proof_image: proofImagePath ? null : session.proofImage || null,
+    proof_image_path: proofImagePath,
+    score: session.score ?? null,
+    created_at: session.createdAt,
+    updated_at: session.updatedAt,
   };
 }
 
@@ -369,18 +437,27 @@ export const SupabaseStorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(rowToCertificate);
+    return Promise.all((data ?? []).map(rowToCertificate));
   },
 
   async saveCertificate(cert: Certificate): Promise<void> {
     const userId = await requireUserId();
-    const { error } = await supabase.from('certificates').upsert(certificateToRow(cert, userId));
+    let filePath: string | null = null;
+    if (isDataUrl(cert.fileData)) {
+      filePath = `${userId}/certificates/${cert.id}`;
+      await uploadUserFile(cert.fileData, filePath);
+    } else if (cert.fileData) {
+      filePath = `${userId}/certificates/${cert.id}`;
+    }
+    const { error } = await supabase.from('certificates').upsert(certificateToRow(cert, userId, filePath));
     if (error) throw error;
   },
 
   async deleteCertificate(id: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase.from('certificates').delete().eq('id', id);
     if (error) throw error;
+    await removeUserFiles([`${userId}/certificates/${id}`]);
   },
 
   async getChallenges(): Promise<Challenge[]> {
@@ -409,18 +486,75 @@ export const SupabaseStorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(rowToGalleryPhoto);
+    return Promise.all((data ?? []).map(rowToGalleryPhoto));
   },
 
   async saveGalleryPhoto(photo: GalleryPhoto): Promise<void> {
     const userId = await requireUserId();
-    const { error } = await supabase.from('gallery_photos').upsert(galleryPhotoToRow(photo, userId));
+    let imagePath: string | null = null;
+    if (isDataUrl(photo.imageData)) {
+      imagePath = `${userId}/gallery/${photo.id}`;
+      await uploadUserFile(photo.imageData, imagePath);
+    }
+    const { error } = await supabase.from('gallery_photos').upsert(galleryPhotoToRow(photo, userId, imagePath));
     if (error) throw error;
   },
 
   async deleteGalleryPhoto(id: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase.from('gallery_photos').delete().eq('id', id);
     if (error) throw error;
+    await removeUserFiles([`${userId}/gallery/${id}`]);
+  },
+
+  async getSessions(): Promise<AmbassadorSession[]> {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .order('session_date', { ascending: false });
+    if (error) throw error;
+    return Promise.all((data ?? []).map(rowToSession));
+  },
+
+  async saveSession(session: AmbassadorSession): Promise<void> {
+    const userId = await requireUserId();
+
+    let proofImagePath: string | null = null;
+    if (isDataUrl(session.proofImage)) {
+      proofImagePath = `${userId}/sessions/${session.id}/proof`;
+      await uploadUserFile(session.proofImage, proofImagePath);
+    } else if (session.proofImage) {
+      proofImagePath = `${userId}/sessions/${session.id}/proof`;
+    }
+
+    let challengeFilesForRow: Array<{ id: string; name: string; fileType: string; fileSize?: number; path: string }> | null = null;
+    if (session.challengeFiles && session.challengeFiles.length > 0) {
+      challengeFilesForRow = await Promise.all(
+        session.challengeFiles.map(async (file) => {
+          const path = `${userId}/sessions/${session.id}/challenge-${file.id}`;
+          if (isDataUrl(file.dataUrl)) {
+            await uploadUserFile(file.dataUrl, path);
+          }
+          return { id: file.id, name: file.name, fileType: file.fileType, fileSize: file.fileSize, path };
+        })
+      );
+    }
+
+    const { error } = await supabase
+      .from('sessions')
+      .upsert(sessionToRow(session, userId, proofImagePath, challengeFilesForRow));
+    if (error) throw error;
+  },
+
+  async deleteSession(id: string): Promise<void> {
+    const userId = await requireUserId();
+    const { data: row } = await supabase.from('sessions').select('challenge_files').eq('id', id).maybeSingle();
+    const { error } = await supabase.from('sessions').delete().eq('id', id);
+    if (error) throw error;
+    const attachmentPaths: string[] = Array.isArray(row?.challenge_files)
+      ? row.challenge_files.map((f: any) => f.path).filter(Boolean)
+      : [];
+    await removeUserFiles([`${userId}/sessions/${id}/proof`, ...attachmentPaths]);
   },
 
   async getUserBadges(): Promise<UserBadge[]> {
@@ -517,66 +651,6 @@ export const SupabaseStorageService = {
     if (error) throw error;
   },
 
-  async listChatSessions(): Promise<ChatSession[]> {
-    const { data, error } = await supabase
-      .from('chat_sessions')
-      .select('*')
-      .order('updated_at', { ascending: false });
-    if (error) throw error;
-    return (data ?? []).map(rowToChatSession);
-  },
-
-  async createChatSession(title: string): Promise<ChatSession> {
-    const userId = await requireUserId();
-    const { data, error } = await supabase
-      .from('chat_sessions')
-      .insert({ user_id: userId, title })
-      .select('*')
-      .single();
-    if (error) throw error;
-    return rowToChatSession(data);
-  },
-
-  async renameChatSession(id: string, title: string): Promise<void> {
-    const { error } = await supabase
-      .from('chat_sessions')
-      .update({ title, updated_at: new Date().toISOString() })
-      .eq('id', id);
-    if (error) throw error;
-  },
-
-  async touchChatSession(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('chat_sessions')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', id);
-    if (error) throw error;
-  },
-
-  async deleteChatSession(id: string): Promise<void> {
-    const { error } = await supabase.from('chat_sessions').delete().eq('id', id);
-    if (error) throw error;
-  },
-
-  async getChatMessages(sessionId: string): Promise<ChatMessageRecord[]> {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true });
-    if (error) throw error;
-    return (data ?? []).map(rowToChatMessage);
-  },
-
-  async appendChatMessage(sessionId: string, sender: 'user' | 'gemini', text: string): Promise<void> {
-    const userId = await requireUserId();
-    const { error } = await supabase
-      .from('chat_messages')
-      .insert({ session_id: sessionId, user_id: userId, sender, text });
-    if (error) throw error;
-    await this.touchChatSession(sessionId);
-  },
-
   async getPublicProfileBySlug(slug: string): Promise<{ userId: string; profile: AmbassadorProfile } | null> {
     const { data, error } = await supabase.from('profiles').select('*').eq('public_slug', slug).maybeSingle();
     if (error) throw error;
@@ -590,7 +664,7 @@ export const SupabaseStorageService = {
       .eq('user_id', userId)
       .order('issue_date', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(rowToCertificate);
+    return Promise.all((data ?? []).map(rowToCertificate));
   },
 
   async savePushSubscription(keys: PushSubscriptionKeys): Promise<void> {
@@ -623,13 +697,14 @@ export const SupabaseStorageService = {
   },
 
   async exportAllData(): Promise<string> {
-    const [profile, certificates, prompts, posts, challenges, galleryPhotos] = await Promise.all([
+    const [profile, certificates, prompts, posts, challenges, galleryPhotos, sessions] = await Promise.all([
       this.getProfile(),
       this.getCertificates(),
       this.getPrompts(),
       this.getPosts(),
       this.getChallenges(),
       this.getGalleryPhotos(),
+      this.getSessions(),
     ]);
 
     const payload = {
@@ -641,6 +716,7 @@ export const SupabaseStorageService = {
       posts,
       challenges,
       galleryPhotos,
+      sessions,
     };
 
     return JSON.stringify(payload, null, 2);
@@ -675,6 +751,11 @@ export const SupabaseStorageService = {
       if (Array.isArray(parsed.galleryPhotos)) {
         for (const photo of parsed.galleryPhotos) {
           await this.saveGalleryPhoto(photo);
+        }
+      }
+      if (Array.isArray(parsed.sessions)) {
+        for (const session of parsed.sessions) {
+          await this.saveSession(session);
         }
       }
       return true;

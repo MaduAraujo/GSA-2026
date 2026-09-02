@@ -1,11 +1,13 @@
 import React, { useId, useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
-import { Certificate, GeminiPost } from '../types';
+import { Certificate, GeminiPost, AmbassadorSession, Challenge } from '../types';
 import { certHoursDecimal, formatTotalHoursDecimal } from '../utils/duration';
 
 interface AnalyticsDashboardProps {
   certificates: Certificate[];
   posts: GeminiPost[];
+  sessions: AmbassadorSession[];
+  challenges: Challenge[];
 }
 
 const MONTH_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -146,7 +148,7 @@ const AreaLineChart: React.FC<{ data: { label: string; value: number }[]; color:
   );
 };
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certificates, posts }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certificates, posts, sessions, challenges }) => {
   const months = useMemo(() => lastMonths(6), []);
 
   const certsByMonth = useMemo(() => {
@@ -159,6 +161,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certific
     });
     return months.map((m) => ({ label: m.label, value: counts.get(m.key) || 0 }));
   }, [certificates, months]);
+
+  const sessionsByMonth = useMemo(() => {
+    const counts = new Map(months.map((m) => [m.key, 0]));
+    sessions.forEach((s) => {
+      const parsed = parseIssueYearMonth(s.date);
+      if (!parsed) return;
+      const key = `${parsed.year}-${parsed.month}`;
+      if (counts.has(key)) counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return months.map((m) => ({ label: m.label, value: counts.get(m.key) || 0 }));
+  }, [sessions, months]);
 
   const cumulativeHours = useMemo(() => {
     const [firstYear, firstMonth] = months[0].key.split('-').map(Number);
@@ -183,6 +196,38 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certific
       return { label: m.label, value: running };
     });
   }, [certificates, months]);
+
+  const scoreByMonth = useMemo(() => {
+    const totals = new Map(months.map((m) => [m.key, 0]));
+
+    posts.forEach((p) => {
+      if (!p.score) return;
+      const parsed = parseIssueYearMonth(p.createdAt);
+      if (!parsed) return;
+      const key = `${parsed.year}-${parsed.month}`;
+      if (totals.has(key)) totals.set(key, (totals.get(key) || 0) + p.score);
+    });
+
+    challenges.forEach((c) => {
+      if (!c.points) return;
+      const dateStr = c.dates?.[0] || c.deadline;
+      if (!dateStr) return;
+      const parsed = parseIssueYearMonth(dateStr);
+      if (!parsed) return;
+      const key = `${parsed.year}-${parsed.month}`;
+      if (totals.has(key)) totals.set(key, (totals.get(key) || 0) + c.points);
+    });
+
+    sessions.forEach((s) => {
+      if (!s.score) return;
+      const parsed = parseIssueYearMonth(s.date);
+      if (!parsed) return;
+      const key = `${parsed.year}-${parsed.month}`;
+      if (totals.has(key)) totals.set(key, (totals.get(key) || 0) + s.score);
+    });
+
+    return months.map((m) => ({ label: m.label, value: totals.get(m.key) || 0 }));
+  }, [posts, challenges, sessions, months]);
 
   const postsByPlatform = useMemo(() => {
     const counts = new Map<string, number>();
@@ -214,6 +259,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certific
           <h3 className="text-sm font-bold text-gray-900 mb-1">Certificados por mês</h3>
           <p className="text-xs text-gray-500 mb-2">Últimos 6 meses</p>
           <BarChart data={certsByMonth} color="#1A73E8" />
+        </div>
+
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-1">Sessões por mês</h3>
+          <p className="text-xs text-gray-500 mb-2">Últimos 6 meses</p>
+          <BarChart data={sessionsByMonth} color="#34A853" />
+        </div>
+
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-1">Pontuação por mês</h3>
+          <p className="text-xs text-gray-500 mb-2">Posts, desafios e sessões — últimos 6 meses</p>
+          <BarChart data={scoreByMonth} color="#9333EA" />
         </div>
 
         <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">

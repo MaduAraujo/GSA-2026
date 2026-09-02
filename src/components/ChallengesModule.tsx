@@ -21,6 +21,7 @@ import {
 import { Challenge, ChallengeSocialLink, ChallengeStatus, GeminiPost, PostPlatform } from '../types';
 import { DatePicker } from './DatePicker';
 import { usePersistedState } from '../hooks/usePersistedState';
+import { isHttpUrl } from '../utils/safeUrl';
 
 interface ChallengesModuleProps {
   challenges: Challenge[];
@@ -28,6 +29,7 @@ interface ChallengesModuleProps {
   onSaveChallenge: (challenge: Challenge) => Promise<void>;
   onDeleteChallenge: (id: string) => Promise<void>;
   onSavePost: (post: GeminiPost) => Promise<void>;
+  onDeletePost: (id: string) => Promise<void>;
 }
 
 const STATUSES: ChallengeStatus[] = ['Pendente', 'Em Andamento', 'Concluído'];
@@ -75,6 +77,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
   onSaveChallenge,
   onDeleteChallenge,
   onSavePost,
+  onDeletePost,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
@@ -88,12 +91,10 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const addModalRef = useRef<HTMLDivElement>(null);
 
-  // Staged inputs for adding another day or another publication link to the form
   const [pendingDate, setPendingDate] = useState('');
   const [pendingLinkPlatform, setPendingLinkPlatform] = useState<PostPlatform>('LinkedIn');
   const [pendingLinkUrl, setPendingLinkUrl] = useState('');
 
-  // Result image attachment (proof/screenshot of the publication)
   const [resultImageError, setResultImageError] = useState<string | null>(null);
   const resultImageInputRef = useRef<HTMLInputElement>(null);
   const MAX_RESULT_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
@@ -206,35 +207,39 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
       const dateLabel = dates[0] ? formatDateBR(dates[0]) : '';
       const previousLinkedPostIds = formData.linkedPostIds || (formData.linkedPostId ? [formData.linkedPostId] : []);
 
-      // Each publication link also gets counted as a post on the Posts
-      // screen — reuse the previously linked post at the same position on
-      // later edits instead of creating duplicates.
+      const existingPost = previousLinkedPostIds[0]
+        ? posts.find((p) => p.id === previousLinkedPostIds[0])
+        : undefined;
+
       const linkedPostIds: string[] = [];
-      for (let i = 0; i < socialLinks.length; i++) {
-        const socialLink = socialLinks[i];
-        const existingPost = previousLinkedPostIds[i]
-          ? posts.find((p) => p.id === previousLinkedPostIds[i])
-          : undefined;
+      if (socialLinks.length > 0) {
         const postId = existingPost?.id || crypto.randomUUID();
         const post: GeminiPost = {
           id: postId,
           title,
-          platform: socialLink.platform,
+          platform: socialLinks[0].platform,
           status: 'Publicado',
           category: (formData.category || '').trim(),
           tone: existingPost?.tone || 'Resultado de Desafio',
-          content: [dateLabel, socialLink.link].filter(Boolean).join('\n'),
+          content: [dateLabel, socialLinks[0].link].filter(Boolean).join('\n'),
           promptUsed: existingPost?.promptUsed || `Resultado do desafio: "${title}"`,
           hashtags: existingPost?.hashtags || [],
           visualIdea: existingPost?.visualIdea,
-          publishedUrl: socialLink.link,
+          publishedUrl: socialLinks[0].link,
+          socialLinks,
           likes: existingPost?.likes ?? 0,
           comments: existingPost?.comments ?? 0,
+          score: existingPost?.score,
           createdAt: existingPost?.createdAt || now,
           updatedAt: now,
         };
         await onSavePost(post);
         linkedPostIds.push(postId);
+      }
+
+      const staleLinkedPostIds = previousLinkedPostIds.filter((id) => !linkedPostIds.includes(id));
+      for (const staleId of staleLinkedPostIds) {
+        await onDeletePost(staleId);
       }
 
       const challenge: Challenge = {
@@ -295,7 +300,6 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
     }
   };
 
-  // Esc-to-close for the add/edit modal
   useEffect(() => {
     if (!isAddModalOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -307,8 +311,6 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
 
   return (
     <div className="space-y-6">
-
-      {/* Header & New Challenge Button */}
       <div className="flex items-center justify-between gap-4 pt-15">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
@@ -332,7 +334,6 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
         </button>
       </div>
 
-      {/* Quick Stats */}
       {challenges.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
@@ -427,7 +428,6 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
         )}
       </div>
 
-      {/* Challenges List */}
       {filteredChallenges.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
           <div className="w-16 h-16 rounded-full bg-[#34A853]/10 text-[#1E8E3E] flex items-center justify-center mx-auto">
@@ -500,7 +500,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                   : challenge.resultLink
                   ? [{ id: challenge.id, platform: challenge.resultPlatform, link: challenge.resultLink }]
                   : []
-                ).map((social) => (
+                ).filter((social) => isHttpUrl(social.link)).map((social) => (
                   <a
                     key={social.id}
                     href={social.link}
@@ -534,7 +534,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                       {challenge.points} pts
                     </span>
                   )}
-                  {challenge.link && (
+                  {isHttpUrl(challenge.link) && (
                     <a
                       href={challenge.link}
                       target="_blank"
@@ -576,7 +576,6 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
         </div>
       )}
 
-      {/* -------------------- MODAL: ADD/EDIT CHALLENGE -------------------- */}
       {isAddModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div ref={addModalRef} className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">

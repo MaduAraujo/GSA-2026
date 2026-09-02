@@ -3,6 +3,7 @@ import { Award, Clock, Calendar, ExternalLink, FileText, Loader2, ShieldAlert } 
 import { AmbassadorProfile, Certificate } from '../types';
 import { SupabaseStorageService } from '../services/supabaseStorage';
 import { formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
+import { isHttpUrl } from '../utils/safeUrl';
 
 interface PublicPortfolioPageProps {
   slug: string;
@@ -133,7 +134,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
                         {formatDuration(cert.hours, cert.minutes)}
                       </span>
                     ) : <span />}
-                    {cert.credentialUrl && (
+                    {isHttpUrl(cert.credentialUrl) && (
                       <a
                         href={cert.credentialUrl}
                         target="_blank"

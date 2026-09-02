@@ -3,10 +3,10 @@ import {
   Award,
   Sparkles,
   FileText,
-  Bot,
   Flag,
   Camera,
   BarChart3,
+  GraduationCap,
   User,
   Settings,
   Menu,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 
-export type AppTab = 'certificates' | 'prompts' | 'posts' | 'copilot' | 'challenges' | 'gallery' | 'analytics';
+export type AppTab = 'certificates' | 'prompts' | 'posts' | 'sessions' | 'challenges' | 'gallery' | 'analytics';
 
 interface NavbarProps {
   activeTab: AppTab;
@@ -63,7 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'certificates', label: 'Certificados', icon: Award, color: 'text-[#1A73E8]' },
     { id: 'prompts', label: 'Banco de Prompts', icon: Sparkles, color: 'text-[#F9AB00]' },
     { id: 'posts', label: 'Posts', icon: FileText, color: 'text-[#EA4335]' },
-    { id: 'copilot', label: 'Assistente IA', icon: Bot, color: 'text-[#34A853]' },
+    { id: 'sessions', label: 'Sessões', icon: GraduationCap, color: 'text-[#34A853]' },
     { id: 'challenges', label: 'Desafios', icon: Flag, color: 'text-[#34A853]' },
     { id: 'gallery', label: 'Galeria', icon: Camera, color: 'text-[#EA4335]' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-[#1A73E8]' },

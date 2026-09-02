@@ -56,6 +56,7 @@ create table if not exists public.certificates (
 );
 
 alter table public.certificates add column if not exists minutes integer;
+alter table public.certificates add column if not exists file_path text;
 
 create index if not exists certificates_user_id_idx on public.certificates (user_id);
 
@@ -129,7 +130,7 @@ create policy "prompts_delete_own" on public.prompts
   using ( (select auth.uid()) = user_id );
 
 -- ---------------------------------------------------------------------------
--- prompt_docs — document library uploaded to test alongside prompts
+-- prompt_docs 
 -- ---------------------------------------------------------------------------
 create table if not exists public.prompt_docs (
   id uuid primary key default gen_random_uuid(),
@@ -186,6 +187,43 @@ create policy "prompt_docs_storage_delete_own" on storage.objects
   for delete to authenticated
   using ( bucket_id = 'prompt-docs' and (select auth.uid())::text = (storage.foldername(name))[1] );
 
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('user-files', 'user-files', false, 20971520)
+on conflict (id) do update set file_size_limit = excluded.file_size_limit;
+
+drop policy if exists "user_files_storage_select_own" on storage.objects;
+create policy "user_files_storage_select_own" on storage.objects
+  for select to authenticated
+  using ( bucket_id = 'user-files' and (select auth.uid())::text = (storage.foldername(name))[1] );
+
+drop policy if exists "user_files_storage_insert_own" on storage.objects;
+create policy "user_files_storage_insert_own" on storage.objects
+  for insert to authenticated
+  with check ( bucket_id = 'user-files' and (select auth.uid())::text = (storage.foldername(name))[1] );
+
+drop policy if exists "user_files_storage_update_own" on storage.objects;
+create policy "user_files_storage_update_own" on storage.objects
+  for update to authenticated
+  using ( bucket_id = 'user-files' and (select auth.uid())::text = (storage.foldername(name))[1] )
+  with check ( bucket_id = 'user-files' and (select auth.uid())::text = (storage.foldername(name))[1] );
+
+drop policy if exists "user_files_storage_delete_own" on storage.objects;
+create policy "user_files_storage_delete_own" on storage.objects
+  for delete to authenticated
+  using ( bucket_id = 'user-files' and (select auth.uid())::text = (storage.foldername(name))[1] );
+
+drop policy if exists "user_files_storage_select_public_certs" on storage.objects;
+create policy "user_files_storage_select_public_certs" on storage.objects
+  for select to anon
+  using (
+    bucket_id = 'user-files'
+    and (storage.foldername(name))[2] = 'certificates'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = ((storage.foldername(name))[1])::uuid and p.is_public = true
+    )
+  );
+
 -- ---------------------------------------------------------------------------
 -- posts
 -- ---------------------------------------------------------------------------
@@ -205,11 +243,16 @@ create table if not exists public.posts (
   published_url text,
   likes integer,
   comments integer,
+  score integer,
+  social_links jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists posts_user_id_idx on public.posts (user_id);
+
+alter table public.posts add column if not exists score integer;
+alter table public.posts add column if not exists social_links jsonb;
 
 alter table public.posts enable row level security;
 
@@ -317,7 +360,7 @@ create policy "challenges_delete_own" on public.challenges
   using ( (select auth.uid()) = user_id );
 
 -- ---------------------------------------------------------------------------
--- gallery_photos — photos related to the program (welcome kit, events, etc.)
+-- gallery_photos 
 -- ---------------------------------------------------------------------------
 create table if not exists public.gallery_photos (
   id uuid primary key default gen_random_uuid(),
@@ -328,6 +371,9 @@ create table if not exists public.gallery_photos (
   taken_at date,
   created_at timestamptz not null default now()
 );
+
+alter table public.gallery_photos alter column image_data drop not null;
+alter table public.gallery_photos add column if not exists image_path text;
 
 create index if not exists gallery_photos_user_id_idx on public.gallery_photos (user_id);
 
@@ -355,6 +401,52 @@ create policy "gallery_photos_delete_own" on public.gallery_photos
   using ( (select auth.uid()) = user_id );
 
 -- ---------------------------------------------------------------------------
+-- sessions 
+-- ---------------------------------------------------------------------------
+create table if not exists public.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title text not null,
+  session_date date not null,
+  challenge text,
+  challenge_files jsonb,
+  tool_learned text not null default '',
+  proof_image text,
+  score integer,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists sessions_user_id_idx on public.sessions (user_id);
+
+alter table public.sessions add column if not exists challenge_files jsonb;
+alter table public.sessions add column if not exists score integer;
+alter table public.sessions add column if not exists proof_image_path text;
+
+alter table public.sessions enable row level security;
+
+drop policy if exists "sessions_select_own" on public.sessions;
+create policy "sessions_select_own" on public.sessions
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "sessions_insert_own" on public.sessions;
+create policy "sessions_insert_own" on public.sessions
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "sessions_update_own" on public.sessions;
+create policy "sessions_update_own" on public.sessions
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "sessions_delete_own" on public.sessions;
+create policy "sessions_delete_own" on public.sessions
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
 -- profiles: public portfolio sharing
 -- ---------------------------------------------------------------------------
 alter table public.profiles add column if not exists is_public boolean not null default false;
@@ -376,71 +468,13 @@ create policy "certificates_select_public" on public.certificates
   );
 
 -- ---------------------------------------------------------------------------
--- chat_sessions / chat_messages 
+-- chat_sessions / chat_messages: removed 
 -- ---------------------------------------------------------------------------
-create table if not exists public.chat_sessions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  title text not null default 'Nova conversa',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index if not exists chat_sessions_user_id_idx on public.chat_sessions (user_id);
-
-alter table public.chat_sessions enable row level security;
-
-drop policy if exists "chat_sessions_select_own" on public.chat_sessions;
-create policy "chat_sessions_select_own" on public.chat_sessions
-  for select to authenticated
-  using ( (select auth.uid()) = user_id );
-
-drop policy if exists "chat_sessions_insert_own" on public.chat_sessions;
-create policy "chat_sessions_insert_own" on public.chat_sessions
-  for insert to authenticated
-  with check ( (select auth.uid()) = user_id );
-
-drop policy if exists "chat_sessions_update_own" on public.chat_sessions;
-create policy "chat_sessions_update_own" on public.chat_sessions
-  for update to authenticated
-  using ( (select auth.uid()) = user_id )
-  with check ( (select auth.uid()) = user_id );
-
-drop policy if exists "chat_sessions_delete_own" on public.chat_sessions;
-create policy "chat_sessions_delete_own" on public.chat_sessions
-  for delete to authenticated
-  using ( (select auth.uid()) = user_id );
-
-create table if not exists public.chat_messages (
-  id uuid primary key default gen_random_uuid(),
-  session_id uuid not null references public.chat_sessions (id) on delete cascade,
-  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  sender text not null check (sender in ('user', 'gemini')),
-  text text not null,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists chat_messages_session_id_idx on public.chat_messages (session_id);
-
-alter table public.chat_messages enable row level security;
-
-drop policy if exists "chat_messages_select_own" on public.chat_messages;
-create policy "chat_messages_select_own" on public.chat_messages
-  for select to authenticated
-  using ( (select auth.uid()) = user_id );
-
-drop policy if exists "chat_messages_insert_own" on public.chat_messages;
-create policy "chat_messages_insert_own" on public.chat_messages
-  for insert to authenticated
-  with check ( (select auth.uid()) = user_id );
-
-drop policy if exists "chat_messages_delete_own" on public.chat_messages;
-create policy "chat_messages_delete_own" on public.chat_messages
-  for delete to authenticated
-  using ( (select auth.uid()) = user_id );
+drop table if exists public.chat_messages;
+drop table if exists public.chat_sessions;
 
 -- ---------------------------------------------------------------------------
--- push_subscriptions — Web Push endpoints for real (app-closed) notifications
+-- push_subscriptions 
 -- ---------------------------------------------------------------------------
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),

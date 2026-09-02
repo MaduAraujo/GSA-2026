@@ -11,16 +11,6 @@ export interface ChatAttachment {
   fileName?: string;
 }
 
-export interface GeneratePostParams {
-  topic: string;
-  platform: string;
-  tone: string;
-  category?: string;
-  keyPoints?: string;
-  callToAction?: string;
-  customInstructions?: string;
-}
-
 export interface EnhancePromptParams {
   prompt: string;
   section: string;
@@ -44,22 +34,6 @@ export interface AnalyzedCertificateResult {
 }
 
 export const GeminiApiService = {
-  async generatePost(params: GeneratePostParams): Promise<string> {
-    const res = await fetch('/api/gemini/generate-post', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-      body: JSON.stringify(params),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Falha ao gerar post com o Gemini.');
-    }
-
-    const data = await res.json();
-    return data.post;
-  },
-
   async enhancePrompt(params: EnhancePromptParams): Promise<string> {
     const res = await fetch('/api/gemini/enhance-prompt', {
       method: 'POST',

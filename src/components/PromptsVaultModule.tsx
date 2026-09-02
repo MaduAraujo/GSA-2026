@@ -31,6 +31,7 @@ import { PromptItem, PromptDoc } from '../types';
 import { GeminiApiService } from '../services/geminiApi';
 import { SupabaseStorageService } from '../services/supabaseStorage';
 import { exportPromptsAsPdf } from '../utils/promptsExport';
+import { isHttpUrl } from '../utils/safeUrl';
 
 interface PromptsVaultModuleProps {
   prompts: PromptItem[];
@@ -1028,7 +1029,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   Documentos de Apoio
                 </h4>
                 <div className="flex flex-col gap-1.5">
-                  {testingPrompt.sharedDocs.map((doc, idx) => (
+                  {testingPrompt.sharedDocs.filter(isHttpUrl).map((doc, idx) => (
                     <a
                       key={idx}
                       href={doc}

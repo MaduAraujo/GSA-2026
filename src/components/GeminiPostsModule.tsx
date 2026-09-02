@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, 
-  Sparkles, 
-  Copy, 
+  FileText,
+  Copy,
   Check, 
   Plus, 
   Search, 
@@ -23,14 +22,13 @@ import {
   Twitter,
   Image as ImageIcon,
   ChevronDown,
-  List,
-  CalendarDays
+  Star
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { GeminiPost, PostPlatform, PostStatus } from '../types';
-import { GeminiApiService } from '../services/geminiApi';
+import { GeminiPost, PostPlatform, PostStatus, ChallengeSocialLink } from '../types';
 import { usePersistedState } from '../hooks/usePersistedState';
-import { ContentCalendar } from './ContentCalendar';
+import { DatePicker } from './DatePicker';
+import { isHttpUrl } from '../utils/safeUrl';
 
 interface GeminiPostsModuleProps {
   posts: GeminiPost[];
@@ -43,14 +41,6 @@ const PLATFORMS: PostPlatform[] = [
   'LinkedIn',
   'Instagram',
   'WhatsApp / Comunidade',
-];
-
-const TONES = [
-  'Inspirador & Profissional',
-  'Educacional & Prático',
-  'Storytelling Pessoal',
-  'Descontraído & Tech',
-  'Chamada para Ação / Evento',
 ];
 
 const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
@@ -75,6 +65,14 @@ function renderLinkedContent(content: string): React.ReactNode {
   );
 }
 
+function toLocalDateInputValue(iso: string): string {
+  const d = new Date(iso);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getPostDisplayDate(post: GeminiPost): string {
   if (post.tone === 'Resultado de Desafio') {
     const [firstLine] = post.content.split('\n');
@@ -83,32 +81,45 @@ function getPostDisplayDate(post: GeminiPost): string {
   return new Date(post.createdAt).toLocaleDateString('pt-BR');
 }
 
+function getPostPlatforms(post: GeminiPost): PostPlatform[] {
+  if (post.socialLinks && post.socialLinks.length > 0) {
+    return Array.from(new Set(post.socialLinks.map((l) => l.platform)));
+  }
+  return [post.platform];
+}
+
+function getPostLinks(post: GeminiPost): ChallengeSocialLink[] {
+  if (post.socialLinks && post.socialLinks.length > 0) return post.socialLinks;
+  if (post.publishedUrl) return [{ id: 'legacy', platform: post.platform, link: post.publishedUrl }];
+  return [];
+}
+
 function renderPostBody(post: GeminiPost): React.ReactNode {
-  if (post.tone === 'Resultado de Desafio' && post.publishedUrl) {
+  if (post.tone === 'Resultado de Desafio' || post.tone === 'Manual') {
+    const links = getPostLinks(post);
+    if (links.length === 0) {
+      return <span className="text-gray-400">Nenhum link adicionado.</span>;
+    }
     return (
-      <a
-        href={post.publishedUrl}
-        target="_blank"
-        rel="noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="inline-flex items-center gap-1.5 text-[#1A73E8] font-bold hover:underline"
-      >
-        <Share2 className="w-3.5 h-3.5 shrink-0" />
-        Ver publicação{post.platform ? ` no ${post.platform}` : ''}
-      </a>
+      <span className="flex flex-col gap-1.5">
+        {links.filter((l) => isHttpUrl(l.link)).map((l) => (
+          <a
+            key={l.id}
+            href={l.link}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 text-[#1A73E8] font-bold hover:underline break-all"
+          >
+            <Share2 className="w-3.5 h-3.5 shrink-0" />
+            Ver publicação no {l.platform}
+          </a>
+        ))}
+      </span>
     );
   }
   return renderLinkedContent(post.content);
 }
-
-const DEFAULT_GENERATOR_DATA = {
-  topic: '',
-  platform: 'LinkedIn' as PostPlatform,
-  tone: 'Inspirador & Profissional',
-  keyPoints: '',
-  callToAction: 'Deixe um comentário com suas impressões e compartilhe com amigos!',
-  customInstructions: '',
-};
 
 export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
   posts,
@@ -118,25 +129,19 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatformFilter, setSelectedPlatformFilter] = useState<string>('Todos');
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('Todos');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = usePersistedState<'list' | 'calendar'>('gsa_posts_view_mode', 'list');
   const [isGeneratorModalOpen, setIsGeneratorModalOpen] = usePersistedState('gsa_post_generator_open', false);
   const [selectedPostDetailId, setSelectedPostDetailId] = usePersistedState<string | null>('gsa_post_selected_id', null);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const selectedPostDetail = selectedPostDetailId ? posts.find((p) => p.id === selectedPostDetailId) ?? null : null;
 
-  const [generatorData, setGeneratorData] = usePersistedState('gsa_post_generator_draft', {
-    ...DEFAULT_GENERATOR_DATA,
-    topic: initialDraftTopic || '',
-  });
-
   const [editingPost, setEditingPost] = usePersistedState<Partial<GeminiPost> | null>('gsa_post_editing_draft', null);
+  const [pendingLinkPlatform, setPendingLinkPlatform] = useState<PostPlatform>('LinkedIn');
+  const [pendingLinkUrl, setPendingLinkUrl] = useState('');
 
   useEffect(() => {
     if (initialDraftTopic) {
-      setGeneratorData((prev) => ({ ...prev, topic: initialDraftTopic }));
+      handleCreateManualPost(initialDraftTopic);
       setIsGeneratorModalOpen(true);
     }
   }, [initialDraftTopic]);
@@ -145,98 +150,79 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
     const matchesSearch =
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.hashtags.some((h) => h.toLowerCase().includes(searchQuery.toLowerCase()));
+      p.hashtags.some((h) => h.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      getPostLinks(p).some((l) => l.link.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesPlatform = selectedPlatformFilter === 'Todos' || p.platform === selectedPlatformFilter;
-    const matchesStatus = selectedStatusFilter === 'Todos' || p.status === selectedStatusFilter;
+    const matchesPlatform = selectedPlatformFilter === 'Todos' || getPostPlatforms(p).includes(selectedPlatformFilter as PostPlatform);
 
-    return matchesSearch && matchesPlatform && matchesStatus;
+    return matchesSearch && matchesPlatform;
   });
 
   const handleCopy = (post: GeminiPost) => {
-    navigator.clipboard.writeText(post.content);
+    const text = post.tone === 'Manual'
+      ? getPostLinks(post).map((l) => l.link).join('\n')
+      : post.content;
+    navigator.clipboard.writeText(text);
     setCopiedId(post.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleGeneratePostWithGemini = async () => {
-    if (!generatorData.topic) return;
-
-    setIsGenerating(true);
-    try {
-      const generatedContent = await GeminiApiService.generatePost({
-        topic: generatorData.topic,
-        platform: generatorData.platform,
-        tone: generatorData.tone,
-        keyPoints: generatorData.keyPoints,
-        callToAction: generatorData.callToAction,
-        customInstructions: generatorData.customInstructions,
-      });
-
-      const hashtagsMatch = generatedContent.match(/#[a-zA-Z0-9_]+/g) || [
-        '#GoogleStudentAmbassador',
-        '#Google2026',
-        '#GeminiAI',
-        '#TechCommunity',
-      ];
-
-      setEditingPost({
-        id: crypto.randomUUID(),
-        title: generatorData.topic,
-        platform: generatorData.platform,
-        status: 'Rascunho',
-        category: '',
-        tone: generatorData.tone,
-        content: generatedContent,
-        promptUsed: `Post para ${generatorData.platform} sobre ${generatorData.topic} com tom ${generatorData.tone}`,
-        hashtags: Array.from(new Set(hashtagsMatch)),
-        visualIdea: 'Foto do evento ou mockup do projeto com cores Google.',
-        likes: 0,
-        comments: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.7 },
-        colors: ['#EA4335', '#1A73E8', '#FBBC04'],
-      });
-    } catch (err: any) {
-      alert(`Erro ao gerar post com Gemini: ${err.message}`);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleReschedulePost = async (post: GeminiPost, newDate: string) => {
-    await onSavePost({
-      ...post,
-      scheduledDate: newDate,
-      status: post.status === 'Rascunho' ? 'Agendado' : post.status,
+  const handleCreateManualPost = (title: string = '') => {
+    setPendingLinkPlatform('LinkedIn');
+    setPendingLinkUrl('');
+    setEditingPost({
+      id: crypto.randomUUID(),
+      title,
+      platform: 'LinkedIn',
+      status: 'Publicado',
+      category: '',
+      tone: 'Manual',
+      content: '',
+      hashtags: [],
+      socialLinks: [],
+      likes: 0,
+      comments: 0,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
   };
 
+  const handleAddSocialLink = () => {
+    const link = pendingLinkUrl.trim();
+    if (!link) return;
+    const newLink: ChallengeSocialLink = { id: crypto.randomUUID(), platform: pendingLinkPlatform, link };
+    setEditingPost((prev) => prev && ({ ...prev, socialLinks: [...(prev.socialLinks || []), newLink] }));
+    setPendingLinkUrl('');
+  };
+
+  const handleRemoveSocialLink = (id: string) => {
+    setEditingPost((prev) => prev && ({ ...prev, socialLinks: (prev.socialLinks || []).filter((l) => l.id !== id) }));
+  };
+
   const handleSavePostToLibrary = async () => {
-    if (!editingPost || !editingPost.title || !editingPost.content) return;
+    if (!editingPost || !editingPost.title) return;
+    const isManual = editingPost.tone === 'Manual';
+    const socialLinks = editingPost.socialLinks || [];
+    if (isManual && socialLinks.length === 0) return;
+    if (!isManual && !editingPost.content) return;
 
     const postToSave: GeminiPost = {
       id: editingPost.id || crypto.randomUUID(),
       title: editingPost.title,
-      platform: editingPost.platform || 'LinkedIn',
+      platform: isManual ? (socialLinks[0]?.platform || 'LinkedIn') : (editingPost.platform || 'LinkedIn'),
       status: editingPost.status || 'Rascunho',
       category: (editingPost.category || '').trim(),
       tone: editingPost.tone || 'Inspirador',
-      content: editingPost.content,
+      content: editingPost.content || '',
       promptUsed: editingPost.promptUsed,
       hashtags: editingPost.hashtags || [],
       visualIdea: editingPost.visualIdea,
       scheduledDate: editingPost.scheduledDate,
-      publishedUrl: editingPost.publishedUrl,
+      publishedUrl: isManual ? socialLinks[0]?.link : editingPost.publishedUrl,
+      socialLinks: isManual ? socialLinks : editingPost.socialLinks,
       likes: editingPost.likes || 0,
       comments: editingPost.comments || 0,
+      score: editingPost.score,
       createdAt: editingPost.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -264,63 +250,22 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
-            <button
-              onClick={() => setViewMode('list')}
-              aria-label="Visualização em lista"
-              aria-pressed={viewMode === 'list'}
-              className={`p-1.5 rounded-lg transition-all ${
-                viewMode === 'list' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-900'
-              }`}
-              title="Visualização em Lista"
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('calendar')}
-              aria-label="Visualização em calendário"
-              aria-pressed={viewMode === 'calendar'}
-              className={`p-1.5 rounded-lg transition-all ${
-                viewMode === 'calendar' ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500 hover:text-gray-900'
-              }`}
-              title="Visualização em Calendário"
-            >
-              <CalendarDays className="w-4 h-4" />
-            </button>
-          </div>
-
           <button
             id="btn-create-post-gemini"
             onClick={() => {
-              setEditingPost(null);
-              setGeneratorData({
-                topic: '',
-                platform: 'LinkedIn',
-                tone: 'Inspirador & Profissional',
-                keyPoints: '',
-                callToAction: 'Deixe sua opinião nos comentários e conecte-se!',
-                customInstructions: '',
-              });
+              handleCreateManualPost();
               setIsGeneratorModalOpen(true);
             }}
             aria-label="Novo post"
             title="Novo post"
             className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95"
           >
-            <Sparkles className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Novo post</span>
           </button>
         </div>
       </div>
 
-      {viewMode === 'calendar' ? (
-        <ContentCalendar
-          posts={posts}
-          onSelectPost={(post) => setSelectedPostDetailId(post.id)}
-          onReschedulePost={handleReschedulePost}
-        />
-      ) : (
-      <>
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -339,23 +284,6 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                 <X className="w-4 h-4" />
               </button>
             )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                aria-label="Filtrar por status"
-                value={selectedStatusFilter}
-                onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                className="appearance-none pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#EA4335]/30"
-              >
-                <option value="Todos">Todos os Status</option>
-                <option value="Publicado">Apenas Publicados</option>
-                <option value="Rascunho">Apenas Rascunhos</option>
-                <option value="Agendado">Apenas Agendados</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
           </div>
         </div>
 
@@ -397,15 +325,17 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                      post.platform === 'LinkedIn'
-                        ? 'bg-[#0077B5]/10 text-[#0077B5]'
-                        : post.platform === 'Instagram'
-                        ? 'bg-[#E1306C]/10 text-[#E1306C]'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {post.platform}
-                    </span>
+                    {getPostPlatforms(post).map((plt) => (
+                      <span key={plt} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        plt === 'LinkedIn'
+                          ? 'bg-[#0077B5]/10 text-[#0077B5]'
+                          : plt === 'Instagram'
+                          ? 'bg-[#E1306C]/10 text-[#E1306C]'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {plt}
+                      </span>
+                    ))}
 
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
                       post.status === 'Publicado'
@@ -470,6 +400,12 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                       <span>{post.comments}</span>
                     </span>
                   ) : null}
+                  {post.score ? (
+                    <span className="flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-[#FBBC04]" />
+                      <span>{post.score}</span>
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -488,7 +424,13 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
 
                   <button
                     onClick={() => {
-                      setEditingPost(post);
+                      setPendingLinkPlatform('LinkedIn');
+                      setPendingLinkUrl('');
+                      setEditingPost(
+                        post.tone === 'Manual' && !post.socialLinks?.length
+                          ? { ...post, socialLinks: getPostLinks(post) }
+                          : post
+                      );
                       setIsGeneratorModalOpen(true);
                     }}
                     className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900"
@@ -526,10 +468,8 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
           ))}
         </div>
       )}
-      </>
-      )}
 
-      {isGeneratorModalOpen && (
+      {isGeneratorModalOpen && editingPost && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
             <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
@@ -537,14 +477,14 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#EA4335]/10 text-[#EA4335] flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-[#FBBC04]" />
+                  <FileText className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                    {editingPost ? 'Editar Post' : 'Criador de Posts'}
+                    {posts.some((p) => p.id === editingPost.id) ? 'Editar Post' : 'Novo Post'}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Gere conteúdo viral e autêntico para sua audiência acadêmica e profissional.
+                    Registre um post que você já publicou.
                   </p>
                 </div>
               </div>
@@ -560,123 +500,39 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
               </button>
             </div>
 
-            {!editingPost ? (
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Tema *
+                    Título
                   </label>
                   <input
                     type="text"
-                    required
-                    value={generatorData.topic}
-                    onChange={(e) => setGeneratorData({ ...generatorData, topic: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
+                    value={editingPost.title || ''}
+                    onChange={(e) => setEditingPost({ ...editingPost, title: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Plataforma
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={generatorData.platform}
-                        onChange={(e) => setGeneratorData({ ...generatorData, platform: e.target.value as PostPlatform })}
-                        className="appearance-none w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
-                      >
-                        {PLATFORMS.map((plt) => (
-                          <option key={plt} value={plt}>{plt}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {editingPost.tone !== 'Manual' && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Plataforma
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={editingPost.platform || 'LinkedIn'}
+                          onChange={(e) => setEditingPost({ ...editingPost, platform: e.target.value as PostPlatform })}
+                          className="appearance-none w-full px-3.5 py-2 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
+                        >
+                          {PLATFORMS.map((plt) => (
+                            <option key={plt} value={plt}>{plt}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Tom de Voz
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={generatorData.tone}
-                        onChange={(e) => setGeneratorData({ ...generatorData, tone: e.target.value })}
-                        className="appearance-none w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
-                      >
-                        {TONES.map((t) => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Pontos-chave & Destaques
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={generatorData.keyPoints}
-                    onChange={(e) => setGeneratorData({ ...generatorData, keyPoints: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Chamada para Ação (CTA)
-                  </label>
-                  <input
-                    type="text"
-                    value={generatorData.callToAction}
-                    onChange={(e) => setGeneratorData({ ...generatorData, callToAction: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsGeneratorModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancelar
-                  </button>
-
-                  <button
-                    onClick={handleGeneratePostWithGemini}
-                    disabled={isGenerating || !generatorData.topic}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#EA4335] hover:bg-[#D93025] text-white shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Gerando Post com Gemini...</span>
-                      </>
-                    ) : (
-                      <span>Gerar Post</span>
-                    )}
-                  </button>
-                </div>
-
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Título / Tema do Post
-                    </label>
-                    <input
-                      type="text"
-                      value={editingPost.title || ''}
-                      onChange={(e) => setEditingPost({ ...editingPost, title: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
-                    />
-                  </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -695,6 +551,36 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                       <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Pontuação
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editingPost.score ?? ''}
+                      onChange={(e) => setEditingPost({ ...editingPost, score: e.target.value === '' ? undefined : Number(e.target.value) })}
+                      placeholder="0"
+                      className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                    />
+                  </div>
+
+                  {editingPost.tone !== 'Resultado de Desafio' && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Data
+                      </label>
+                      <DatePicker
+                        id="post-form-date"
+                        value={editingPost.createdAt ? toLocalDateInputValue(editingPost.createdAt) : ''}
+                        onChange={(date) => {
+                          if (!date) return;
+                          setEditingPost({ ...editingPost, createdAt: new Date(`${date}T12:00:00`).toISOString() });
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {editingPost.tone === 'Resultado de Desafio' ? (
@@ -703,7 +589,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                       Link da Publicação
                     </label>
                     <div className="flex items-center gap-1.5 p-3.5 rounded-2xl bg-gray-50 border border-gray-200">
-                      {editingPost.publishedUrl ? (
+                      {isHttpUrl(editingPost.publishedUrl) ? (
                         <a
                           href={editingPost.publishedUrl}
                           target="_blank"
@@ -721,81 +607,126 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                       Este post é sincronizado com um desafio na tela de Desafios — edite o link por lá.
                     </p>
                   </div>
+                ) : editingPost.tone === 'Manual' ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-2 items-end">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Plataforma</label>
+                        <div className="relative">
+                          <select
+                            value={pendingLinkPlatform}
+                            onChange={(e) => setPendingLinkPlatform(e.target.value as PostPlatform)}
+                            className="appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
+                          >
+                            {PLATFORMS.map((plt) => (
+                              <option key={plt} value={plt}>{plt}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Link da publicação</label>
+                        <input
+                          type="url"
+                          value={pendingLinkUrl}
+                          onChange={(e) => setPendingLinkUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddSocialLink}
+                        disabled={!pendingLinkUrl.trim()}
+                        className="px-3 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+
+                    {editingPost.socialLinks && editingPost.socialLinks.length > 0 && (
+                      <div className="space-y-1.5">
+                        {editingPost.socialLinks.map((social) => (
+                          <div
+                            key={social.id}
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200"
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-[#1A73E8] shrink-0" />
+                            <span className="text-xs font-bold text-gray-700 shrink-0">{social.platform}</span>
+                            <span className="text-xs text-gray-500 truncate flex-1">{social.link}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSocialLink(social.id)}
+                              aria-label="Remover link"
+                              className="p-1 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Conteúdo do Post (Markdown)
-                      </label>
-                      <span className="text-[11px] text-gray-500">
-                        {editingPost.content?.length || 0} caracteres
-                      </span>
+                  <>
+                    <div>
+                      <div className="flex items-center justify-end mb-1">
+                        <span className="text-[11px] text-gray-500">
+                          {editingPost.content?.length || 0} caracteres
+                        </span>
+                      </div>
+                      <textarea
+                        rows={8}
+                        placeholder="Escreva o conteúdo do post..."
+                        value={editingPost.content || ''}
+                        onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
+                        className="w-full px-4 py-3 rounded-2xl text-xs sm:text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30 leading-relaxed font-sans"
+                      />
                     </div>
-                    <textarea
-                      rows={8}
-                      value={editingPost.content || ''}
-                      onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl text-xs sm:text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30 leading-relaxed font-sans"
-                    />
-                  </div>
+
+                    {editingPost.visualIdea && (
+                      <div className="p-3.5 rounded-2xl bg-[#FBBC04]/15 border border-[#FBBC04]/30 flex items-start gap-2.5">
+                        <ImageIcon className="w-4 h-4 text-[#B06000] shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <strong className="text-gray-900 font-semibold">Sugestão de Mídia / Imagem:</strong>
+                          <p className="text-gray-700 mt-0.5">{editingPost.visualIdea}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {editingPost.status === 'Publicado' && (
+                      <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Link da Postagem</label>
+                        <input
+                          type="url"
+                          value={editingPost.publishedUrl || ''}
+                          onChange={(e) => setEditingPost({ ...editingPost, publishedUrl: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-lg text-xs border border-gray-300 bg-white"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
 
-                {editingPost.visualIdea && (
-                  <div className="p-3.5 rounded-2xl bg-[#FBBC04]/15 border border-[#FBBC04]/30 flex items-start gap-2.5">
-                    <ImageIcon className="w-4 h-4 text-[#B06000] shrink-0 mt-0.5" />
-                    <div className="text-xs">
-                      <strong className="text-gray-900 font-semibold">Sugestão de Mídia / Imagem:</strong>
-                      <p className="text-gray-700 mt-0.5">{editingPost.visualIdea}</p>
-                    </div>
-                  </div>
-                )}
-
-                {editingPost.status === 'Publicado' && editingPost.tone !== 'Resultado de Desafio' && (
-                  <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200">
-                    <label className="block text-[11px] font-bold text-gray-600 mb-1">Link da Postagem</label>
-                    <input
-                      type="url"
-                      value={editingPost.publishedUrl || ''}
-                      onChange={(e) => setEditingPost({ ...editingPost, publishedUrl: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-lg text-xs border border-gray-300 bg-white"
-                    />
-                  </div>
-                )}
-
-                <div className={`pt-4 border-t border-gray-100 flex items-center ${editingPost.tone === 'Resultado de Desafio' ? 'justify-end' : 'justify-between'}`}>
-                  {editingPost.tone !== 'Resultado de Desafio' && (
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(editingPost.content || '');
-                        alert('Conteúdo copiado com sucesso!');
-                      }}
-                      className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-800 flex items-center gap-1.5"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar Texto</span>
-                    </button>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingPost(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSavePostToLibrary}
-                      className="px-6 py-2 rounded-xl text-xs font-bold bg-[#EA4335] hover:bg-[#D93025] text-white shadow-xs transition-all active:scale-95"
-                    >
-                      Salvar
-                    </button>
-                  </div>
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingPost(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSavePostToLibrary}
+                    className="px-6 py-2 rounded-xl text-xs font-bold bg-[#EA4335] hover:bg-[#D93025] text-white shadow-xs transition-all active:scale-95"
+                  >
+                    Salvar
+                  </button>
                 </div>
 
               </div>
-            )}
 
             </div>
           </div>
@@ -808,10 +739,12 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
             <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
 
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#EA4335] text-white">
-                  {selectedPostDetail.platform}
-                </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {getPostPlatforms(selectedPostDetail).map((plt) => (
+                  <span key={plt} className="px-3 py-1 rounded-full text-xs font-bold bg-[#EA4335] text-white">
+                    {plt}
+                  </span>
+                ))}
                 <span className="text-xs text-gray-500 font-medium">
                   {getPostDisplayDate(selectedPostDetail)}
                 </span>
@@ -859,7 +792,10 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
 
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(selectedPostDetail.content);
+                  const text = selectedPostDetail.tone === 'Manual'
+                    ? getPostLinks(selectedPostDetail).map((l) => l.link).join('\n')
+                    : selectedPostDetail.content;
+                  navigator.clipboard.writeText(text);
                   alert('Post copiado!');
                 }}
                 className="px-5 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold flex items-center gap-2"

@@ -37,6 +37,7 @@ import { DatePicker } from './DatePicker';
 import { BadgesShowcase } from './BadgesShowcase';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { certHoursDecimal, formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
+import { isHttpUrl } from '../utils/safeUrl';
 
 interface CertificatesModuleProps {
   certificates: Certificate[];
@@ -1233,7 +1234,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   </div>
                 )}
 
-                {selectedCert.credentialUrl && (
+                {isHttpUrl(selectedCert.credentialUrl) && (
                   <div className="p-3 rounded-xl bg-gray-50 border border-gray-200">
                     <span className="text-[11px] text-gray-500 uppercase font-semibold">Link de Validação</span>
                     <a

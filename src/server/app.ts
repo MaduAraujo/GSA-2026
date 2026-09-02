@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import Groq from "groq-sdk";
 import dotenv from "dotenv";
 import webpush from "web-push";
@@ -20,6 +21,28 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 }
 
 export const app = express();
+
+const isProduction = process.env.NODE_ENV === "production";
+
+app.use(
+  helmet({
+    contentSecurityPolicy: isProduction
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:", "https:"],
+            connectSrc: ["'self'", "https://*.supabase.co", "wss://*.supabase.co", "https://api.pwnedpasswords.com"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'self'"],
+          },
+        }
+      : false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -151,63 +174,6 @@ app.get("/api/health", (_req, res) => {
     hasApiKey: !!process.env.GROQ_API_KEY,
     timestamp: new Date().toISOString(),
   });
-});
-
-app.post("/api/gemini/generate-post", requireAuth, rateLimit, async (req, res) => {
-  try {
-    const {
-      topic,
-      platform = "LinkedIn",
-      tone = "Inspirador & Profissional",
-      category = "Estudos",
-      keyPoints = "",
-      callToAction = "",
-      customInstructions = "",
-    } = req.body;
-
-    if (!topic) {
-      return res.status(400).json({ error: "O tema do post é obrigatório." });
-    }
-
-    const groq = getGroqClient();
-
-    const systemInstruction = `Você é um mentor especialista em liderança e comunicação para Embaixadores Estudantis do Google 2026 (Google Student Ambassador 2026).
-Seu objetivo é criar publicações de altíssimo engajamento, autênticas, inspiradoras e modernas para redes sociais (especialmente LinkedIn e Instagram), celebrando conquistas acadêmicas, workshops, estudos de Inteligência Artificial com Gemini, Google Cloud, comunidades de tecnologia e eventos estudantis.
-Responda SEMPRE em Português do Brasil (pt-BR) com tom autêntico e linguagem visual limpa.
-Estruture o resultado com:
-1. Gancho irresistível (Headline / Primeira linha impactante)
-2. Corpo do texto fluido (com quebras de linha confortáveis, emojis elegantes na medida certa e narrativa em 1ª pessoa)
-3. Aprendizados / Destaques práticos (bullet points)
-4. Chamada para Ação (CTA) instigando comentários ou compartilhamentos
-5. 4 a 8 hashtags estratégicas (#GoogleStudentAmbassador #Google2026 #GeminiAI #GoogleCloud #MulheresNaTech #ComunidadeTech)`;
-
-    const promptText = `Crie um post completo para a plataforma: **${platform}**
-Tema Principal: "${topic}"
-Categoria/Seção: ${category}
-Tom de voz: ${tone}
-Pontos-chave a incluir: ${keyPoints || "Foque na jornada de aprendizado, inovação e impacto comunitário como Embaixadora do Google"}
-Chamada para Ação desejada: ${callToAction || "Pergunte a opinião da comunidade nos comentários"}
-Instruções adicionais: ${customInstructions || "Nenhuma"}
-
-Gere uma postagem pronta para copiar e publicar, formatada em Markdown de forma limpa. Ao final, sugira também uma ideia de imagem ou carrossel visual para acompanhar o post.`;
-
-    const completion = await groq.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
-      temperature: 0.7,
-      messages: [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: promptText },
-      ],
-    });
-
-    const generatedText = completion.choices[0]?.message?.content || "";
-    return res.json({ success: true, post: generatedText });
-  } catch (error: any) {
-    console.error("Erro ao gerar post com Groq:", error);
-    return res.status(500).json({
-      error: error.message || "Falha ao gerar post com o Groq.",
-    });
-  }
 });
 
 app.post("/api/gemini/enhance-prompt", requireAuth, rateLimit, async (req, res) => {

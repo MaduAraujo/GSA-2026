@@ -67,6 +67,8 @@ export interface GeminiPost {
   publishedUrl?: string;
   likes?: number;
   comments?: number;
+  score?: number;
+  socialLinks?: ChallengeSocialLink[];
   createdAt: string;
   updatedAt: string;
 }
@@ -117,6 +119,27 @@ export interface GalleryPhoto {
   createdAt: string;
 }
 
+export interface SessionFile {
+  id: string;
+  name: string;
+  dataUrl: string;
+  fileType: string;
+  fileSize?: number;
+}
+
+export interface AmbassadorSession {
+  id: string;
+  title: string;
+  date: string;
+  challenge?: string;
+  challengeFiles?: SessionFile[];
+  toolLearned: string;
+  proofImage?: string;
+  score?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserBadge {
   badgeId: string;
   unlockedAt: string;
@@ -137,21 +160,6 @@ export interface AmbassadorProfile {
   goal2026: string;
   isPublic?: boolean;
   publicSlug?: string;
-}
-
-export interface ChatSession {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ChatMessageRecord {
-  id: string;
-  sessionId: string;
-  sender: 'user' | 'gemini';
-  text: string;
-  createdAt: string;
 }
 
 export interface PushSubscriptionKeys {
