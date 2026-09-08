@@ -548,4 +548,9 @@ end;
 $$;
 
 revoke all on function public.check_and_increment_rate_limit(uuid, integer, integer) from public;
+
+-- ---------------------------------------------------------------------------
+-- profiles: ambassador seal
+-- ---------------------------------------------------------------------------
+alter table public.profiles add column if not exists ambassador_seal_url text not null default '';
 grant execute on function public.check_and_increment_rate_limit(uuid, integer, integer) to service_role;

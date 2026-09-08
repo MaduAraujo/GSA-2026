@@ -13,7 +13,8 @@ import {
   X,
   LogOut,
   ChevronDown,
-  Globe
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 
@@ -26,6 +27,7 @@ interface NavbarProps {
   setActiveTab: (tab: AppTab) => void;
   profile: AmbassadorProfile;
   onOpenProfile: () => void;
+  onOpenAmbassadorArea: () => void;
   onOpenSettings: () => void;
   onSignOut: () => void;
 }
@@ -35,6 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   profile,
   onOpenProfile,
+  onOpenAmbassadorArea,
   onOpenSettings,
   onSignOut,
 }) => {
@@ -160,6 +163,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <User className="w-4 h-4 text-gray-500" />
                     <span>Meu Perfil</span>
+                  </button>
+
+                  <button
+                    id="ambassador-area-btn"
+                    onClick={() => { setAccountMenuOpen(false); onOpenAmbassadorArea(); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-gray-500" />
+                    <span>Área do Embaixador(a)</span>
                   </button>
 
                   <button

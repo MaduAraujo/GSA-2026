@@ -10,6 +10,7 @@ function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = 
     setActiveTab: vi.fn(),
     profile: makeProfile({ name: 'Ana Souza', email: 'ana@example.com' }),
     onOpenProfile: vi.fn(),
+    onOpenAmbassadorArea: vi.fn(),
     onOpenSettings: vi.fn(),
     onSignOut: vi.fn(),
     ...overrides,

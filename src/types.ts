@@ -160,6 +160,7 @@ export interface AmbassadorProfile {
   goal2026: string;
   isPublic?: boolean;
   publicSlug?: string;
+  ambassadorSealUrl?: string;
 }
 
 export interface PushSubscriptionKeys {

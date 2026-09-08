@@ -10,6 +10,10 @@ import {
   Building2,
   Users,
   Calendar,
+  Puzzle,
+  Sparkles,
+  Briefcase,
+  Megaphone,
 } from 'lucide-react';
 
 const HOW_IT_WORKS = [
@@ -37,6 +41,29 @@ const HOW_IT_WORKS = [
     icon: HeartHandshake,
     title: 'Caráter',
     text: 'É uma iniciativa voluntária que exige engajamento ativo na comunidade universitária.',
+  },
+];
+
+const COMPETENCIES = [
+  {
+    icon: Puzzle,
+    title: 'Resolução de Problemas',
+    text: 'Análise de informações, organização de ideias e busca de soluções.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Comunicação e Criatividade',
+    text: 'Clareza na comunicação e transformação de ideias em conteúdo.',
+  },
+  {
+    icon: Briefcase,
+    title: 'Desenvolvimento de Carreira',
+    text: 'Construção de repertório e presença profissional.',
+  },
+  {
+    icon: Megaphone,
+    title: 'Liderança e Impacto',
+    text: 'Troca de conhecimento, conexão entre pessoas, ampliação do uso responsável e crítico da IA e geração de impacto.',
   },
 ];
 
@@ -97,6 +124,23 @@ export const AboutPage: React.FC = () => {
             desenvolver projetos e fortalecer o currículo. O programa busca formar referências locais de inovação
             e tecnologia dentro das universidades brasileiras.
           </p>
+
+          <p className="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+            Para apoiar essa evolução, a trilha é rica e multidisciplinar, desenvolvendo 4 competências
+            essenciais:
+          </p>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {COMPETENCIES.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="w-11 h-11 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                <Icon className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm mb-1.5">{title}</h3>
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{text}</p>
+            </div>
+          ))}
         </div>
 
         <div className="mt-16">

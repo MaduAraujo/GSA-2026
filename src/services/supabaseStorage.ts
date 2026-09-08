@@ -28,9 +28,22 @@ async function uploadUserFile(dataUrl: string, path: string): Promise<void> {
   if (error) throw error;
 }
 
-async function getUserFileSignedUrl(path: string): Promise<string | undefined> {
-  const { data } = await supabase.storage.from(USER_FILES_BUCKET).createSignedUrl(path, USER_FILE_SIGNED_URL_TTL_SECONDS);
-  return data?.signedUrl;
+async function getBatchSignedUrls(
+  bucket: string,
+  paths: string[],
+  ttlSeconds: number
+): Promise<Map<string, string>> {
+  const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+  const map = new Map<string, string>();
+  if (uniquePaths.length === 0) return map;
+
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(uniquePaths, ttlSeconds);
+  if (error) throw error;
+
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) map.set(item.path, item.signedUrl);
+  }
+  return map;
 }
 
 async function removeUserFiles(paths: string[]): Promise<void> {
@@ -38,8 +51,8 @@ async function removeUserFiles(paths: string[]): Promise<void> {
   await supabase.storage.from(USER_FILES_BUCKET).remove(paths);
 }
 
-async function rowToCertificate(row: any): Promise<Certificate> {
-  const fileData = row.file_path ? await getUserFileSignedUrl(row.file_path) : row.file_data ?? undefined;
+function rowToCertificate(row: any, signedUrls: Map<string, string>): Certificate {
+  const fileData = row.file_path ? signedUrls.get(row.file_path) : row.file_data ?? undefined;
   return {
     id: row.id,
     title: row.title,
@@ -123,18 +136,12 @@ function promptToRow(prompt: PromptItem, userId: string) {
 const PROMPT_DOCS_BUCKET = 'prompt-docs';
 const PROMPT_DOC_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; 
 
-async function rowToPromptDoc(row: any): Promise<PromptDoc> {
+function rowToPromptDoc(row: any, signedUrls: Map<string, string>): PromptDoc {
   let fileData: string | undefined;
   let downloadUrl: string | undefined;
   if (row.file_path) {
-    const [viewResult, downloadResult] = await Promise.all([
-      supabase.storage.from(PROMPT_DOCS_BUCKET).createSignedUrl(row.file_path, PROMPT_DOC_SIGNED_URL_TTL_SECONDS),
-      supabase.storage
-        .from(PROMPT_DOCS_BUCKET)
-        .createSignedUrl(row.file_path, PROMPT_DOC_SIGNED_URL_TTL_SECONDS, { download: row.name }),
-    ]);
-    fileData = viewResult.data?.signedUrl;
-    downloadUrl = downloadResult.data?.signedUrl;
+    fileData = signedUrls.get(row.file_path);
+    downloadUrl = fileData ? `${fileData}&download=${encodeURIComponent(row.name)}` : undefined;
   } else if (row.file_data) {
     fileData = row.file_data;
     downloadUrl = row.file_data;
@@ -227,6 +234,7 @@ function rowToProfile(row: any): AmbassadorProfile {
     goal2026: row.goal_2026 ?? '',
     isPublic: row.is_public ?? false,
     publicSlug: row.public_slug ?? undefined,
+    ambassadorSealUrl: row.ambassador_seal_url ?? undefined,
   };
 }
 
@@ -247,6 +255,7 @@ function profileToRow(profile: AmbassadorProfile, userId: string) {
     goal_2026: profile.goal2026 ?? '',
     is_public: profile.isPublic ?? false,
     public_slug: profile.publicSlug || null,
+    ambassador_seal_url: profile.ambassadorSealUrl || '',
     updated_at: new Date().toISOString(),
   };
 }
@@ -330,8 +339,8 @@ function challengeToRow(challenge: Challenge, userId: string) {
   };
 }
 
-async function rowToGalleryPhoto(row: any): Promise<GalleryPhoto> {
-  const imageData = row.image_path ? await getUserFileSignedUrl(row.image_path) : row.image_data ?? undefined;
+function rowToGalleryPhoto(row: any, signedUrls: Map<string, string>): GalleryPhoto {
+  const imageData = row.image_path ? signedUrls.get(row.image_path) : row.image_data ?? undefined;
   return {
     id: row.id,
     imageData: imageData || '',
@@ -355,23 +364,21 @@ function galleryPhotoToRow(photo: GalleryPhoto, userId: string, imagePath: strin
   };
 }
 
-async function rowToSession(row: any): Promise<AmbassadorSession> {
+function rowToSession(row: any, signedUrls: Map<string, string>): AmbassadorSession {
   const proofImage = row.proof_image_path
-    ? await getUserFileSignedUrl(row.proof_image_path)
+    ? signedUrls.get(row.proof_image_path)
     : row.proof_image ?? undefined;
 
   const rawChallengeFiles: any[] = Array.isArray(row.challenge_files) ? row.challenge_files : [];
   const challengeFiles: SessionFile[] | undefined =
     rawChallengeFiles.length > 0
-      ? await Promise.all(
-          rawChallengeFiles.map(async (f) => ({
-            id: f.id,
-            name: f.name,
-            fileType: f.fileType,
-            fileSize: f.fileSize,
-            dataUrl: f.path ? (await getUserFileSignedUrl(f.path)) || '' : f.dataUrl ?? '',
-          }))
-        )
+      ? rawChallengeFiles.map((f) => ({
+          id: f.id,
+          name: f.name,
+          fileType: f.fileType,
+          fileSize: f.fileSize,
+          dataUrl: f.path ? signedUrls.get(f.path) || '' : f.dataUrl ?? '',
+        }))
       : undefined;
 
   return {
@@ -437,7 +444,13 @@ export const SupabaseStorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return Promise.all((data ?? []).map(rowToCertificate));
+    const rows = data ?? [];
+    const signedUrls = await getBatchSignedUrls(
+      USER_FILES_BUCKET,
+      rows.map((r) => r.file_path).filter(Boolean),
+      USER_FILE_SIGNED_URL_TTL_SECONDS
+    );
+    return rows.map((row) => rowToCertificate(row, signedUrls));
   },
 
   async saveCertificate(cert: Certificate): Promise<void> {
@@ -486,7 +499,13 @@ export const SupabaseStorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return Promise.all((data ?? []).map(rowToGalleryPhoto));
+    const rows = data ?? [];
+    const signedUrls = await getBatchSignedUrls(
+      USER_FILES_BUCKET,
+      rows.map((r) => r.image_path).filter(Boolean),
+      USER_FILE_SIGNED_URL_TTL_SECONDS
+    );
+    return rows.map((row) => rowToGalleryPhoto(row, signedUrls));
   },
 
   async saveGalleryPhoto(photo: GalleryPhoto): Promise<void> {
@@ -513,7 +532,16 @@ export const SupabaseStorageService = {
       .select('*')
       .order('session_date', { ascending: false });
     if (error) throw error;
-    return Promise.all((data ?? []).map(rowToSession));
+    const rows = data ?? [];
+    const allPaths = rows.flatMap((row) => {
+      const paths: string[] = [];
+      if (row.proof_image_path) paths.push(row.proof_image_path);
+      const files: any[] = Array.isArray(row.challenge_files) ? row.challenge_files : [];
+      for (const f of files) if (f.path) paths.push(f.path);
+      return paths;
+    });
+    const signedUrls = await getBatchSignedUrls(USER_FILES_BUCKET, allPaths, USER_FILE_SIGNED_URL_TTL_SECONDS);
+    return rows.map((row) => rowToSession(row, signedUrls));
   },
 
   async saveSession(session: AmbassadorSession): Promise<void> {
@@ -603,7 +631,13 @@ export const SupabaseStorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return Promise.all((data ?? []).map(rowToPromptDoc));
+    const rows = data ?? [];
+    const signedUrls = await getBatchSignedUrls(
+      PROMPT_DOCS_BUCKET,
+      rows.map((r) => r.file_path).filter(Boolean),
+      PROMPT_DOC_SIGNED_URL_TTL_SECONDS
+    );
+    return rows.map((row) => rowToPromptDoc(row, signedUrls));
   },
 
   async uploadPromptDocFile(file: File, docId: string): Promise<string> {
@@ -664,7 +698,13 @@ export const SupabaseStorageService = {
       .eq('user_id', userId)
       .order('issue_date', { ascending: false });
     if (error) throw error;
-    return Promise.all((data ?? []).map(rowToCertificate));
+    const rows = data ?? [];
+    const signedUrls = await getBatchSignedUrls(
+      USER_FILES_BUCKET,
+      rows.map((r) => r.file_path).filter(Boolean),
+      USER_FILE_SIGNED_URL_TTL_SECONDS
+    );
+    return rows.map((row) => rowToCertificate(row, signedUrls));
   },
 
   async savePushSubscription(keys: PushSubscriptionKeys): Promise<void> {

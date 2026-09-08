@@ -34,10 +34,18 @@ function makeChain(data: unknown, error: unknown = null) {
   return chain;
 }
 
-function makeStorageBucket(overrides: Partial<Record<'upload' | 'createSignedUrl' | 'remove', any>> = {}) {
+function makeStorageBucket(
+  overrides: Partial<Record<'upload' | 'createSignedUrl' | 'createSignedUrls' | 'remove', any>> = {}
+) {
   return {
     upload: vi.fn().mockResolvedValue({ error: null }),
     createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://signed.example.com/file' } }),
+    createSignedUrls: vi.fn((paths: string[]) =>
+      Promise.resolve({
+        data: paths.map((path) => ({ path, signedUrl: 'https://signed.example.com/file' })),
+        error: null,
+      })
+    ),
     remove: vi.fn().mockResolvedValue({ error: null }),
     ...overrides,
   };
@@ -112,13 +120,18 @@ describe('SupabaseStorageService — certificates', () => {
     mockFrom.mockReturnValueOnce(
       makeChain([{ id: 'c1', title: 'Cert', issuer: 'Google', issue_date: '2026-01-01', category: 'Cloud', description: '', skills: ['GCP'], file_path: 'user-1/certificates/c1', created_at: '2026-01-01T00:00:00.000Z' }])
     );
-    const bucket = makeStorageBucket({ createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://signed.example.com/c1.png' } }) });
+    const bucket = makeStorageBucket({
+      createSignedUrls: vi.fn().mockResolvedValue({
+        data: [{ path: 'user-1/certificates/c1', signedUrl: 'https://signed.example.com/c1.png' }],
+        error: null,
+      }),
+    });
     mockStorageFrom.mockReturnValue(bucket);
 
     const certs = await SupabaseStorageService.getCertificates();
     expect(certs).toHaveLength(1);
     expect(certs[0]).toMatchObject({ id: 'c1', title: 'Cert', fileData: 'https://signed.example.com/c1.png' });
-    expect(bucket.createSignedUrl).toHaveBeenCalledWith('user-1/certificates/c1', expect.any(Number));
+    expect(bucket.createSignedUrls).toHaveBeenCalledWith(['user-1/certificates/c1'], expect.any(Number));
   });
 
   it('falls back to the legacy file_data column when there is no file_path', async () => {
@@ -269,17 +282,17 @@ describe('SupabaseStorageService — prompts and prompt docs', () => {
 
   it('resolves both a view and a download signed URL for a stored prompt doc', async () => {
     const bucket = makeStorageBucket({
-      createSignedUrl: vi
-        .fn()
-        .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/view' } })
-        .mockResolvedValueOnce({ data: { signedUrl: 'https://signed.example.com/download' } }),
+      createSignedUrls: vi.fn().mockResolvedValue({
+        data: [{ path: 'user-1/d1-a.pdf', signedUrl: 'https://signed.example.com/view' }],
+        error: null,
+      }),
     });
     mockStorageFrom.mockReturnValue(bucket);
     mockFrom.mockReturnValueOnce(makeChain([{ id: 'd1', name: 'a.pdf', file_path: 'user-1/d1-a.pdf', file_type: 'application/pdf', created_at: '2026-01-01T00:00:00.000Z' }]));
 
     const docs = await SupabaseStorageService.getPromptDocs();
     expect(docs[0].fileData).toBe('https://signed.example.com/view');
-    expect(docs[0].downloadUrl).toBe('https://signed.example.com/download');
+    expect(docs[0].downloadUrl).toBe('https://signed.example.com/view&download=a.pdf');
   });
 });
 

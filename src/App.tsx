@@ -32,6 +32,7 @@ const GalleryModule = lazy(() => import('./components/GalleryModule').then((m) =
 const SessionsModule = lazy(() => import('./components/SessionsModule').then((m) => ({ default: m.SessionsModule })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })));
 const ProfileModal = lazy(() => import('./components/ProfileModal').then((m) => ({ default: m.ProfileModal })));
+const AmbassadorAreaModal = lazy(() => import('./components/AmbassadorAreaModal').then((m) => ({ default: m.AmbassadorAreaModal })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
 
 const EMPTY_PROFILE: AmbassadorProfile = {
@@ -133,6 +134,7 @@ export default function App() {
 
   const [isPwaModalOpen, setIsPwaModalOpen] = usePersistedState('gsa_pwa_modal_open', false);
   const [isProfileModalOpen, setIsProfileModalOpen] = usePersistedState('gsa_profile_modal_open', false);
+  const [isAmbassadorAreaOpen, setIsAmbassadorAreaOpen] = usePersistedState('gsa_ambassador_area_open', false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = usePersistedState('gsa_settings_modal_open', false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -199,7 +201,7 @@ export default function App() {
     if (session) {
       loadAllData();
     }
-  }, [session]);
+  }, [session?.user?.id]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -430,6 +432,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         profile={profile}
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenAmbassadorArea={() => setIsAmbassadorAreaOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onSignOut={handleSignOut}
       />
@@ -542,6 +545,13 @@ export default function App() {
         <ProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
+          profile={profile}
+          onSaveProfile={handleSaveProfile}
+        />
+
+        <AmbassadorAreaModal
+          isOpen={isAmbassadorAreaOpen}
+          onClose={() => setIsAmbassadorAreaOpen(false)}
           profile={profile}
           onSaveProfile={handleSaveProfile}
         />
