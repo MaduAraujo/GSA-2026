@@ -12,11 +12,14 @@ import {
   Menu,
   X,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Globe
 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 
 export type AppTab = 'certificates' | 'prompts' | 'posts' | 'sessions' | 'challenges' | 'gallery' | 'analytics';
+
+const OFFICIAL_SITE_URL = 'https://amplifica.me/siteembaixadoresestudantis';
 
 interface NavbarProps {
   activeTab: AppTab;
@@ -167,6 +170,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <Settings className="w-4 h-4 text-gray-500" />
                     <span>Configurações</span>
                   </button>
+
+                  <a
+                    id="official-site-link"
+                    href={OFFICIAL_SITE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setAccountMenuOpen(false)}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <Globe className="w-4 h-4 text-gray-500" />
+                    <span>Site Oficial</span>
+                  </a>
 
                   <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
 
