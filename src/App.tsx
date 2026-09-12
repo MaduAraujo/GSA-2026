@@ -21,11 +21,11 @@ import { RemindersService } from './services/reminders';
 import { evaluateNewlyEarnedBadges } from './utils/badgeEngine';
 import { BadgeDefinition } from './data/badgeCatalog';
 import { Navbar, AppTab } from './components/Navbar';
-import { HomePage } from './components/HomePage';
 import { StatsBanner } from './components/StatsBanner';
 import { BadgeUnlockToast } from './components/BadgeUnlockToast';
 import { usePersistedState, clearPersistedDrafts } from './hooks/usePersistedState';
 
+const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const AuthScreen = lazy(() => import('./components/AuthScreen').then((m) => ({ default: m.AuthScreen })));
 const CertificatesModule = lazy(() => import('./components/CertificatesModule').then((m) => ({ default: m.CertificatesModule })));
 const PromptsVaultModule = lazy(() => import('./components/PromptsVaultModule').then((m) => ({ default: m.PromptsVaultModule })));
@@ -70,9 +70,7 @@ function readCachedAppData(userId: string): CachedAppData | null {
 function writeCachedAppData(userId: string, data: CachedAppData): void {
   try {
     localStorage.setItem(DATA_CACHE_KEY_PREFIX + userId, JSON.stringify(data));
-  } catch {
-    // Storage full or unavailable — skip caching silently, next load just refetches.
-  }
+  } catch {}
 }
 
 const EMPTY_PROFILE: AmbassadorProfile = {
@@ -258,8 +256,6 @@ export default function App() {
     const cached = userId ? readCachedAppData(userId) : null;
 
     if (cached) {
-      // Show last-known data instantly and refresh in the background instead
-      // of blocking every app open behind the full skeleton loader.
       setCertificates(cached.certificates);
       setPrompts(cached.prompts);
       setPromptDocs(cached.promptDocs);
@@ -529,15 +525,17 @@ export default function App() {
   if (!session) {
     if (authView === 'home') {
       return (
-        <HomePage
-          onLogin={() => setAuthView('signIn')}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={handleToggleDarkMode}
-          deferredPrompt={deferredPrompt}
-          onInstallPwa={handleInstallPwa}
-          isPwaModalOpen={isPwaModalOpen}
-          onClosePwaModal={() => setIsPwaModalOpen(false)}
-        />
+        <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+          <HomePage
+            onLogin={() => setAuthView('signIn')}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+            deferredPrompt={deferredPrompt}
+            onInstallPwa={handleInstallPwa}
+            isPwaModalOpen={isPwaModalOpen}
+            onClosePwaModal={() => setIsPwaModalOpen(false)}
+          />
+        </Suspense>
       );
     }
     return (

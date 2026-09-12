@@ -107,7 +107,9 @@ describe('App — authentication gate', () => {
   it('shows the public home page when there is no active session', async () => {
     mockLoggedOut();
     render(<App />);
-    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Entrar' }, { timeout: 5000 })
+    ).toBeInTheDocument();
   });
 
   it('shows the auth screen after clicking Entrar', async () => {
