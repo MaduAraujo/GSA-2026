@@ -26,7 +26,7 @@ export function exportPromptsAsPdf(prompts: PromptItem[]): void {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Banco de Prompts — Embaixadora Google 2026</title>
+<title>Prompts — Embaixadora Google 2026</title>
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #202124; margin: 0; padding: 40px; }
   header { border-bottom: 3px solid #FBBC04; padding-bottom: 20px; margin-bottom: 24px; }
@@ -44,7 +44,7 @@ export function exportPromptsAsPdf(prompts: PromptItem[]): void {
 </head>
 <body>
   <header>
-    <h1>Banco de Prompts</h1>
+    <h1>Prompts</h1>
     <p class="subtitle">${prompts.length} prompt${prompts.length === 1 ? '' : 's'} exportado${prompts.length === 1 ? '' : 's'} • Embaixadora Estudantil Google 2026</p>
   </header>
   ${rows || '<p>Nenhum prompt selecionado.</p>'}

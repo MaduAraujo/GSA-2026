@@ -14,11 +14,14 @@ import {
   LogOut,
   ChevronDown,
   Globe,
-  ShieldCheck
+  ShieldCheck,
+  Trophy,
+  Link2,
+  CalendarClock
 } from 'lucide-react';
 import { AmbassadorProfile } from '../types';
 
-export type AppTab = 'certificates' | 'prompts' | 'posts' | 'sessions' | 'challenges' | 'gallery' | 'analytics';
+export type AppTab = 'certificates' | 'prompts' | 'posts' | 'sessions' | 'challenges' | 'gallery' | 'weeklyScore' | 'referenceLinks' | 'deadlines' | 'analytics';
 
 const OFFICIAL_SITE_URL = 'https://amplifica.me/siteembaixadoresestudantis';
 
@@ -67,11 +70,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const navItems = [
     { id: 'certificates', label: 'Certificados', icon: Award, color: 'text-[#1A73E8]' },
-    { id: 'prompts', label: 'Banco de Prompts', icon: Sparkles, color: 'text-[#F9AB00]' },
+    { id: 'prompts', label: 'Prompts', icon: Sparkles, color: 'text-[#F9AB00]' },
     { id: 'posts', label: 'Posts', icon: FileText, color: 'text-[#EA4335]' },
     { id: 'sessions', label: 'Sessões', icon: GraduationCap, color: 'text-[#34A853]' },
     { id: 'challenges', label: 'Desafios', icon: Flag, color: 'text-[#34A853]' },
     { id: 'gallery', label: 'Galeria', icon: Camera, color: 'text-[#EA4335]' },
+    { id: 'weeklyScore', label: 'Pontuação', icon: Trophy, color: 'text-[#F9AB00]' },
+    { id: 'referenceLinks', label: 'Referências', icon: Link2, color: 'text-[#1A73E8]' },
+    { id: 'deadlines', label: 'Prazos', icon: CalendarClock, color: 'text-[#EA4335]' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-[#1A73E8]' },
   ];
 
@@ -115,14 +121,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     id={`nav-tab-${item.id}`}
                     onClick={() => setActiveTab(item.id as any)}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    aria-label={item.label}
+                    title={item.label}
+                    className={`relative flex items-center justify-center p-2.5 rounded-full transition-all ${
                       isActive
                         ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? item.color : ''}`} />
-                    <span className="hidden lg:inline">{item.label}</span>
+                    <Icon className={`w-5 h-5 ${isActive ? item.color : ''}`} />
                   </button>
                 );
               })}
@@ -239,7 +246,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? item.color : 'text-gray-500'}`} />
-                  <span>{item.id === 'prompts' ? 'Prompts' : item.label}</span>
+                  <span>{item.label}</span>
                 </button>
               );
             })}

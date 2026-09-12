@@ -11,6 +11,10 @@ import {
   AmbassadorSession,
   SessionFile,
   PushSubscriptionKeys,
+  WeeklyScore,
+  ReferenceLink,
+  ProgramDeadline,
+  DeadlineCategory,
 } from '../types';
 
 const USER_FILES_BUCKET = 'user-files';
@@ -417,6 +421,83 @@ function sessionToRow(
   };
 }
 
+function rowToWeeklyScore(row: any): WeeklyScore {
+  return {
+    id: row.id,
+    weekStart: row.week_start,
+    weekEnd: row.week_end,
+    points: row.points ?? 0,
+    notes: row.notes ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function weeklyScoreToRow(weeklyScore: WeeklyScore, userId: string) {
+  return {
+    id: weeklyScore.id,
+    user_id: userId,
+    week_start: weeklyScore.weekStart,
+    week_end: weeklyScore.weekEnd,
+    points: weeklyScore.points,
+    notes: weeklyScore.notes || null,
+    created_at: weeklyScore.createdAt,
+    updated_at: weeklyScore.updatedAt,
+  };
+}
+
+function rowToReferenceLink(row: any): ReferenceLink {
+  return {
+    id: row.id,
+    title: row.title,
+    url: row.url,
+    sharedBy: row.shared_by ?? undefined,
+    notes: row.notes ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function referenceLinkToRow(referenceLink: ReferenceLink, userId: string) {
+  return {
+    id: referenceLink.id,
+    user_id: userId,
+    title: referenceLink.title,
+    url: referenceLink.url,
+    shared_by: referenceLink.sharedBy || null,
+    notes: referenceLink.notes || null,
+    created_at: referenceLink.createdAt,
+    updated_at: referenceLink.updatedAt,
+  };
+}
+
+function rowToProgramDeadline(row: any): ProgramDeadline {
+  return {
+    id: row.id,
+    title: row.title,
+    date: row.date,
+    category: (row.category ?? 'Outro') as DeadlineCategory,
+    notes: row.notes ?? undefined,
+    isCompleted: row.is_completed ?? false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function programDeadlineToRow(deadline: ProgramDeadline, userId: string) {
+  return {
+    id: deadline.id,
+    user_id: userId,
+    title: deadline.title,
+    date: deadline.date,
+    category: deadline.category,
+    notes: deadline.notes || null,
+    is_completed: deadline.isCompleted ?? false,
+    created_at: deadline.createdAt,
+    updated_at: deadline.updatedAt,
+  };
+}
+
 async function requireUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw new Error('Não autenticado.');
@@ -585,6 +666,66 @@ export const SupabaseStorageService = {
     await removeUserFiles([`${userId}/sessions/${id}/proof`, ...attachmentPaths]);
   },
 
+  async getWeeklyScores(): Promise<WeeklyScore[]> {
+    const { data, error } = await supabase
+      .from('weekly_scores')
+      .select('*')
+      .order('week_start', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToWeeklyScore);
+  },
+
+  async saveWeeklyScore(weeklyScore: WeeklyScore): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('weekly_scores').upsert(weeklyScoreToRow(weeklyScore, userId));
+    if (error) throw error;
+  },
+
+  async deleteWeeklyScore(id: string): Promise<void> {
+    const { error } = await supabase.from('weekly_scores').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getReferenceLinks(): Promise<ReferenceLink[]> {
+    const { data, error } = await supabase
+      .from('reference_links')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToReferenceLink);
+  },
+
+  async saveReferenceLink(referenceLink: ReferenceLink): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('reference_links').upsert(referenceLinkToRow(referenceLink, userId));
+    if (error) throw error;
+  },
+
+  async deleteReferenceLink(id: string): Promise<void> {
+    const { error } = await supabase.from('reference_links').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  async getProgramDeadlines(): Promise<ProgramDeadline[]> {
+    const { data, error } = await supabase
+      .from('program_deadlines')
+      .select('*')
+      .order('date', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToProgramDeadline);
+  },
+
+  async saveProgramDeadline(deadline: ProgramDeadline): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from('program_deadlines').upsert(programDeadlineToRow(deadline, userId));
+    if (error) throw error;
+  },
+
+  async deleteProgramDeadline(id: string): Promise<void> {
+    const { error } = await supabase.from('program_deadlines').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   async getUserBadges(): Promise<UserBadge[]> {
     const { data, error } = await supabase
       .from('user_badges')
@@ -737,7 +878,7 @@ export const SupabaseStorageService = {
   },
 
   async exportAllData(): Promise<string> {
-    const [profile, certificates, prompts, posts, challenges, galleryPhotos, sessions] = await Promise.all([
+    const [profile, certificates, prompts, posts, challenges, galleryPhotos, sessions, weeklyScores, referenceLinks, programDeadlines] = await Promise.all([
       this.getProfile(),
       this.getCertificates(),
       this.getPrompts(),
@@ -745,6 +886,9 @@ export const SupabaseStorageService = {
       this.getChallenges(),
       this.getGalleryPhotos(),
       this.getSessions(),
+      this.getWeeklyScores(),
+      this.getReferenceLinks(),
+      this.getProgramDeadlines(),
     ]);
 
     const payload = {
@@ -757,6 +901,9 @@ export const SupabaseStorageService = {
       challenges,
       galleryPhotos,
       sessions,
+      weeklyScores,
+      referenceLinks,
+      programDeadlines,
     };
 
     return JSON.stringify(payload, null, 2);
@@ -796,6 +943,21 @@ export const SupabaseStorageService = {
       if (Array.isArray(parsed.sessions)) {
         for (const session of parsed.sessions) {
           await this.saveSession(session);
+        }
+      }
+      if (Array.isArray(parsed.weeklyScores)) {
+        for (const weeklyScore of parsed.weeklyScores) {
+          await this.saveWeeklyScore(weeklyScore);
+        }
+      }
+      if (Array.isArray(parsed.referenceLinks)) {
+        for (const referenceLink of parsed.referenceLinks) {
+          await this.saveReferenceLink(referenceLink);
+        }
+      }
+      if (Array.isArray(parsed.programDeadlines)) {
+        for (const deadline of parsed.programDeadlines) {
+          await this.saveProgramDeadline(deadline);
         }
       }
       return true;

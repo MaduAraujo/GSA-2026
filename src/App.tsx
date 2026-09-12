@@ -10,7 +10,10 @@ import {
   UserBadge,
   Challenge,
   GalleryPhoto,
-  AmbassadorSession
+  AmbassadorSession,
+  WeeklyScore,
+  ReferenceLink,
+  ProgramDeadline
 } from './types';
 import { SupabaseStorageService as StorageService } from './services/supabaseStorage';
 import { supabase } from './services/supabaseClient';
@@ -30,10 +33,47 @@ const GeminiPostsModule = lazy(() => import('./components/GeminiPostsModule').th
 const ChallengesModule = lazy(() => import('./components/ChallengesModule').then((m) => ({ default: m.ChallengesModule })));
 const GalleryModule = lazy(() => import('./components/GalleryModule').then((m) => ({ default: m.GalleryModule })));
 const SessionsModule = lazy(() => import('./components/SessionsModule').then((m) => ({ default: m.SessionsModule })));
+const WeeklyScoreModule = lazy(() => import('./components/WeeklyScoreModule').then((m) => ({ default: m.WeeklyScoreModule })));
+const ReferenceLinksModule = lazy(() => import('./components/ReferenceLinksModule').then((m) => ({ default: m.ReferenceLinksModule })));
+const DeadlinesModule = lazy(() => import('./components/DeadlinesModule').then((m) => ({ default: m.DeadlinesModule })));
 const AnalyticsDashboard = lazy(() => import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })));
 const ProfileModal = lazy(() => import('./components/ProfileModal').then((m) => ({ default: m.ProfileModal })));
 const AmbassadorAreaModal = lazy(() => import('./components/AmbassadorAreaModal').then((m) => ({ default: m.AmbassadorAreaModal })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
+
+const DATA_CACHE_KEY_PREFIX = 'gsa_data_cache_v4_';
+
+interface CachedAppData {
+  certificates: CertificateItem[];
+  prompts: PromptItem[];
+  promptDocs: PromptDoc[];
+  posts: GeminiPost[];
+  challenges: Challenge[];
+  galleryPhotos: GalleryPhoto[];
+  sessions: AmbassadorSession[];
+  weeklyScores: WeeklyScore[];
+  referenceLinks: ReferenceLink[];
+  deadlines: ProgramDeadline[];
+  userBadges: UserBadge[];
+  profile: AmbassadorProfile;
+}
+
+function readCachedAppData(userId: string): CachedAppData | null {
+  try {
+    const raw = localStorage.getItem(DATA_CACHE_KEY_PREFIX + userId);
+    return raw ? (JSON.parse(raw) as CachedAppData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedAppData(userId: string, data: CachedAppData): void {
+  try {
+    localStorage.setItem(DATA_CACHE_KEY_PREFIX + userId, JSON.stringify(data));
+  } catch {
+    // Storage full or unavailable — skip caching silently, next load just refetches.
+  }
+}
 
 const EMPTY_PROFILE: AmbassadorProfile = {
   name: '',
@@ -126,6 +166,9 @@ export default function App() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
   const [sessions, setSessions] = useState<AmbassadorSession[]>([]);
+  const [weeklyScores, setWeeklyScores] = useState<WeeklyScore[]>([]);
+  const [referenceLinks, setReferenceLinks] = useState<ReferenceLink[]>([]);
+  const [deadlines, setDeadlines] = useState<ProgramDeadline[]>([]);
   const [profile, setProfile] = useState<AmbassadorProfile>(EMPTY_PROFILE);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
   const [badgeToastQueue, setBadgeToastQueue] = useState<BadgeDefinition[]>([]);
@@ -170,6 +213,9 @@ export default function App() {
         setChallenges([]);
         setGalleryPhotos([]);
         setSessions([]);
+        setWeeklyScores([]);
+        setReferenceLinks([]);
+        setDeadlines([]);
         setProfile(EMPTY_PROFILE);
         setUserBadges([]);
         setBadgeToastQueue([]);
@@ -208,9 +254,31 @@ export default function App() {
   };
 
   const loadAllData = async () => {
-    setIsLoading(true);
+    const userId = session?.user?.id;
+    const cached = userId ? readCachedAppData(userId) : null;
+
+    if (cached) {
+      // Show last-known data instantly and refresh in the background instead
+      // of blocking every app open behind the full skeleton loader.
+      setCertificates(cached.certificates);
+      setPrompts(cached.prompts);
+      setPromptDocs(cached.promptDocs);
+      setPosts(cached.posts);
+      setChallenges(cached.challenges);
+      setGalleryPhotos(cached.galleryPhotos);
+      setSessions(cached.sessions);
+      setWeeklyScores(cached.weeklyScores);
+      setReferenceLinks(cached.referenceLinks);
+      setDeadlines(cached.deadlines);
+      setUserBadges(cached.userBadges);
+      setProfile(cached.profile);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
+
     try {
-      const [certsData, promptsData, promptDocsData, rawPostsData, rawChallengesData, galleryData, sessionsData, profData, badgesData] = await Promise.all([
+      const [certsData, promptsData, promptDocsData, rawPostsData, rawChallengesData, galleryData, sessionsData, weeklyScoresData, referenceLinksData, deadlinesData, profData, badgesData] = await Promise.all([
         StorageService.getCertificates(),
         StorageService.getPrompts(),
         StorageService.getPromptDocs(),
@@ -218,6 +286,9 @@ export default function App() {
         StorageService.getChallenges(),
         StorageService.getGalleryPhotos(),
         StorageService.getSessions(),
+        StorageService.getWeeklyScores(),
+        StorageService.getReferenceLinks(),
+        StorageService.getProgramDeadlines(),
         StorageService.getProfile(),
         StorageService.getUserBadges(),
       ]);
@@ -234,9 +305,29 @@ export default function App() {
       setChallenges(challengesData);
       setGalleryPhotos(galleryData);
       setSessions(sessionsData);
+      setWeeklyScores(weeklyScoresData);
+      setReferenceLinks(referenceLinksData);
+      setDeadlines(deadlinesData);
       setUserBadges(badgesData);
       if (profData) {
         setProfile(profData);
+      }
+
+      if (userId) {
+        writeCachedAppData(userId, {
+          certificates: certsData,
+          prompts: promptsData,
+          promptDocs: promptDocsData,
+          posts: postsData,
+          challenges: challengesData,
+          galleryPhotos: galleryData,
+          sessions: sessionsData,
+          weeklyScores: weeklyScoresData,
+          referenceLinks: referenceLinksData,
+          deadlines: deadlinesData,
+          userBadges: badgesData,
+          profile: profData ?? profile,
+        });
       }
 
       const lastPost = [...postsData].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
@@ -386,6 +477,42 @@ export default function App() {
     setSessions(updated);
   };
 
+  const handleSaveWeeklyScore = async (weeklyScore: WeeklyScore) => {
+    await StorageService.saveWeeklyScore(weeklyScore);
+    const updated = await StorageService.getWeeklyScores();
+    setWeeklyScores(updated);
+  };
+
+  const handleDeleteWeeklyScore = async (id: string) => {
+    await StorageService.deleteWeeklyScore(id);
+    const updated = await StorageService.getWeeklyScores();
+    setWeeklyScores(updated);
+  };
+
+  const handleSaveReferenceLink = async (referenceLink: ReferenceLink) => {
+    await StorageService.saveReferenceLink(referenceLink);
+    const updated = await StorageService.getReferenceLinks();
+    setReferenceLinks(updated);
+  };
+
+  const handleDeleteReferenceLink = async (id: string) => {
+    await StorageService.deleteReferenceLink(id);
+    const updated = await StorageService.getReferenceLinks();
+    setReferenceLinks(updated);
+  };
+
+  const handleSaveDeadline = async (deadline: ProgramDeadline) => {
+    await StorageService.saveProgramDeadline(deadline);
+    const updated = await StorageService.getProgramDeadlines();
+    setDeadlines(updated);
+  };
+
+  const handleDeleteDeadline = async (id: string) => {
+    await StorageService.deleteProgramDeadline(id);
+    const updated = await StorageService.getProgramDeadlines();
+    setDeadlines(updated);
+  };
+
   const handleSaveProfile = async (newProfile: AmbassadorProfile) => {
     setProfile(newProfile);
     await StorageService.saveProfile(newProfile);
@@ -523,6 +650,30 @@ export default function App() {
               photos={galleryPhotos}
               onSavePhoto={handleSaveGalleryPhoto}
               onDeletePhoto={handleDeleteGalleryPhoto}
+            />
+          </div>
+
+          <div hidden={activeTab !== 'weeklyScore'}>
+            <WeeklyScoreModule
+              weeklyScores={weeklyScores}
+              onSaveWeeklyScore={handleSaveWeeklyScore}
+              onDeleteWeeklyScore={handleDeleteWeeklyScore}
+            />
+          </div>
+
+          <div hidden={activeTab !== 'referenceLinks'}>
+            <ReferenceLinksModule
+              referenceLinks={referenceLinks}
+              onSaveReferenceLink={handleSaveReferenceLink}
+              onDeleteReferenceLink={handleDeleteReferenceLink}
+            />
+          </div>
+
+          <div hidden={activeTab !== 'deadlines'}>
+            <DeadlinesModule
+              deadlines={deadlines}
+              onSaveDeadline={handleSaveDeadline}
+              onDeleteDeadline={handleDeleteDeadline}
             />
           </div>
 

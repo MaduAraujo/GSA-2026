@@ -20,6 +20,9 @@ const { authMocks, storage } = vi.hoisted(() => {
     getChallenges: vi.fn(),
     getGalleryPhotos: vi.fn(),
     getSessions: vi.fn(),
+    getWeeklyScores: vi.fn(),
+    getReferenceLinks: vi.fn(),
+    getProgramDeadlines: vi.fn(),
     getProfile: vi.fn(),
     getUserBadges: vi.fn(),
     saveCertificate: vi.fn().mockResolvedValue(undefined),
@@ -36,6 +39,12 @@ const { authMocks, storage } = vi.hoisted(() => {
     deleteGalleryPhoto: vi.fn().mockResolvedValue(undefined),
     saveSession: vi.fn().mockResolvedValue(undefined),
     deleteSession: vi.fn().mockResolvedValue(undefined),
+    saveWeeklyScore: vi.fn().mockResolvedValue(undefined),
+    deleteWeeklyScore: vi.fn().mockResolvedValue(undefined),
+    saveReferenceLink: vi.fn().mockResolvedValue(undefined),
+    deleteReferenceLink: vi.fn().mockResolvedValue(undefined),
+    saveProgramDeadline: vi.fn().mockResolvedValue(undefined),
+    deleteProgramDeadline: vi.fn().mockResolvedValue(undefined),
     saveProfile: vi.fn().mockResolvedValue(undefined),
     unlockBadge: vi.fn().mockResolvedValue(undefined),
   };
@@ -65,6 +74,9 @@ function mockLoggedIn() {
   storage.getChallenges.mockResolvedValue([]);
   storage.getGalleryPhotos.mockResolvedValue([]);
   storage.getSessions.mockResolvedValue([]);
+  storage.getWeeklyScores.mockResolvedValue([]);
+  storage.getReferenceLinks.mockResolvedValue([]);
+  storage.getProgramDeadlines.mockResolvedValue([]);
   storage.getProfile.mockResolvedValue(makeProfile({ name: 'Ana Souza' }));
   storage.getUserBadges.mockResolvedValue([]);
 }
@@ -134,7 +146,7 @@ describe('App — dashboard tab switching', () => {
 
     expect(await screen.findByText('Nenhum certificado encontrado', {}, { timeout: 5000 })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Banco de Prompts' }));
+    await user.click(screen.getByRole('button', { name: 'Prompts' }));
     expect(await screen.findByText('Nenhum prompt encontrado', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 });

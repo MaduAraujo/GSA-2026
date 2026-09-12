@@ -5,6 +5,9 @@ import {
   Challenge,
   GeminiPost,
   PromptItem,
+  WeeklyScore,
+  ReferenceLink,
+  ProgramDeadline,
 } from '../types';
 
 export function makeProfile(overrides: Partial<AmbassadorProfile> = {}): AmbassadorProfile {
@@ -89,6 +92,43 @@ export function makeSession(overrides: Partial<AmbassadorSession> = {}): Ambassa
     score: 20,
     createdAt: '2026-01-08T00:00:00.000Z',
     updatedAt: '2026-01-08T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function makeWeeklyScore(overrides: Partial<WeeklyScore> = {}): WeeklyScore {
+  return {
+    id: 'weekly-score-1',
+    weekStart: '2026-08-24',
+    weekEnd: '2026-08-31',
+    points: 145,
+    createdAt: '2026-08-31T00:00:00.000Z',
+    updatedAt: '2026-08-31T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function makeReferenceLink(overrides: Partial<ReferenceLink> = {}): ReferenceLink {
+  return {
+    id: 'reference-link-1',
+    title: 'Portfólio da Ana',
+    url: 'https://example.com/portfolio-ana',
+    sharedBy: 'Ana Souza',
+    createdAt: '2026-08-20T00:00:00.000Z',
+    updatedAt: '2026-08-20T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function makeProgramDeadline(overrides: Partial<ProgramDeadline> = {}): ProgramDeadline {
+  return {
+    id: 'deadline-1',
+    title: 'Entrega do desafio de comunidade',
+    date: '2026-09-30',
+    category: 'Desafio',
+    isCompleted: false,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    updatedAt: '2026-09-01T00:00:00.000Z',
     ...overrides,
   };
 }

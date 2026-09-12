@@ -22,7 +22,7 @@ function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = 
 describe('Navbar', () => {
   it('marks the active tab with aria-current', () => {
     renderNavbar({ activeTab: 'prompts' });
-    expect(screen.getByRole('button', { name: 'Banco de Prompts' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Prompts' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Certificados' })).not.toHaveAttribute('aria-current');
   });
 

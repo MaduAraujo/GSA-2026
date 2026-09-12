@@ -140,6 +140,39 @@ export interface AmbassadorSession {
   updatedAt: string;
 }
 
+export interface WeeklyScore {
+  id: string;
+  weekStart: string;
+  weekEnd: string;
+  points: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReferenceLink {
+  id: string;
+  title: string;
+  url: string;
+  sharedBy?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DeadlineCategory = 'Desafio' | 'Sessão' | 'Post' | 'Outro';
+
+export interface ProgramDeadline {
+  id: string;
+  title: string;
+  date: string;
+  category: DeadlineCategory;
+  notes?: string;
+  isCompleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserBadge {
   badgeId: string;
   unlockedAt: string;

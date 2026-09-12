@@ -1,5 +1,4 @@
-// Service Worker for Google Student Ambassador 2026 PWA
-const CACHE_NAME = "google-ambassador-2026-v1";
+const CACHE_NAME = "google-ambassador-2026-v2";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
@@ -34,17 +33,11 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Real (app-closed) push notifications — separate from the in-app
-// Notification API used by RemindersService, which only fires while a tab
-// is open. This handler is what lets a server-sent push show up even after
-// the PWA has been fully closed.
 self.addEventListener("push", (event) => {
   let payload = { title: "Embaixadora Google 2026", body: "Você tem uma novidade no seu Hub." };
   try {
     if (event.data) payload = { ...payload, ...event.data.json() };
-  } catch {
-    // Non-JSON payload — fall back to the default text above.
-  }
+  } catch {}
 
   event.waitUntil(
     self.registration.showNotification(payload.title, {
@@ -71,9 +64,6 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Pass through non-GET, API, and Vite dev-server requests directly — caching
-  // these would serve stale modules over HMR when the SW is registered locally
-  // to test push notifications during `npm run dev`.
   const url = event.request.url;
   const isDevAsset =
     url.includes("/api/") ||
@@ -82,6 +72,20 @@ self.addEventListener("fetch", (event) => {
     url.includes("/src/") ||
     url.includes("?t=");
   if (event.request.method !== "GET" || isDevAsset) {
+    return;
+  }
+
+  const isNavigation = event.request.mode === "navigate" || event.request.headers.get("accept")?.includes("text/html");
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html")))
+    );
     return;
   }
 
@@ -99,11 +103,6 @@ self.addEventListener("fetch", (event) => {
           cache.put(event.request, responseToCache);
         });
         return response;
-      }).catch(() => {
-        // Fallback for offline navigation
-        if (event.request.mode === "navigate") {
-          return caches.match("/index.html");
-        }
       });
     })
   );

@@ -7,6 +7,9 @@ import {
   makePrompt,
   makeProfile,
   makeSession,
+  makeWeeklyScore,
+  makeReferenceLink,
+  makeProgramDeadline,
 } from '../test/factories';
 
 const { mockAuth, mockFrom, mockStorageFrom } = vi.hoisted(() => ({
@@ -257,6 +260,149 @@ describe('SupabaseStorageService — sessions', () => {
   });
 });
 
+describe('SupabaseStorageService — weekly scores', () => {
+  it('maps weekly score rows from snake_case to camelCase', async () => {
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'w1',
+          week_start: '2026-08-24',
+          week_end: '2026-08-31',
+          points: 145,
+          notes: 'Posts e sessão',
+          created_at: '2026-08-31T00:00:00.000Z',
+          updated_at: '2026-08-31T00:00:00.000Z',
+        },
+      ])
+    );
+    const scores = await SupabaseStorageService.getWeeklyScores();
+    expect(scores).toEqual([
+      {
+        id: 'w1',
+        weekStart: '2026-08-24',
+        weekEnd: '2026-08-31',
+        points: 145,
+        notes: 'Posts e sessão',
+        createdAt: '2026-08-31T00:00:00.000Z',
+        updatedAt: '2026-08-31T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('upserts the weekly score row with the authenticated user id', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.saveWeeklyScore(makeWeeklyScore({ id: 'w1' }));
+    expect(chain.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'w1', user_id: 'user-1', week_start: '2026-08-24', week_end: '2026-08-31', points: 145 })
+    );
+  });
+
+  it('deletes a weekly score by id', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.deleteWeeklyScore('w1');
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenCalledWith('id', 'w1');
+  });
+});
+
+describe('SupabaseStorageService — reference links', () => {
+  it('maps reference link rows from snake_case to camelCase', async () => {
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'r1',
+          title: 'Portfólio da Ana',
+          url: 'https://example.com/portfolio-ana',
+          shared_by: 'Ana Souza',
+          notes: 'Bom exemplo de layout',
+          created_at: '2026-08-20T00:00:00.000Z',
+          updated_at: '2026-08-20T00:00:00.000Z',
+        },
+      ])
+    );
+    const links = await SupabaseStorageService.getReferenceLinks();
+    expect(links).toEqual([
+      {
+        id: 'r1',
+        title: 'Portfólio da Ana',
+        url: 'https://example.com/portfolio-ana',
+        sharedBy: 'Ana Souza',
+        notes: 'Bom exemplo de layout',
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('upserts the reference link row with the authenticated user id', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.saveReferenceLink(makeReferenceLink({ id: 'r1' }));
+    expect(chain.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'r1', user_id: 'user-1', title: 'Portfólio da Ana', url: 'https://example.com/portfolio-ana' })
+    );
+  });
+
+  it('deletes a reference link by id', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.deleteReferenceLink('r1');
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenCalledWith('id', 'r1');
+  });
+});
+
+describe('SupabaseStorageService — program deadlines', () => {
+  it('maps deadline rows from snake_case to camelCase, defaulting a missing category', async () => {
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'd1',
+          title: 'Entrega do desafio',
+          date: '2026-09-30',
+          category: null,
+          notes: 'Enviar junto com o post',
+          is_completed: false,
+          created_at: '2026-09-01T00:00:00.000Z',
+          updated_at: '2026-09-01T00:00:00.000Z',
+        },
+      ])
+    );
+    const deadlines = await SupabaseStorageService.getProgramDeadlines();
+    expect(deadlines).toEqual([
+      {
+        id: 'd1',
+        title: 'Entrega do desafio',
+        date: '2026-09-30',
+        category: 'Outro',
+        notes: 'Enviar junto com o post',
+        isCompleted: false,
+        createdAt: '2026-09-01T00:00:00.000Z',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('upserts the deadline row with the authenticated user id', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.saveProgramDeadline(makeProgramDeadline({ id: 'd1' }));
+    expect(chain.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'd1', user_id: 'user-1', title: 'Entrega do desafio de comunidade', category: 'Desafio' })
+    );
+  });
+
+  it('deletes a deadline by id', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.deleteProgramDeadline('d1');
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenCalledWith('id', 'd1');
+  });
+});
+
 describe('SupabaseStorageService — prompts and prompt docs', () => {
   it('maps and saves prompts', async () => {
     mockFrom.mockReturnValueOnce(makeChain([{ id: 'p1', title: 'Prompt', prompt_text: 'Faça X', section: 'Estudos', tags: [], recommended_model: 'gemini-3.7-flash', usage_count: 2, created_at: '2026-01-01T00:00:00.000Z' }]));
@@ -373,6 +519,9 @@ describe('SupabaseStorageService — export/import', () => {
       challenges: [],
       galleryPhotos: [],
       sessions: [],
+      weeklyScores: [],
+      referenceLinks: [],
+      programDeadlines: [],
     });
   });
 

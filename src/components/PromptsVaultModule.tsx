@@ -437,8 +437,7 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Sparkles className="w-6 h-6 text-[#FBBC04]" />
-            <span className="sm:hidden">Prompts</span>
-            <span className="hidden sm:inline">Banco de Prompts</span>
+            <span>Prompts</span>
           </h2>
         </div>
 
