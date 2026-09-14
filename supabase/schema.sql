@@ -187,8 +187,10 @@ create policy "prompt_docs_storage_delete_own" on storage.objects
   for delete to authenticated
   using ( bucket_id = 'prompt-docs' and (select auth.uid())::text = (storage.foldername(name))[1] );
 
+-- 50MB: Supabase Free plan caps all uploads at 50MB globally, regardless of this
+-- bucket-level value. Raise this only after upgrading to a paid plan.
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('user-files', 'user-files', false, 2147483648)
+values ('user-files', 'user-files', false, 52428800)
 on conflict (id) do update set file_size_limit = excluded.file_size_limit;
 
 drop policy if exists "user_files_storage_select_own" on storage.objects;

@@ -99,7 +99,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
   const [resultImageError, setResultImageError] = useState<string | null>(null);
   const resultImageInputRef = useRef<HTMLInputElement>(null);
   const MAX_RESULT_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
-  const MAX_RESULT_VIDEO_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
+  const MAX_RESULT_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // Supabase Free plan caps uploads at 50MB
 
   const [resultVideoFile, setResultVideoFile] = useState<File | null>(null);
   const [resultVideoPreviewUrl, setResultVideoPreviewUrl] = useState<string | null>(null);
@@ -129,7 +129,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
       return;
     }
     if (isVideo && file.size > MAX_RESULT_VIDEO_SIZE_BYTES) {
-      setResultImageError(`Vídeo muito grande (${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB). O limite é 2GB.`);
+      setResultImageError(`Vídeo muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 50MB.`);
       e.target.value = '';
       return;
     }
@@ -936,7 +936,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                         className="w-full flex items-center gap-2.5 p-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A73E8] bg-white text-left transition-all"
                       >
                         <Upload className="w-4 h-4 text-gray-500 shrink-0" />
-                        <span className="text-xs text-gray-600">Anexe uma imagem, vídeo (até 2GB) ou captura da publicação</span>
+                        <span className="text-xs text-gray-600">Anexe uma imagem, vídeo (até 50MB) ou captura da publicação</span>
                       </button>
                     )}
                     {resultImageError && (

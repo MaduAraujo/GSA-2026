@@ -124,13 +124,13 @@ describe('GalleryModule', () => {
     expect(savedVideoFile).toBe(videoFile);
   });
 
-  it('rejects a video file larger than 2GB with an error message', async () => {
+  it('rejects a video file larger than 50MB with an error message', async () => {
     const user = userEvent.setup();
     render(<GalleryModule photos={[]} onSavePhoto={vi.fn()} onDeletePhoto={vi.fn()} />);
     await user.click(screen.getByLabelText('Nova foto'));
 
     const oversizedVideo = new File(['x'], 'huge.mp4', { type: 'video/mp4' });
-    Object.defineProperty(oversizedVideo, 'size', { value: 2 * 1024 * 1024 * 1024 + 1 });
+    Object.defineProperty(oversizedVideo, 'size', { value: 50 * 1024 * 1024 + 1 });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [oversizedVideo] } });
 

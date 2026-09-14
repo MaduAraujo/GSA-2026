@@ -18,8 +18,8 @@ const DEFAULT_FORM: Partial<GalleryPhoto> = {
   takenAt: '',
 };
 
-const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; 
-const MAX_VIDEO_SIZE_BYTES = 2 * 1024 * 1024 * 1024; 
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
+const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // Supabase Free plan caps uploads at 50MB
 
 function formatDateBR(isoDate?: string): string {
   if (!isoDate) return '';
@@ -88,7 +88,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
       return;
     }
     if (isVideo && file.size > MAX_VIDEO_SIZE_BYTES) {
-      setFileError(`Vídeo muito grande (${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB). O limite é 2GB.`);
+      setFileError(`Vídeo muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 50MB.`);
       return;
     }
 
@@ -359,7 +359,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                       <Upload className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-semibold text-gray-800">Arraste ou clique para selecionar</p>
-                    <p className="text-[11px] text-gray-400">Imagem até 4MB ou vídeo até 2GB</p>
+                    <p className="text-[11px] text-gray-400">Imagem até 4MB ou vídeo até 50MB</p>
                   </>
                 )}
               </div>
