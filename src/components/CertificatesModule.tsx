@@ -472,7 +472,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
       {certificates.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center shrink-0">
               <Layers className="w-4.5 h-4.5" />
             </div>
@@ -481,16 +481,16 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
               <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Certificados</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#34A853]/10 text-[#34A853] flex items-center justify-center shrink-0">
               <Clock className="w-4.5 h-4.5" />
             </div>
-            <div>
-              <p className="text-lg font-bold text-gray-900 leading-tight">{totalHoursLabel}</p>
-              <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Horas de estudo</p>
+            <div className="min-w-0">
+              <p className="text-lg font-bold text-gray-900 leading-tight whitespace-nowrap">{totalHoursLabel}</p>
+              <p className="text-[11px] text-gray-500 font-medium hidden sm:block whitespace-nowrap">Horas de estudo</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#FBBC04]/10 text-[#9E5D00] flex items-center justify-center shrink-0">
               <Star className="w-4.5 h-4.5" />
             </div>

@@ -1,23 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Plus, Search, X, Trash2, Upload, Calendar, Loader2, ImageOff } from 'lucide-react';
+import { Camera, Plus, Search, X, Trash2, Upload, Calendar, Loader2, ImageOff, PlayCircle } from 'lucide-react';
 import { GalleryPhoto } from '../types';
 import { DatePicker } from './DatePicker';
 import { usePersistedState } from '../hooks/usePersistedState';
 
 interface GalleryModuleProps {
   photos: GalleryPhoto[];
-  onSavePhoto: (photo: GalleryPhoto) => Promise<void>;
+  onSavePhoto: (photo: GalleryPhoto, videoFile?: File) => Promise<void>;
   onDeletePhoto: (id: string) => Promise<void>;
 }
 
 const DEFAULT_FORM: Partial<GalleryPhoto> = {
   imageData: '',
+  mediaType: 'image',
   caption: '',
   category: '',
   takenAt: '',
 };
 
-const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; 
+const MAX_VIDEO_SIZE_BYTES = 2 * 1024 * 1024 * 1024; 
 
 function formatDateBR(isoDate?: string): string {
   if (!isoDate) return '';
@@ -36,7 +38,15 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewingPhoto, setViewingPhoto] = useState<GalleryPhoto | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    };
+  }, [videoPreviewUrl]);
 
   const dynamicCategories = Array.from(
     photos.reduce((map, p) => {
@@ -60,22 +70,40 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
   const resetForm = () => {
     setFormData(DEFAULT_FORM);
     setFileError(null);
+    setVideoFile(null);
+    setVideoPreviewUrl(null);
   };
 
   const loadFileIntoForm = (file: File) => {
     setFileError(null);
-    if (!file.type.startsWith('image/')) {
-      setFileError('Envie um arquivo de imagem (PNG, JPG, WebP).');
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setFileError('Envie um arquivo de imagem (PNG, JPG, WebP) ou vídeo.');
       return;
     }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    if (isImage && file.size > MAX_IMAGE_SIZE_BYTES) {
       setFileError(`Imagem muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 4MB.`);
       return;
     }
+    if (isVideo && file.size > MAX_VIDEO_SIZE_BYTES) {
+      setFileError(`Vídeo muito grande (${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB). O limite é 2GB.`);
+      return;
+    }
 
+    if (isVideo) {
+      setVideoFile(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+      setFormData((prev) => ({ ...prev, imageData: '', mediaType: 'video' }));
+      return;
+    }
+
+    setVideoFile(null);
+    setVideoPreviewUrl(null);
     const reader = new FileReader();
     reader.onload = (event) => {
-      setFormData((prev) => ({ ...prev, imageData: event.target?.result as string }));
+      setFormData((prev) => ({ ...prev, imageData: event.target?.result as string, mediaType: 'image' }));
     };
     reader.readAsDataURL(file);
   };
@@ -96,20 +124,21 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.imageData) return;
+    if (!formData.imageData && !videoFile) return;
 
     setIsSaving(true);
     try {
       const photo: GalleryPhoto = {
         id: formData.id || crypto.randomUUID(),
-        imageData: formData.imageData,
+        imageData: formData.imageData || '',
+        mediaType: videoFile ? 'video' : 'image',
         caption: (formData.caption || '').trim(),
         category: (formData.category || '').trim(),
         takenAt: formData.takenAt || undefined,
         createdAt: formData.createdAt || new Date().toISOString(),
       };
 
-      await onSavePhoto(photo);
+      await onSavePhoto(photo, videoFile || undefined);
       setIsAddModalOpen(false);
       resetForm();
     } catch (err) {
@@ -134,7 +163,6 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
     }
   };
 
-  // Esc-to-close for whichever modal is open
   useEffect(() => {
     if (!isAddModalOpen && !viewingPhoto) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -149,8 +177,6 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
 
   return (
     <div className="space-y-6">
-
-      {/* Header & New Photo Button */}
       <div className="flex items-center justify-between gap-4 pt-15">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
@@ -174,7 +200,6 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
         <div className="relative">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -219,7 +244,6 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
         )}
       </div>
 
-      {/* Photo Grid */}
       {filteredPhotos.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
           <div className="w-16 h-16 rounded-full bg-[#EA4335]/10 text-[#EA4335] flex items-center justify-center mx-auto">
@@ -237,11 +261,26 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
               className="group relative flex flex-col bg-white rounded-2xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-[#EA4335]/40 transition-all overflow-hidden text-left"
             >
               <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
-                <img
-                  src={photo.imageData}
-                  alt={photo.caption || 'Foto do programa'}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
+                {photo.mediaType === 'video' ? (
+                  <>
+                    <video
+                      src={photo.imageData}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                      <PlayCircle className="w-9 h-9 text-white drop-shadow" />
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={photo.imageData}
+                    alt={photo.caption || 'Foto do programa'}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                )}
                 {photo.category && (
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white">
                     {photo.category}
@@ -266,7 +305,6 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
         </div>
       )}
 
-      {/* -------------------- MODAL: ADD PHOTO -------------------- */}
       {isAddModalOpen && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
@@ -300,12 +338,17 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   className="hidden"
                   onChange={handleFileChange}
                 />
 
-                {formData.imageData ? (
+                {videoPreviewUrl ? (
+                  <div className="flex items-center justify-center gap-4">
+                    <video src={videoPreviewUrl} className="h-24 max-w-xs rounded-lg shadow-xs" muted controls />
+                    <p className="text-xs text-green-600 font-medium">Vídeo carregado com sucesso!</p>
+                  </div>
+                ) : formData.imageData ? (
                   <div className="flex items-center justify-center gap-4">
                     <img src={formData.imageData} alt="Prévia" className="h-24 max-w-xs object-contain rounded-lg shadow-xs" />
                     <p className="text-xs text-green-600 font-medium">Foto carregada com sucesso!</p>
@@ -316,6 +359,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                       <Upload className="w-6 h-6" />
                     </div>
                     <p className="text-sm font-semibold text-gray-800">Arraste ou clique para selecionar</p>
+                    <p className="text-[11px] text-gray-400">Imagem até 4MB ou vídeo até 2GB</p>
                   </>
                 )}
               </div>
@@ -382,11 +426,11 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                   </button>
                   <button
                     type="submit"
-                    disabled={isSaving || !formData.imageData}
+                    disabled={isSaving || (!formData.imageData && !videoFile)}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#EA4335] hover:bg-[#D93025] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSaving ? 'Salvando...' : 'Salvar'}
+                    {isSaving ? (videoFile ? 'Enviando vídeo...' : 'Salvando...') : 'Salvar'}
                   </button>
                 </div>
               </form>
@@ -396,13 +440,16 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
         </div>
       )}
 
-      {/* -------------------- MODAL: VIEW PHOTO -------------------- */}
       {viewingPhoto && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
             <div className="overflow-y-auto">
               <div className="relative bg-gray-900">
-                <img src={viewingPhoto.imageData} alt={viewingPhoto.caption || 'Foto do programa'} className="w-full max-h-[60vh] object-contain" />
+                {viewingPhoto.mediaType === 'video' ? (
+                  <video src={viewingPhoto.imageData} controls className="w-full max-h-[60vh]" />
+                ) : (
+                  <img src={viewingPhoto.imageData} alt={viewingPhoto.caption || 'Foto do programa'} className="w-full max-h-[60vh] object-contain" />
+                )}
                 <button
                   onClick={() => setViewingPhoto(null)}
                   aria-label="Fechar"
@@ -444,7 +491,6 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
           </div>
         </div>
       )}
-
     </div>
   );
 };

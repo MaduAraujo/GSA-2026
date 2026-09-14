@@ -26,7 +26,7 @@ import { isHttpUrl } from '../utils/safeUrl';
 interface ChallengesModuleProps {
   challenges: Challenge[];
   posts: GeminiPost[];
-  onSaveChallenge: (challenge: Challenge) => Promise<void>;
+  onSaveChallenge: (challenge: Challenge, resultVideoFile?: File) => Promise<void>;
   onDeleteChallenge: (id: string) => Promise<void>;
   onSavePost: (post: GeminiPost) => Promise<void>;
   onDeletePost: (id: string) => Promise<void>;
@@ -56,6 +56,7 @@ const DEFAULT_FORM: Partial<Challenge> = {
   points: undefined,
   result: '',
   resultImage: '',
+  resultMediaType: 'image',
   socialLinks: [],
 };
 
@@ -98,20 +99,54 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
   const [resultImageError, setResultImageError] = useState<string | null>(null);
   const resultImageInputRef = useRef<HTMLInputElement>(null);
   const MAX_RESULT_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
+  const MAX_RESULT_VIDEO_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
+
+  const [resultVideoFile, setResultVideoFile] = useState<File | null>(null);
+  const [resultVideoPreviewUrl, setResultVideoPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resultVideoPreviewUrl) URL.revokeObjectURL(resultVideoPreviewUrl);
+    };
+  }, [resultVideoPreviewUrl]);
 
   const handleResultImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setResultImageError(null);
-    if (file.size > MAX_RESULT_IMAGE_SIZE_BYTES) {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setResultImageError('Envie um arquivo de imagem ou vídeo.');
+      e.target.value = '';
+      return;
+    }
+    if (isImage && file.size > MAX_RESULT_IMAGE_SIZE_BYTES) {
       setResultImageError(`Imagem muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 4MB.`);
+      e.target.value = '';
+      return;
+    }
+    if (isVideo && file.size > MAX_RESULT_VIDEO_SIZE_BYTES) {
+      setResultImageError(`Vídeo muito grande (${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB). O limite é 2GB.`);
+      e.target.value = '';
       return;
     }
 
+    if (isVideo) {
+      setResultVideoFile(file);
+      setResultVideoPreviewUrl(URL.createObjectURL(file));
+      setFormData((prev) => ({ ...prev, resultImage: '', resultMediaType: 'video' }));
+      e.target.value = '';
+      return;
+    }
+
+    setResultVideoFile(null);
+    setResultVideoPreviewUrl(null);
     const reader = new FileReader();
     reader.onload = (event) => {
-      setFormData((prev) => ({ ...prev, resultImage: event.target?.result as string }));
+      setFormData((prev) => ({ ...prev, resultImage: event.target?.result as string, resultMediaType: 'image' }));
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -179,6 +214,8 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
     setFormData(DEFAULT_FORM);
     setIsEditMode(false);
     setResultImageError(null);
+    setResultVideoFile(null);
+    setResultVideoPreviewUrl(null);
     setPendingDate('');
     setPendingLinkPlatform('LinkedIn');
     setPendingLinkUrl('');
@@ -188,6 +225,8 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
     setFormData({ ...challenge, dates: challenge.dates || (challenge.deadline ? [challenge.deadline] : []) });
     setIsEditMode(true);
     setResultImageError(null);
+    setResultVideoFile(null);
+    setResultVideoPreviewUrl(null);
     setPendingDate('');
     setPendingLinkPlatform('LinkedIn');
     setPendingLinkUrl('');
@@ -254,6 +293,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
         points: formData.points ? Number(formData.points) : undefined,
         result: (formData.result || '').trim() || undefined,
         resultImage: formData.resultImage || undefined,
+        resultMediaType: resultVideoFile ? 'video' : formData.resultMediaType || 'image',
         resultLink: socialLinks[0]?.link,
         resultPlatform: socialLinks[0]?.platform,
         socialLinks: socialLinks.length > 0 ? socialLinks : undefined,
@@ -263,7 +303,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
         updatedAt: now,
       };
 
-      await onSaveChallenge(challenge);
+      await onSaveChallenge(challenge, resultVideoFile || undefined);
       setIsAddModalOpen(false);
       resetForm();
     } catch (err) {
@@ -336,7 +376,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
 
       {challenges.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center shrink-0">
               <Circle className="w-4.5 h-4.5" />
             </div>
@@ -345,7 +385,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
               <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Pendentes</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center shrink-0">
               <Clock3 className="w-4.5 h-4.5" />
             </div>
@@ -354,7 +394,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
               <p className="text-[11px] text-gray-500 font-medium hidden sm:block">Em andamento</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center sm:justify-start gap-3">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 flex items-center justify-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#34A853]/10 text-[#1E8E3E] flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-4.5 h-4.5" />
             </div>
@@ -488,11 +528,19 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                 )}
 
                 {challenge.resultImage && (
-                  <img
-                    src={challenge.resultImage}
-                    alt="Resultado do desafio"
-                    className="w-full h-32 rounded-xl object-cover border border-gray-200"
-                  />
+                  challenge.resultMediaType === 'video' ? (
+                    <video
+                      src={challenge.resultImage}
+                      controls
+                      className="w-full h-32 rounded-xl object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <img
+                      src={challenge.resultImage}
+                      alt="Resultado do desafio"
+                      className="w-full h-32 rounded-xl object-cover border border-gray-200"
+                    />
+                  )
                 )}
 
                 {(challenge.socialLinks && challenge.socialLinks.length > 0
@@ -812,15 +860,57 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                   )}
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 mb-2">Imagem (opcional)</label>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-2">Imagem ou vídeo (opcional)</label>
                     <input
                       ref={resultImageInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
                       className="hidden"
                       onChange={handleResultImageChange}
                     />
-                    {formData.resultImage ? (
+                    {resultVideoPreviewUrl ? (
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-gray-200">
+                        <video
+                          src={resultVideoPreviewUrl}
+                          muted
+                          className="w-14 h-14 rounded-lg object-cover shrink-0 border border-gray-200"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-green-700">Vídeo anexado</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResultVideoFile(null);
+                            setResultVideoPreviewUrl(null);
+                            setFormData((prev) => ({ ...prev, resultImage: '', resultMediaType: 'image' }));
+                          }}
+                          aria-label="Remover vídeo"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : formData.resultImage && formData.resultMediaType === 'video' ? (
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-gray-200">
+                        <video
+                          src={formData.resultImage}
+                          muted
+                          className="w-14 h-14 rounded-lg object-cover shrink-0 border border-gray-200"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-green-700">Vídeo anexado</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, resultImage: '', resultMediaType: 'image' }))}
+                          aria-label="Remover vídeo"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : formData.resultImage ? (
                       <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-gray-200">
                         <img
                           src={formData.resultImage}
@@ -846,7 +936,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                         className="w-full flex items-center gap-2.5 p-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A73E8] bg-white text-left transition-all"
                       >
                         <Upload className="w-4 h-4 text-gray-500 shrink-0" />
-                        <span className="text-xs text-gray-600">Anexe uma imagem ou captura da publicação</span>
+                        <span className="text-xs text-gray-600">Anexe uma imagem, vídeo (até 2GB) ou captura da publicação</span>
                       </button>
                     )}
                     {resultImageError && (
@@ -871,7 +961,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#34A853] hover:bg-[#2E7D32] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSaving ? 'Salvando...' : 'Salvar'}
+                    {isSaving ? (resultVideoFile ? 'Enviando vídeo...' : 'Salvando...') : 'Salvar'}
                   </button>
                 </div>
               </form>

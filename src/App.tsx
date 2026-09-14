@@ -437,8 +437,8 @@ export default function App() {
     setPosts(updated);
   };
 
-  const handleSaveChallenge = async (challenge: Challenge) => {
-    await StorageService.saveChallenge(challenge);
+  const handleSaveChallenge = async (challenge: Challenge, resultVideoFile?: File) => {
+    await StorageService.saveChallenge(challenge, resultVideoFile);
     const updated = await StorageService.getChallenges();
     setChallenges(updated);
   };
@@ -449,8 +449,8 @@ export default function App() {
     setChallenges(updated);
   };
 
-  const handleSaveGalleryPhoto = async (photo: GalleryPhoto) => {
-    await StorageService.saveGalleryPhoto(photo);
+  const handleSaveGalleryPhoto = async (photo: GalleryPhoto, videoFile?: File) => {
+    await StorageService.saveGalleryPhoto(photo, videoFile);
     const updated = await StorageService.getGalleryPhotos();
     setGalleryPhotos(updated);
   };
@@ -461,8 +461,8 @@ export default function App() {
     setGalleryPhotos(updated);
   };
 
-  const handleSaveSession = async (session: AmbassadorSession) => {
-    await StorageService.saveSession(session);
+  const handleSaveSession = async (session: AmbassadorSession, proofVideoFile?: File) => {
+    await StorageService.saveSession(session, proofVideoFile);
     const updated = await StorageService.getSessions();
     setSessions(updated);
   };

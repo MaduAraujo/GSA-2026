@@ -6,7 +6,7 @@ import { usePersistedState } from '../hooks/usePersistedState';
 
 interface SessionsModuleProps {
   sessions: AmbassadorSession[];
-  onSaveSession: (session: AmbassadorSession) => Promise<void>;
+  onSaveSession: (session: AmbassadorSession, proofVideoFile?: File) => Promise<void>;
   onDeleteSession: (id: string) => Promise<void>;
 }
 
@@ -17,11 +17,13 @@ const DEFAULT_FORM: Partial<AmbassadorSession> = {
   challengeFiles: [],
   toolLearned: '',
   proofImage: '',
+  proofMediaType: 'image',
   score: undefined,
 };
 
-const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; 
-const MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024; 
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
+const MAX_PROOF_VIDEO_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
+const MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
 
 function formatDateBR(isoDate?: string): string {
   if (!isoDate) return '';
@@ -50,8 +52,16 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewingSession, setViewingSession] = useState<AmbassadorSession | null>(null);
+  const [proofVideoFile, setProofVideoFile] = useState<File | null>(null);
+  const [proofVideoPreviewUrl, setProofVideoPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const challengeFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (proofVideoPreviewUrl) URL.revokeObjectURL(proofVideoPreviewUrl);
+    };
+  }, [proofVideoPreviewUrl]);
 
   const filteredSessions = sessions.filter((s) => {
     const q = searchQuery.toLowerCase();
@@ -68,30 +78,50 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
     setFormData(DEFAULT_FORM);
     setFileError(null);
     setChallengeFileError(null);
+    setProofVideoFile(null);
+    setProofVideoPreviewUrl(null);
   };
 
   const handleEditSession = (session: AmbassadorSession) => {
     setFormData(session);
     setFileError(null);
     setChallengeFileError(null);
+    setProofVideoFile(null);
+    setProofVideoPreviewUrl(null);
     setViewingSession(null);
     setIsAddModalOpen(true);
   };
 
   const loadFileIntoForm = (file: File) => {
     setFileError(null);
-    if (!file.type.startsWith('image/')) {
-      setFileError('Envie um arquivo de imagem (PNG, JPG, WebP).');
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setFileError('Envie um arquivo de imagem (PNG, JPG, WebP) ou vídeo.');
       return;
     }
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    if (isImage && file.size > MAX_IMAGE_SIZE_BYTES) {
       setFileError(`Imagem muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 4MB.`);
       return;
     }
+    if (isVideo && file.size > MAX_PROOF_VIDEO_SIZE_BYTES) {
+      setFileError(`Vídeo muito grande (${(file.size / (1024 * 1024 * 1024)).toFixed(2)}GB). O limite é 2GB.`);
+      return;
+    }
 
+    if (isVideo) {
+      setProofVideoFile(file);
+      setProofVideoPreviewUrl(URL.createObjectURL(file));
+      setFormData((prev) => ({ ...prev, proofImage: '', proofMediaType: 'video' }));
+      return;
+    }
+
+    setProofVideoFile(null);
+    setProofVideoPreviewUrl(null);
     const reader = new FileReader();
     reader.onload = (event) => {
-      setFormData((prev) => ({ ...prev, proofImage: event.target?.result as string }));
+      setFormData((prev) => ({ ...prev, proofImage: event.target?.result as string, proofMediaType: 'image' }));
     };
     reader.readAsDataURL(file);
   };
@@ -165,12 +195,13 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
         challengeFiles: formData.challengeFiles && formData.challengeFiles.length > 0 ? formData.challengeFiles : undefined,
         toolLearned: (formData.toolLearned || '').trim(),
         proofImage: formData.proofImage || undefined,
+        proofMediaType: proofVideoFile ? 'video' : formData.proofMediaType || 'image',
         score: formData.score,
         createdAt: formData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      await onSaveSession(session);
+      await onSaveSession(session, proofVideoFile || undefined);
       setIsAddModalOpen(false);
       resetForm();
     } catch (err) {
@@ -273,7 +304,11 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
             >
               <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100 shrink-0 flex items-center justify-center">
                 {session.proofImage ? (
-                  <img src={session.proofImage} alt={session.title} className="w-full h-full object-cover" />
+                  session.proofMediaType === 'video' ? (
+                    <video src={session.proofImage} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                  ) : (
+                    <img src={session.proofImage} alt={session.title} className="w-full h-full object-cover" />
+                  )
                 ) : (
                   <ImageOff className="w-6 h-6 text-gray-300" />
                 )}
@@ -478,7 +513,7 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Foto de comprovação
+                    Foto ou vídeo de comprovação
                   </label>
                   <div
                     onDragOver={(e) => e.preventDefault()}
@@ -489,12 +524,22 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
                       className="hidden"
                       onChange={handleFileChange}
                     />
 
-                    {formData.proofImage ? (
+                    {proofVideoPreviewUrl ? (
+                      <div className="flex items-center justify-center gap-4">
+                        <video src={proofVideoPreviewUrl} className="h-24 max-w-xs rounded-lg shadow-xs" muted controls />
+                        <p className="text-xs text-green-600 font-medium">Vídeo carregado com sucesso!</p>
+                      </div>
+                    ) : formData.proofImage && formData.proofMediaType === 'video' ? (
+                      <div className="flex items-center justify-center gap-4">
+                        <video src={formData.proofImage} className="h-24 max-w-xs rounded-lg shadow-xs" muted controls />
+                        <p className="text-xs text-green-600 font-medium">Vídeo carregado com sucesso!</p>
+                      </div>
+                    ) : formData.proofImage ? (
                       <div className="flex items-center justify-center gap-4">
                         <img src={formData.proofImage} alt="Prévia" className="h-24 max-w-xs object-contain rounded-lg shadow-xs" />
                         <p className="text-xs text-green-600 font-medium">Foto carregada com sucesso!</p>
@@ -505,6 +550,7 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                           <Upload className="w-6 h-6" />
                         </div>
                         <p className="text-sm font-semibold text-gray-800">Arraste ou clique para selecionar</p>
+                        <p className="text-[11px] text-gray-400">Imagem até 4MB ou vídeo até 2GB</p>
                       </>
                     )}
                   </div>
@@ -530,7 +576,7 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#34A853] hover:bg-[#1E8E3E] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSaving ? 'Salvando...' : 'Salvar'}
+                    {isSaving ? (proofVideoFile ? 'Enviando vídeo...' : 'Salvando...') : 'Salvar'}
                   </button>
                 </div>
               </form>
@@ -546,7 +592,11 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
             <div className="overflow-y-auto">
               {viewingSession.proofImage ? (
                 <div className="relative bg-gray-900">
-                  <img src={viewingSession.proofImage} alt={viewingSession.title} className="w-full max-h-[50vh] object-contain" />
+                  {viewingSession.proofMediaType === 'video' ? (
+                    <video src={viewingSession.proofImage} controls className="w-full max-h-[50vh]" />
+                  ) : (
+                    <img src={viewingSession.proofImage} alt={viewingSession.title} className="w-full max-h-[50vh] object-contain" />
+                  )}
                   <button
                     onClick={() => setViewingSession(null)}
                     aria-label="Fechar"
@@ -686,7 +736,6 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
           </div>
         </div>
       )}
-
     </div>
   );
 };

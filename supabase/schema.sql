@@ -188,7 +188,7 @@ create policy "prompt_docs_storage_delete_own" on storage.objects
   using ( bucket_id = 'prompt-docs' and (select auth.uid())::text = (storage.foldername(name))[1] );
 
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('user-files', 'user-files', false, 20971520)
+values ('user-files', 'user-files', false, 2147483648)
 on conflict (id) do update set file_size_limit = excluded.file_size_limit;
 
 drop policy if exists "user_files_storage_select_own" on storage.objects;
@@ -333,6 +333,8 @@ alter table public.challenges add column if not exists linked_post_id uuid refer
 alter table public.challenges add column if not exists dates date[];
 alter table public.challenges add column if not exists social_links jsonb;
 alter table public.challenges add column if not exists linked_post_ids uuid[];
+alter table public.challenges add column if not exists result_image_path text;
+alter table public.challenges add column if not exists result_media_type text not null default 'image';
 
 create index if not exists challenges_user_id_idx on public.challenges (user_id);
 
@@ -374,6 +376,7 @@ create table if not exists public.gallery_photos (
 
 alter table public.gallery_photos alter column image_data drop not null;
 alter table public.gallery_photos add column if not exists image_path text;
+alter table public.gallery_photos add column if not exists media_type text not null default 'image';
 
 create index if not exists gallery_photos_user_id_idx on public.gallery_photos (user_id);
 
@@ -422,6 +425,7 @@ create index if not exists sessions_user_id_idx on public.sessions (user_id);
 alter table public.sessions add column if not exists challenge_files jsonb;
 alter table public.sessions add column if not exists score integer;
 alter table public.sessions add column if not exists proof_image_path text;
+alter table public.sessions add column if not exists proof_media_type text not null default 'image';
 
 alter table public.sessions enable row level security;
 

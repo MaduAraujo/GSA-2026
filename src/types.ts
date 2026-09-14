@@ -96,6 +96,7 @@ export interface Challenge {
   points?: number;
   result?: string;
   resultImage?: string;
+  resultMediaType?: 'image' | 'video';
   /** @deprecated kept for old rows; use `socialLinks` instead */
   resultLink?: string;
   /** @deprecated kept for old rows; use `socialLinks` instead */
@@ -113,6 +114,7 @@ export type GalleryCategory = string;
 export interface GalleryPhoto {
   id: string;
   imageData: string;
+  mediaType?: 'image' | 'video';
   caption: string;
   category: GalleryCategory;
   takenAt?: string;
@@ -135,6 +137,7 @@ export interface AmbassadorSession {
   challengeFiles?: SessionFile[];
   toolLearned: string;
   proofImage?: string;
+  proofMediaType?: 'image' | 'video';
   score?: number;
   createdAt: string;
   updatedAt: string;

@@ -24,11 +24,11 @@ function isDataUrl(value?: string | null): value is string {
   return !!value && value.startsWith('data:');
 }
 
-async function uploadUserFile(dataUrl: string, path: string): Promise<void> {
-  const blob = await (await fetch(dataUrl)).blob();
+async function uploadUserFile(source: string | File, path: string): Promise<void> {
+  const body = typeof source === 'string' ? await (await fetch(source)).blob() : source;
   const { error } = await supabase.storage
     .from(USER_FILES_BUCKET)
-    .upload(path, blob, { upsert: true, contentType: blob.type || undefined });
+    .upload(path, body, { upsert: true, contentType: body.type || undefined });
   if (error) throw error;
 }
 
@@ -271,7 +271,7 @@ function rowToUserBadge(row: any): UserBadge {
   };
 }
 
-function rowToChallenge(row: any): Challenge {
+function rowToChallenge(row: any, signedUrls: Map<string, string>): Challenge {
   const dates: string[] | undefined =
     Array.isArray(row.dates) && row.dates.length > 0
       ? row.dates
@@ -293,6 +293,10 @@ function rowToChallenge(row: any): Challenge {
       ? [row.linked_post_id]
       : undefined;
 
+  const resultImage = row.result_image_path
+    ? signedUrls.get(row.result_image_path)
+    : row.result_image ?? undefined;
+
   return {
     id: row.id,
     title: row.title,
@@ -304,7 +308,8 @@ function rowToChallenge(row: any): Challenge {
     link: row.link ?? undefined,
     points: row.points ?? undefined,
     result: row.result ?? undefined,
-    resultImage: row.result_image ?? undefined,
+    resultImage,
+    resultMediaType: row.result_media_type === 'video' ? 'video' : 'image',
     resultLink: row.result_link ?? undefined,
     resultPlatform: row.result_platform ?? undefined,
     socialLinks,
@@ -315,7 +320,7 @@ function rowToChallenge(row: any): Challenge {
   };
 }
 
-function challengeToRow(challenge: Challenge, userId: string) {
+function challengeToRow(challenge: Challenge, userId: string, resultImagePath: string | null) {
   const dates = challenge.dates && challenge.dates.length > 0 ? challenge.dates : undefined;
   const firstLink = challenge.socialLinks?.[0];
 
@@ -331,7 +336,9 @@ function challengeToRow(challenge: Challenge, userId: string) {
     link: challenge.link || null,
     points: challenge.points ?? null,
     result: challenge.result || null,
-    result_image: challenge.resultImage || null,
+    result_image: resultImagePath ? null : challenge.resultImage || null,
+    result_image_path: resultImagePath,
+    result_media_type: challenge.resultMediaType || 'image',
     result_link: firstLink?.link || challenge.resultLink || null,
     result_platform: firstLink?.platform || challenge.resultPlatform || null,
     social_links: challenge.socialLinks && challenge.socialLinks.length > 0 ? challenge.socialLinks : null,
@@ -348,6 +355,7 @@ function rowToGalleryPhoto(row: any, signedUrls: Map<string, string>): GalleryPh
   return {
     id: row.id,
     imageData: imageData || '',
+    mediaType: row.media_type === 'video' ? 'video' : 'image',
     caption: row.caption ?? '',
     category: row.category ?? '',
     takenAt: row.taken_at ?? undefined,
@@ -361,6 +369,7 @@ function galleryPhotoToRow(photo: GalleryPhoto, userId: string, imagePath: strin
     user_id: userId,
     image_data: imagePath ? null : photo.imageData ?? null,
     image_path: imagePath,
+    media_type: photo.mediaType || 'image',
     caption: photo.caption ?? '',
     category: photo.category ?? '',
     taken_at: photo.takenAt || null,
@@ -393,6 +402,7 @@ function rowToSession(row: any, signedUrls: Map<string, string>): AmbassadorSess
     challengeFiles,
     toolLearned: row.tool_learned ?? '',
     proofImage,
+    proofMediaType: row.proof_media_type === 'video' ? 'video' : 'image',
     score: row.score ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -415,6 +425,7 @@ function sessionToRow(
     tool_learned: session.toolLearned ?? '',
     proof_image: proofImagePath ? null : session.proofImage || null,
     proof_image_path: proofImagePath,
+    proof_media_type: session.proofMediaType || 'image',
     score: session.score ?? null,
     created_at: session.createdAt,
     updated_at: session.updatedAt,
@@ -560,18 +571,36 @@ export const SupabaseStorageService = {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(rowToChallenge);
+    const rows = data ?? [];
+    const signedUrls = await getBatchSignedUrls(
+      USER_FILES_BUCKET,
+      rows.map((r) => r.result_image_path).filter(Boolean),
+      USER_FILE_SIGNED_URL_TTL_SECONDS
+    );
+    return rows.map((row) => rowToChallenge(row, signedUrls));
   },
 
-  async saveChallenge(challenge: Challenge): Promise<void> {
+  async saveChallenge(challenge: Challenge, resultVideoFile?: File): Promise<void> {
     const userId = await requireUserId();
-    const { error } = await supabase.from('challenges').upsert(challengeToRow(challenge, userId));
+    let resultImagePath: string | null = null;
+    if (resultVideoFile) {
+      resultImagePath = `${userId}/challenges/${challenge.id}`;
+      await uploadUserFile(resultVideoFile, resultImagePath);
+    } else if (isDataUrl(challenge.resultImage)) {
+      resultImagePath = `${userId}/challenges/${challenge.id}`;
+      await uploadUserFile(challenge.resultImage, resultImagePath);
+    }
+    const { error } = await supabase
+      .from('challenges')
+      .upsert(challengeToRow(challenge, userId, resultImagePath));
     if (error) throw error;
   },
 
   async deleteChallenge(id: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase.from('challenges').delete().eq('id', id);
     if (error) throw error;
+    await removeUserFiles([`${userId}/challenges/${id}`]);
   },
 
   async getGalleryPhotos(): Promise<GalleryPhoto[]> {
@@ -589,10 +618,13 @@ export const SupabaseStorageService = {
     return rows.map((row) => rowToGalleryPhoto(row, signedUrls));
   },
 
-  async saveGalleryPhoto(photo: GalleryPhoto): Promise<void> {
+  async saveGalleryPhoto(photo: GalleryPhoto, videoFile?: File): Promise<void> {
     const userId = await requireUserId();
     let imagePath: string | null = null;
-    if (isDataUrl(photo.imageData)) {
+    if (videoFile) {
+      imagePath = `${userId}/gallery/${photo.id}`;
+      await uploadUserFile(videoFile, imagePath);
+    } else if (isDataUrl(photo.imageData)) {
       imagePath = `${userId}/gallery/${photo.id}`;
       await uploadUserFile(photo.imageData, imagePath);
     }
@@ -625,11 +657,14 @@ export const SupabaseStorageService = {
     return rows.map((row) => rowToSession(row, signedUrls));
   },
 
-  async saveSession(session: AmbassadorSession): Promise<void> {
+  async saveSession(session: AmbassadorSession, proofVideoFile?: File): Promise<void> {
     const userId = await requireUserId();
 
     let proofImagePath: string | null = null;
-    if (isDataUrl(session.proofImage)) {
+    if (proofVideoFile) {
+      proofImagePath = `${userId}/sessions/${session.id}/proof`;
+      await uploadUserFile(proofVideoFile, proofImagePath);
+    } else if (isDataUrl(session.proofImage)) {
       proofImagePath = `${userId}/sessions/${session.id}/proof`;
       await uploadUserFile(session.proofImage, proofImagePath);
     } else if (session.proofImage) {
