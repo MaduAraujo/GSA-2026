@@ -171,6 +171,8 @@ export interface ProgramDeadline {
   date: string;
   category: DeadlineCategory;
   notes?: string;
+  points?: number;
+  week?: number;
   isCompleted?: boolean;
   createdAt: string;
   updatedAt: string;

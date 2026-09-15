@@ -656,6 +656,9 @@ create table if not exists public.program_deadlines (
 
 create index if not exists program_deadlines_user_id_idx on public.program_deadlines (user_id);
 
+alter table public.program_deadlines add column if not exists points integer;
+alter table public.program_deadlines add column if not exists week integer;
+
 alter table public.program_deadlines enable row level security;
 
 drop policy if exists "program_deadlines_select_own" on public.program_deadlines;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarClock, Plus, X, Trash2, Pencil, Loader2, StickyNote, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { CalendarClock, Plus, X, Trash2, Pencil, Loader2, StickyNote, CheckCircle2, Circle, AlertCircle, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { DeadlineCategory, ProgramDeadline } from '../types';
 import { DatePicker } from './DatePicker';
 import { usePersistedState } from '../hooks/usePersistedState';
@@ -24,6 +24,8 @@ const DEFAULT_FORM: Partial<ProgramDeadline> = {
   date: '',
   category: 'Desafio',
   notes: '',
+  points: undefined,
+  week: undefined,
   isCompleted: false,
 };
 
@@ -42,17 +44,221 @@ function todayISO(): string {
   return `${year}-${month}-${day}`;
 }
 
+function getMonthKey(isoDate: string): string {
+  return isoDate.slice(0, 7);
+}
+
+function formatMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number);
+  const label = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+interface MonthGroupProps {
+  monthKey: string;
+  deadlines: ProgramDeadline[];
+  today: string;
+  togglingId: string | null;
+  deletingId: string | null;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+  onToggleComplete: (deadline: ProgramDeadline) => void;
+  onEdit: (deadline: ProgramDeadline) => void;
+  onDelete: (deadline: ProgramDeadline) => void;
+}
+
+const MonthGroup: React.FC<MonthGroupProps> = ({
+  monthKey,
+  deadlines,
+  today,
+  togglingId,
+  deletingId,
+  isCollapsed,
+  onToggleCollapse,
+  onToggleComplete,
+  onEdit,
+  onDelete,
+}) => {
+  const monthPoints = deadlines.reduce((sum, d) => sum + (d.points || 0), 0);
+  const monthCompletedCount = deadlines.filter((d) => d.isCompleted).length;
+  const monthProgressPercent = deadlines.length > 0 ? Math.round((monthCompletedCount / deadlines.length) * 100) : 0;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        aria-expanded={!isCollapsed}
+        aria-label={isCollapsed ? `Expandir ${formatMonthLabel(monthKey)}` : `Recolher ${formatMonthLabel(monthKey)}`}
+        className="w-full flex items-center justify-between gap-2 px-1 py-1 group"
+      >
+        <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider group-hover:text-gray-700">
+          {isCollapsed ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronUp className="w-3.5 h-3.5 shrink-0" />}
+          {formatMonthLabel(monthKey)}
+          <span className="normal-case font-medium text-gray-400">({deadlines.length})</span>
+        </span>
+        {monthPoints > 0 && (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#9E5D00]">
+            <Star className="w-3.5 h-3.5 fill-[#FBBC04] text-[#FBBC04]" />
+            {monthPoints} pts
+          </span>
+        )}
+      </button>
+
+      <div className="bg-white rounded-2xl border border-gray-200/70 px-4 py-3 space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold text-gray-600">
+            {monthCompletedCount} de {deadlines.length} prazo{deadlines.length === 1 ? '' : 's'} cumprido{deadlines.length === 1 ? '' : 's'}
+          </span>
+          <span className="font-bold text-[#1E8E3E]">{monthProgressPercent}%</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuenow={monthProgressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Progresso de prazos cumpridos em ${formatMonthLabel(monthKey)}`}
+          className="h-2 rounded-full bg-gray-100 overflow-hidden"
+        >
+          <div
+            className="h-full rounded-full bg-[#34A853] transition-all duration-300"
+            style={{ width: `${monthProgressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {!isCollapsed && (
+      <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
+        {deadlines.map((deadline) => {
+          const isOverdue = !deadline.isCompleted && deadline.date < today;
+          const categoryStyle = CATEGORY_STYLES[deadline.category] || CATEGORY_STYLES.Outro;
+          return (
+            <div
+              key={deadline.id}
+              id={`deadline-row-${deadline.id}`}
+              className="flex items-center gap-4 p-5 group"
+            >
+              <button
+                onClick={() => onToggleComplete(deadline)}
+                disabled={togglingId === deadline.id}
+                aria-label={deadline.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
+                title={deadline.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
+                className="shrink-0 text-gray-300 hover:text-[#34A853] disabled:opacity-50"
+              >
+                {togglingId === deadline.id ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                ) : deadline.isCompleted ? (
+                  <CheckCircle2 className="w-6 h-6 text-[#34A853]" />
+                ) : (
+                  <Circle className="w-6 h-6" />
+                )}
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className={`font-bold leading-snug ${deadline.isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                    {deadline.title}
+                  </p>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${categoryStyle.bg} ${categoryStyle.text}`}>
+                    {deadline.category}
+                  </span>
+                  {typeof deadline.week === 'number' && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                      Semana {deadline.week}
+                    </span>
+                  )}
+                  {isOverdue && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#EA4335]/10 text-[#D93025] flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Atrasado
+                    </span>
+                  )}
+                  {typeof deadline.points === 'number' && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#9E5D00]">
+                      <Star className="w-3.5 h-3.5 fill-[#FBBC04] text-[#FBBC04]" />
+                      {deadline.points} pts
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{formatDateBR(deadline.date)}</p>
+                {deadline.notes && (
+                  <p className="text-xs text-gray-500 flex items-start gap-1.5 mt-1">
+                    <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">{deadline.notes}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => onEdit(deadline)}
+                  aria-label="Editar prazo"
+                  title="Editar"
+                  className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onDelete(deadline)}
+                  disabled={deletingId === deadline.id}
+                  aria-label="Excluir prazo"
+                  title="Excluir"
+                  className="p-2 rounded-xl text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 disabled:opacity-50"
+                >
+                  {deletingId === deadline.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      )}
+    </div>
+  );
+};
+
 export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onSaveDeadline, onDeleteDeadline }) => {
   const [isFormOpen, setIsFormOpen] = usePersistedState('gsa_deadline_modal_open', false);
   const [formData, setFormData] = usePersistedState<Partial<ProgramDeadline>>('gsa_deadline_form_draft', DEFAULT_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = usePersistedState('gsa_deadline_show_history', false);
+  const [collapsedMonths, setCollapsedMonths] = usePersistedState<string[]>('gsa_deadline_collapsed_months', []);
+
+  const toggleMonthCollapse = (monthKey: string) => {
+    setCollapsedMonths((prev) =>
+      prev.includes(monthKey) ? prev.filter((key) => key !== monthKey) : [...prev, monthKey]
+    );
+  };
 
   const today = todayISO();
   const sortedDeadlines = [...deadlines].sort((a, b) => (a.date < b.date ? -1 : 1));
-  const completedCount = deadlines.filter((d) => d.isCompleted).length;
-  const progressPercent = deadlines.length > 0 ? Math.round((completedCount / deadlines.length) * 100) : 0;
+
+  const currentMonthKey = getMonthKey(today);
+  const visibleDeadlines = sortedDeadlines.filter((d) => !d.isCompleted || getMonthKey(d.date) >= currentMonthKey);
+  const historyDeadlines = sortedDeadlines.filter((d) => d.isCompleted && getMonthKey(d.date) < currentMonthKey);
+
+  const visibleMonthGroups = new Map<string, ProgramDeadline[]>();
+  for (const deadline of visibleDeadlines) {
+    const key = getMonthKey(deadline.date);
+    if (!visibleMonthGroups.has(key)) visibleMonthGroups.set(key, []);
+    visibleMonthGroups.get(key)!.push(deadline);
+  }
+  const visibleMonthKeys = Array.from(visibleMonthGroups.keys());
+
+  const historyMonthGroups = new Map<string, ProgramDeadline[]>();
+  for (const deadline of historyDeadlines) {
+    const key = getMonthKey(deadline.date);
+    if (!historyMonthGroups.has(key)) historyMonthGroups.set(key, []);
+    historyMonthGroups.get(key)!.push(deadline);
+  }
+  const historyMonthKeys = Array.from(historyMonthGroups.keys()).reverse();
+  const pastCount = historyDeadlines.length;
 
   const resetForm = () => {
     setFormData(DEFAULT_FORM);
@@ -75,6 +281,8 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
         date: formData.date,
         category: formData.category || 'Outro',
         notes: (formData.notes || '').trim() || undefined,
+        points: formData.points ? Number(formData.points) : undefined,
+        week: formData.week ? Number(formData.week) : undefined,
         isCompleted: formData.isCompleted ?? false,
         createdAt: formData.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -150,30 +358,6 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
         </button>
       </div>
 
-      {deadlines.length > 0 && (
-        <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs p-5">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="font-semibold text-gray-700">
-              {completedCount} de {deadlines.length} prazo{deadlines.length === 1 ? '' : 's'} cumprido{deadlines.length === 1 ? '' : 's'}
-            </span>
-            <span className="font-bold text-[#1E8E3E]">{progressPercent}%</span>
-          </div>
-          <div
-            role="progressbar"
-            aria-valuenow={progressPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Progresso de prazos cumpridos"
-            className="h-2.5 rounded-full bg-gray-100 overflow-hidden"
-          >
-            <div
-              className="h-full rounded-full bg-[#34A853] transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-      )}
-
       {sortedDeadlines.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
           <div className="w-16 h-16 rounded-full bg-[#EA4335]/10 text-[#D93025] flex items-center justify-center mx-auto">
@@ -182,82 +366,59 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
           <h3 className="text-lg font-bold text-gray-900">Nenhum prazo registrado</h3>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
-          {sortedDeadlines.map((deadline) => {
-            const isOverdue = !deadline.isCompleted && deadline.date < today;
-            const categoryStyle = CATEGORY_STYLES[deadline.category] || CATEGORY_STYLES.Outro;
-            return (
-              <div
-                key={deadline.id}
-                id={`deadline-row-${deadline.id}`}
-                className="flex items-center gap-4 p-5 group"
+        <div className="space-y-6">
+          {visibleMonthKeys.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">Nenhum prazo em aberto no momento.</p>
+          ) : (
+            visibleMonthKeys.map((key) => (
+              <MonthGroup
+                key={key}
+                monthKey={key}
+                deadlines={visibleMonthGroups.get(key)!}
+                today={today}
+                togglingId={togglingId}
+                deletingId={deletingId}
+                isCollapsed={collapsedMonths.includes(key)}
+                onToggleCollapse={() => toggleMonthCollapse(key)}
+                onToggleComplete={handleToggleComplete}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))
+          )}
+
+          {historyMonthKeys.length > 0 && (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setShowHistory(!showHistory)}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
               >
-                <button
-                  onClick={() => handleToggleComplete(deadline)}
-                  disabled={togglingId === deadline.id}
-                  aria-label={deadline.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
-                  title={deadline.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
-                  className="shrink-0 text-gray-300 hover:text-[#34A853] disabled:opacity-50"
-                >
-                  {togglingId === deadline.id ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                  ) : deadline.isCompleted ? (
-                    <CheckCircle2 className="w-6 h-6 text-[#34A853]" />
-                  ) : (
-                    <Circle className="w-6 h-6" />
-                  )}
-                </button>
+                {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {showHistory ? 'Ocultar histórico' : `Ver histórico (${pastCount} prazo${pastCount === 1 ? '' : 's'})`}
+              </button>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className={`font-bold leading-snug ${deadline.isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                      {deadline.title}
-                    </p>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${categoryStyle.bg} ${categoryStyle.text}`}>
-                      {deadline.category}
-                    </span>
-                    {isOverdue && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#EA4335]/10 text-[#D93025] flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Atrasado
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{formatDateBR(deadline.date)}</p>
-                  {deadline.notes && (
-                    <p className="text-xs text-gray-500 flex items-start gap-1.5 mt-1">
-                      <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{deadline.notes}</span>
-                    </p>
-                  )}
+              {showHistory && (
+                <div className="space-y-6">
+                  {historyMonthKeys.map((key) => (
+                    <MonthGroup
+                      key={key}
+                      monthKey={key}
+                      deadlines={historyMonthGroups.get(key)!}
+                      today={today}
+                      togglingId={togglingId}
+                      deletingId={deletingId}
+                      isCollapsed={collapsedMonths.includes(key)}
+                      onToggleCollapse={() => toggleMonthCollapse(key)}
+                      onToggleComplete={handleToggleComplete}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
                 </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => handleEdit(deadline)}
-                    aria-label="Editar prazo"
-                    title="Editar"
-                    className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(deadline)}
-                    disabled={deletingId === deadline.id}
-                    aria-label="Excluir prazo"
-                    title="Excluir"
-                    className="p-2 rounded-xl text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 disabled:opacity-50"
-                  >
-                    {deletingId === deadline.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -342,6 +503,35 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                     placeholder="Ex: enviar link do post junto com a entrega"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30 resize-none"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Semana (opcional)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Ex: 3"
+                      value={formData.week ?? ''}
+                      onChange={(e) => setFormData({ ...formData, week: e.target.value ? Number(e.target.value) : undefined })}
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Pontos (opcional)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.points ?? ''}
+                      onChange={(e) => setFormData({ ...formData, points: e.target.value ? Number(e.target.value) : undefined })}
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
+                    />
+                  </div>
                 </div>
 
                 <label className="flex items-center gap-2.5 cursor-pointer">
