@@ -313,6 +313,7 @@ function rowToChallenge(row: any, signedUrls: Map<string, string>): Challenge {
     resultLink: row.result_link ?? undefined,
     resultPlatform: row.result_platform ?? undefined,
     socialLinks,
+    externalLink: row.external_link ?? undefined,
     linkedPostId: row.linked_post_id ?? undefined,
     linkedPostIds,
     createdAt: row.created_at,
@@ -342,6 +343,7 @@ function challengeToRow(challenge: Challenge, userId: string, resultImagePath: s
     result_link: firstLink?.link || challenge.resultLink || null,
     result_platform: firstLink?.platform || challenge.resultPlatform || null,
     social_links: challenge.socialLinks && challenge.socialLinks.length > 0 ? challenge.socialLinks : null,
+    external_link: challenge.externalLink || null,
     linked_post_id: challenge.linkedPostIds?.[0] || challenge.linkedPostId || null,
     linked_post_ids:
       challenge.linkedPostIds && challenge.linkedPostIds.length > 0 ? challenge.linkedPostIds : null,

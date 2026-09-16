@@ -58,6 +58,7 @@ const DEFAULT_FORM: Partial<Challenge> = {
   resultImage: '',
   resultMediaType: 'image',
   socialLinks: [],
+  externalLink: '',
 };
 
 function formatDateBR(isoDate?: string): string {
@@ -297,6 +298,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
         resultLink: socialLinks[0]?.link,
         resultPlatform: socialLinks[0]?.platform,
         socialLinks: socialLinks.length > 0 ? socialLinks : undefined,
+        externalLink: (formData.externalLink || '').trim() || undefined,
         linkedPostId: linkedPostIds[0],
         linkedPostIds: linkedPostIds.length > 0 ? linkedPostIds : undefined,
         createdAt: formData.createdAt || now,
@@ -560,6 +562,18 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                     Ver publicação{social.platform ? ` no ${social.platform}` : ''}
                   </a>
                 ))}
+
+                {isHttpUrl(challenge.externalLink) && (
+                  <a
+                    href={challenge.externalLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1A73E8] hover:underline"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Ver resultado (link externo)
+                  </a>
+                )}
 
                 <div className="flex-1" />
 
@@ -858,6 +872,20 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                       ))}
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">Link externo (opcional)</label>
+                    <p className="text-[11px] text-gray-500 mb-1.5">
+                      Se o desafio foi feito em um link externo (site, documento, repositório, etc.) além das redes sociais, cole o link aqui.
+                    </p>
+                    <input
+                      type="url"
+                      value={formData.externalLink || ''}
+                      onChange={(e) => setFormData({ ...formData, externalLink: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-white"
+                    />
+                  </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-600 mb-2">Imagem ou vídeo (opcional)</label>

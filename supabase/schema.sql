@@ -337,6 +337,7 @@ alter table public.challenges add column if not exists social_links jsonb;
 alter table public.challenges add column if not exists linked_post_ids uuid[];
 alter table public.challenges add column if not exists result_image_path text;
 alter table public.challenges add column if not exists result_media_type text not null default 'image';
+alter table public.challenges add column if not exists external_link text;
 
 create index if not exists challenges_user_id_idx on public.challenges (user_id);
 

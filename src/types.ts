@@ -102,6 +102,8 @@ export interface Challenge {
   /** @deprecated kept for old rows; use `socialLinks` instead */
   resultPlatform?: PostPlatform;
   socialLinks?: ChallengeSocialLink[];
+  /** Result link for challenges completed outside social media (site, doc, repo, etc.) */
+  externalLink?: string;
   /** @deprecated kept for old rows; use `linkedPostIds` instead */
   linkedPostId?: string;
   linkedPostIds?: string[];
