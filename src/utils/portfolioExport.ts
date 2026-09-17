@@ -59,7 +59,7 @@ export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: C
     <div class="stat"><b>${certificates.length}</b><span>Certificados</span></div>
     <div class="stat"><b>${totalHoursLabel}</b><span>Horas de estudo</span></div>
   </div>
-  <h2>Certificados & Badges</h2>
+  <h2>Certificados & Selos</h2>
   ${certRows || '<p>Nenhum certificado cadastrado ainda.</p>'}
 </body>
 </html>`;

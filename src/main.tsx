@@ -3,16 +3,20 @@ import {createRoot} from 'react-dom/client';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
-// Each route only pays for its own code: /sobre and /p/:slug are static,
-// publicly-shared pages (e.g. linked from LinkedIn) that were previously
-// forced to download the entire authenticated app bundle (all tab modules)
-// just to render a bio page.
+const publicPortfolioMatch = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
+const isAboutPage = /^\/sobre\/?$/.test(window.location.pathname);
+
+if (publicPortfolioMatch) {
+  import('./components/PublicPortfolioPage').catch(() => {});
+} else if (isAboutPage) {
+  import('./components/AboutPage').catch(() => {});
+} else {
+  import('./App.tsx').catch(() => {});
+}
+
 const App = lazy(() => import('./App.tsx'));
 const PublicPortfolioPage = lazy(() => import('./components/PublicPortfolioPage').then((m) => ({ default: m.PublicPortfolioPage })));
 const AboutPage = lazy(() => import('./components/AboutPage').then((m) => ({ default: m.AboutPage })));
-
-const publicPortfolioMatch = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
-const isAboutPage = /^\/sobre\/?$/.test(window.location.pathname);
 
 function RouteFallback() {
   return (

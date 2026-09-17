@@ -10,6 +10,7 @@ import {
   Play,
   Wand2,
   Trash2,
+  Pencil,
   X,
   Tag,
   BookOpen,
@@ -32,6 +33,7 @@ import { GeminiApiService } from '../services/geminiApi';
 import { SupabaseStorageService } from '../services/supabaseStorage';
 import { exportPromptsAsPdf } from '../utils/promptsExport';
 import { isHttpUrl } from '../utils/safeUrl';
+import { SelectDropdown } from './SelectDropdown';
 
 interface PromptsVaultModuleProps {
   prompts: PromptItem[];
@@ -45,11 +47,10 @@ interface PromptsVaultModuleProps {
 const DEFAULT_PROMPT_FORM: Partial<PromptItem> = {
   title: '',
   promptText: '',
-  section: 'Estudos',
+  section: '',
   tags: [],
   variables: [],
   sharedDocs: [],
-  recommendedModel: 'gemini-3.7-flash',
   isFavorite: false,
   usageCount: 0,
 };
@@ -73,6 +74,9 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
   const [selectedExportIds, setSelectedExportIds] = useState<Set<string>>(new Set());
 
   const [isAddModalOpen, setIsAddModalOpen] = usePersistedState('gsa_prompt_modal_open', false);
+  const [isEditMode, setIsEditMode] = usePersistedState('gsa_prompt_edit_mode', false);
+  const [isSectionSuggestOpen, setIsSectionSuggestOpen] = useState(false);
+  const sectionSuggestRef = useRef<HTMLDivElement>(null);
   const [testingPrompt, setTestingPrompt] = useState<PromptItem | null>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [aiExecutionResult, setAiExecutionResult] = useState<string | null>(null);
@@ -369,14 +373,15 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
       id: formData.id || crypto.randomUUID(),
       title: formData.title || 'Novo Prompt',
       promptText: formData.promptText || '',
-      section: formData.section || 'Estudos',
+      section: (formData.section || '').trim(),
       tags: formData.tags || [],
       variables: formData.variables || [],
       sharedDocs: formData.sharedDocs || [],
       recommendedModel: formData.recommendedModel || 'gemini-3.7-flash',
       isFavorite: formData.isFavorite || false,
       usageCount: formData.usageCount || 0,
-      createdAt: new Date().toISOString(),
+      lastUsed: formData.lastUsed,
+      createdAt: formData.createdAt || new Date().toISOString(),
     };
 
     await onSavePrompt(newPrompt);
@@ -396,6 +401,16 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
     setTagInput('');
     setVarInput('');
     setDocInput('');
+    setIsEditMode(false);
+  };
+
+  const openEditModal = (prompt: PromptItem) => {
+    setFormData({ ...prompt });
+    setTagInput('');
+    setVarInput('');
+    setDocInput('');
+    setIsEditMode(true);
+    setIsAddModalOpen(true);
   };
 
   const toggleExportSelection = (id: string) => {
@@ -430,6 +445,24 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isExportMenuOpen]);
+
+  useEffect(() => {
+    if (!isSectionSuggestOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sectionSuggestRef.current && !sectionSuggestRef.current.contains(e.target as Node)) {
+        setIsSectionSuggestOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsSectionSuggestOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSectionSuggestOpen]);
 
   return (
     <div className="space-y-6">
@@ -682,6 +715,15 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
 
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => openEditModal(prompt)}
+                    className="p-2 rounded-xl text-gray-400 hover:text-[#1A73E8] hover:bg-[#1A73E8]/10"
+                    aria-label="Editar"
+                    title="Editar"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+
+                  <button
                     onClick={async () => {
                       if (confirm('Deseja excluir este prompt?')) {
                         await onDeletePrompt(prompt.id);
@@ -731,14 +773,14 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#FBBC04]/20 text-[#8F5200] flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
+                  {isEditMode ? <Pencil className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                    Cadastrar Prompt
+                    {isEditMode ? 'Editar Prompt' : 'Cadastrar Prompt'}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Salve prompts reutilizáveis com parâmetros e variáveis.
+                    {isEditMode ? 'Atualize os dados do prompt.' : 'Salve prompts reutilizáveis.'}
                   </p>
                 </div>
               </div>
@@ -770,38 +812,62 @@ export const PromptsVaultModule: React.FC<PromptsVaultModuleProps> = ({
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Categoria
                   </label>
-                  <input
-                    type="text"
-                    list="prompt-section-suggestions"
-                    value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
-                  />
-                  {dynamicSections.length > 0 && (
-                    <datalist id="prompt-section-suggestions">
-                      {dynamicSections.map((sec) => (
-                        <option key={sec} value={sec} />
-                      ))}
-                    </datalist>
-                  )}
+                  <div className="relative" ref={sectionSuggestRef}>
+                    <input
+                      type="text"
+                      value={formData.section}
+                      onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40 ${dynamicSections.length > 0 ? 'pr-8' : ''}`}
+                    />
+                    {dynamicSections.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsSectionSuggestOpen((v) => !v)}
+                        aria-label="Ver categorias já criadas"
+                        aria-haspopup="listbox"
+                        aria-expanded={isSectionSuggestOpen}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSectionSuggestOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                    {isSectionSuggestOpen && dynamicSections.length > 0 && (
+                      <div role="listbox" className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-48 overflow-y-auto">
+                        {dynamicSections.map((sec) => (
+                          <button
+                            key={sec}
+                            type="button"
+                            role="option"
+                            aria-selected={formData.section === sec}
+                            onClick={() => {
+                              setFormData({ ...formData, section: sec });
+                              setIsSectionSuggestOpen(false);
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
+                          >
+                            {sec}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Modelo Recomendado
                   </label>
-                  <div className="relative">
-                    <select
-                      value={formData.recommendedModel}
-                      onChange={(e) => setFormData({ ...formData, recommendedModel: e.target.value as any })}
-                      className="appearance-none w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
-                    >
-                      <option value="gemini-3.7-flash">Gemini 3.7 Flash (Rápido & Inteligente)</option>
-                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Raciocínio Profundo)</option>
-                      <option value="gemini-3.1-flash-lite">Gemini Flash Lite (Super Leve)</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <SelectDropdown
+                    value={formData.recommendedModel || ''}
+                    onChange={(v) => setFormData({ ...formData, recommendedModel: v as any })}
+                    options={[
+                      { value: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (Rápido & Inteligente)' },
+                      { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Raciocínio Profundo)' },
+                      { value: 'gemini-3.1-flash-lite', label: 'Gemini Flash Lite (Super Leve)' },
+                    ]}
+                    ariaLabel="Modelo Recomendado"
+                    align="center"
+                  />
                 </div>
               </div>
 

@@ -49,7 +49,7 @@ export interface PromptDoc {
   createdAt: string;
 }
 
-export type PostPlatform = 'LinkedIn' | 'Instagram' | 'WhatsApp / Comunidade';
+export type PostPlatform = 'LinkedIn' | 'Instagram' | 'Whatsapp';
 export type PostStatus = 'Rascunho' | 'Agendado' | 'Publicado';
 
 export interface GeminiPost {

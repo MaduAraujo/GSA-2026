@@ -3,9 +3,17 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DatePickerProps {
   id?: string;
-  value: string; 
+  value: string;
   onChange: (date: string) => void;
+  align?: 'left' | 'center';
+  placeholder?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
+
+const POPUP_WIDTH = 288; // w-72
+const POPUP_HEIGHT = 336; // approx rendered height of the calendar popup
+const POPUP_MARGIN = 8;
 
 const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const MONTH_LABELS = [
@@ -31,22 +39,73 @@ function formatDisplay(date: Date): string {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange }) => {
+function getBoundsRect(el: HTMLElement | null): { top: number; left: number; right: number; bottom: number } {
+  let node = el?.parentElement || null;
+  while (node && node !== document.body) {
+    const overflowY = window.getComputedStyle(node).overflowY;
+    if (overflowY === 'auto' || overflowY === 'hidden' || overflowY === 'scroll') {
+      const rect = node.getBoundingClientRect();
+      return { top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom };
+    }
+    node = node.parentElement;
+  }
+  return { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
+}
+
+export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange, align = 'left', placeholder = 'Selecionar data', open, onOpenChange }) => {
   const selectedDate = parseISODate(value);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const setIsOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const resolved = typeof next === 'function' ? (next as (prev: boolean) => boolean)(isOpen) : next;
+    if (isControlled) {
+      onOpenChange?.(resolved);
+    } else {
+      setInternalOpen(resolved);
+    }
+  };
   const [viewDate, setViewDate] = useState(selectedDate || new Date());
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     if (selectedDate) setViewDate(selectedDate);
+
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const bounds = getBoundsRect(buttonRef.current);
+      const popupHeight = popupRef.current?.offsetHeight || POPUP_HEIGHT;
+      const left = Math.min(
+        Math.max(rect.left, bounds.left + POPUP_MARGIN),
+        bounds.right - POPUP_WIDTH - POPUP_MARGIN
+      );
+      const fitsBelow = rect.bottom + 8 + popupHeight <= bounds.bottom - POPUP_MARGIN;
+      const top = fitsBelow
+        ? rect.bottom + 8
+        : Math.max(bounds.top + POPUP_MARGIN, rect.top - popupHeight - 8);
+      setPopupPosition({ top, left });
+    };
+    updatePosition();
+
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
+    const handleScroll = () => setIsOpen(false);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('resize', updatePosition);
+    document.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', updatePosition);
+      document.removeEventListener('scroll', handleScroll, true);
+    };
   }, [isOpen]);
 
   const goToMonth = (offset: number) => {
@@ -82,23 +141,28 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange }) =
     <div className="relative" ref={containerRef}>
       <button
         id={id}
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        className="w-full flex items-center gap-2.5 pl-3.5 pr-3 py-2.5 rounded-xl text-sm text-left border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD] hover:border-gray-300 transition-colors"
+        className={`w-full flex items-center gap-2.5 pl-3.5 pr-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD] hover:border-gray-300 transition-colors ${
+          align === 'center' ? 'justify-center text-center' : 'text-left'
+        }`}
       >
         <Calendar className="w-4 h-4 text-[#1A73E8] shrink-0" />
         <span className={selectedDate ? 'text-gray-900' : 'text-gray-400'}>
-          {selectedDate ? formatDisplay(selectedDate) : 'Selecionar data'}
+          {selectedDate ? formatDisplay(selectedDate) : placeholder}
         </span>
       </button>
 
       {isOpen && (
         <div
+          ref={popupRef}
           role="dialog"
           aria-label="Selecionar data"
-          className="absolute left-0 top-full mt-2 w-72 rounded-2xl bg-white border border-gray-200 shadow-lg p-3 z-20"
+          style={{ position: 'fixed', top: popupPosition.top, left: popupPosition.left, width: POPUP_WIDTH }}
+          className="rounded-2xl bg-white border border-gray-200 shadow-lg p-3 z-20"
         >
           <div className="flex items-center justify-between mb-2 px-1">
             <button

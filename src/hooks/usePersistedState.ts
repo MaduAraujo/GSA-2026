@@ -27,3 +27,22 @@ export function usePersistedState<T>(key: string, defaultValue: T) {
 
   return [state, setState] as const;
 }
+
+export function useLocalPersistedState<T>(key: string, defaultValue: T) {
+  const [state, setState] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw !== null ? (JSON.parse(raw) as T) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch {}
+  }, [key, state]);
+
+  return [state, setState] as const;
+}

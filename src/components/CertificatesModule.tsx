@@ -16,7 +16,6 @@ import {
   Eye,
   Download,
   Share2,
-  Plus,
   LayoutGrid,
   List,
   ChevronRight,
@@ -35,6 +34,7 @@ import { GeminiApiService } from '../services/geminiApi';
 import { exportPortfolioAsPdf } from '../utils/portfolioExport';
 import { DatePicker } from './DatePicker';
 import { BadgesShowcase } from './BadgesShowcase';
+import { NumberStepper } from './NumberStepper';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { certHoursDecimal, formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
 import { isHttpUrl } from '../utils/safeUrl';
@@ -54,14 +54,14 @@ type SortOption = 'date-desc' | 'date-asc' | 'hours-desc' | 'name-asc';
 
 const DEFAULT_CERT_FORM: Partial<Certificate> = {
   title: '',
-  issuer: 'Google Cloud Skills Boost',
+  issuer: '',
   issueDate: new Date().toISOString().split('T')[0],
   category: '',
   description: '',
   skills: [],
   credentialId: '',
   credentialUrl: '',
-  hours: 10,
+  hours: 0,
   minutes: 0,
   isFavorite: false,
 };
@@ -118,6 +118,8 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
 
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCategorySuggestOpen, setIsCategorySuggestOpen] = useState(false);
+  const categorySuggestRef = useRef<HTMLDivElement>(null);
 
   const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
 
@@ -218,7 +220,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
     try {
       const res = await GeminiApiService.analyzeCertificate({
         title: formData.title || fileName || 'Certificado Google 2026',
-        issuer: formData.issuer || 'Google',
+        issuer: formData.issuer || undefined,
         imageBase64: filePreview || undefined,
       });
 
@@ -254,7 +256,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
       const newCert: Certificate = {
         id: formData.id || crypto.randomUUID(),
         title: formData.title.trim(),
-        issuer: (formData.issuer || 'Google').trim(),
+        issuer: (formData.issuer || '').trim(),
         issueDate: formData.issueDate || new Date().toISOString().split('T')[0],
         category: (formData.category || 'Outros').trim(),
         description: (formData.description || '').trim(),
@@ -363,6 +365,24 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
   }, [isExportMenuOpen]);
 
   useEffect(() => {
+    if (!isCategorySuggestOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (categorySuggestRef.current && !categorySuggestRef.current.contains(e.target as Node)) {
+        setIsCategorySuggestOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsCategorySuggestOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCategorySuggestOpen]);
+
+  useEffect(() => {
     const modalRef = isAddModalOpen
       ? addModalRef
       : isExportSelectOpen
@@ -413,7 +433,7 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Award className="w-6 h-6 text-[#1A73E8]" />
-            <span>Certificados e Badges</span>
+            <span>Certificados e Selos</span>
           </h2>
         </div>
 
@@ -963,21 +983,46 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Categoria
                   </label>
-                  <input
-                    id="cert-form-category"
-                    type="text"
-                    list="cert-category-suggestions"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]"
-                  />
-                  {dynamicCategories.length > 0 && (
-                    <datalist id="cert-category-suggestions">
-                      {dynamicCategories.map((cat) => (
-                        <option key={cat} value={cat} />
-                      ))}
-                    </datalist>
-                  )}
+                  <div className="relative" ref={categorySuggestRef}>
+                    <input
+                      id="cert-form-category"
+                      type="text"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD] ${dynamicCategories.length > 0 ? 'pr-8' : ''}`}
+                    />
+                    {dynamicCategories.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCategorySuggestOpen((v) => !v)}
+                        aria-label="Ver categorias já criadas"
+                        aria-haspopup="listbox"
+                        aria-expanded={isCategorySuggestOpen}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCategorySuggestOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                    {isCategorySuggestOpen && dynamicCategories.length > 0 && (
+                      <div role="listbox" className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-48 overflow-y-auto">
+                        {dynamicCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            role="option"
+                            aria-selected={formData.category === cat}
+                            onClick={() => {
+                              setFormData({ ...formData, category: cat });
+                              setIsCategorySuggestOpen(false);
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -997,13 +1042,11 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Carga Horária (Horas)
                   </label>
-                  <input
+                  <NumberStepper
                     id="cert-form-hours"
-                    type="number"
-                    min="0"
-                    value={formData.hours}
-                    onChange={(e) => setFormData({ ...formData, hours: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]"
+                    min={0}
+                    value={formData.hours ?? 0}
+                    onChange={(hours) => setFormData({ ...formData, hours })}
                   />
                 </div>
 
@@ -1011,14 +1054,12 @@ export const CertificatesModule: React.FC<CertificatesModuleProps> = ({
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Carga Horária (Minutos)
                   </label>
-                  <input
+                  <NumberStepper
                     id="cert-form-minutes"
-                    type="number"
-                    min="0"
-                    max="59"
+                    min={0}
+                    max={59}
                     value={formData.minutes ?? 0}
-                    onChange={(e) => setFormData({ ...formData, minutes: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]"
+                    onChange={(minutes) => setFormData({ ...formData, minutes })}
                   />
                 </div>
               </div>

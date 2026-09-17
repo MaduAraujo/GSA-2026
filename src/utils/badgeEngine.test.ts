@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateNewlyEarnedBadges } from './badgeEngine';
+import { BADGE_CATALOG } from '../data/badgeCatalog';
 import type { Certificate, PromptItem, GeminiPost, UserBadge } from '../types';
 
 function makeCert(overrides: Partial<Certificate> = {}): Certificate {
@@ -46,11 +47,9 @@ describe('evaluateNewlyEarnedBadges', () => {
   it('only awards all_star once every other badge is already unlocked', () => {
     const prompts: PromptItem[] = [];
     const posts: GeminiPost[] = [];
-    const partialBadges: UserBadge[] = [
-      'first_certificate', 'five_certificates', 'ten_certificates', 'fifty_hours', 'hundred_hours',
-      'five_categories', 'ten_skills', 'first_favorite', 'first_prompt', 'ten_prompts', 'first_post',
-      'five_published_posts',
-    ].map((badgeId) => ({ badgeId, unlockedAt: new Date().toISOString() }));
+    const partialBadges: UserBadge[] = BADGE_CATALOG
+      .filter((b) => b.id !== 'all_star')
+      .map((b) => ({ badgeId: b.id, unlockedAt: new Date().toISOString() }));
 
     const earned = evaluateNewlyEarnedBadges([], prompts, posts, partialBadges);
     expect(earned.map((b) => b.id)).toContain('all_star');

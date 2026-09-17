@@ -316,7 +316,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
-                Título / Cargo Oficial
+                Cargo
               </label>
               <input
                 type="text"
@@ -330,7 +330,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
-                Instituição de Ensino / Campus
+                Instituição de Ensino
               </label>
               <input
                 type="text"
@@ -342,7 +342,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
-                Curso / Graduação
+                Curso
               </label>
               <input
                 type="text"
@@ -488,13 +488,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
 
           <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            >
-              Cancelar
-            </button>
             <button
               type="submit"
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all active:scale-95 flex items-center gap-2"

@@ -88,7 +88,7 @@ describe('CertificatesModule', () => {
     await waitFor(() => expect(onSaveCertificate).toHaveBeenCalledTimes(1));
     const saved = (onSaveCertificate as ReturnType<typeof vi.fn>).mock.calls[0][0] as Certificate;
     expect(saved.title).toBe('Certificação de IA');
-    expect(saved.issuer).toBe('Google Cloud Skills Boost');
+    expect(saved.issuer).toBe('');
   });
 
   it('asks for confirmation before deleting from the detail view', async () => {

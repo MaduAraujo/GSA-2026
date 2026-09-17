@@ -76,7 +76,7 @@ export const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({
             <Trophy className="w-4.5 h-4.5" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-bold text-gray-900">Badges</h3>
+            <h3 className="text-sm font-bold text-gray-900">Selos</h3>
             <p className="text-[11px] text-gray-500 font-medium">
               {unlockedCount} de {totalCount} desbloqueadas
             </p>

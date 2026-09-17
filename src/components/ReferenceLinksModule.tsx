@@ -144,9 +144,9 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                     href={referenceLink.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-bold text-gray-900 leading-snug hover:text-[#1A73E8] hover:underline inline-flex items-center gap-1.5"
+                    className="max-w-full font-bold text-gray-900 leading-snug hover:text-[#1A73E8] hover:underline flex items-center gap-1.5"
                   >
-                    <span className="truncate">{referenceLink.title}</span>
+                    <span className="truncate min-w-0 flex-1">{referenceLink.title}</span>
                     <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                   </a>
                 ) : (
@@ -209,7 +209,7 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                       {formData.id ? 'Editar Link' : 'Novo Link de Referência'}
                     </h3>
-                    <p className="text-xs text-gray-500">Guarde projetos de outras pessoas para consultar depois</p>
+                    <p className="text-xs text-gray-500">Guarde referencias de projetos para consultar depois</p>
                   </div>
                 </div>
                 <button
@@ -231,7 +231,6 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                     required
                     value={formData.title || ''}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Ex: Portfólio da Ana"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30"
                   />
                 </div>
@@ -252,26 +251,24 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Compartilhado por (opcional)
+                    Compartilhado por
                   </label>
                   <input
                     type="text"
                     value={formData.sharedBy || ''}
                     onChange={(e) => setFormData({ ...formData, sharedBy: e.target.value })}
-                    placeholder="Ex: Ana Souza"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Observações (opcional)
+                    Observações
                   </label>
                   <textarea
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
-                    placeholder="Ex: bom exemplo de post sobre certificações"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30 resize-none"
                   />
                 </div>
@@ -283,13 +280,6 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                 )}
 
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancelar
-                  </button>
                   <button
                     type="submit"
                     disabled={isSaving || !formData.title?.trim() || !formData.url?.trim()}

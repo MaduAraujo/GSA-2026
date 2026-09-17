@@ -47,6 +47,29 @@ describe('PromptsVaultModule', () => {
     expect(screen.queryByText('Prompt A')).not.toBeInTheDocument();
   });
 
+  it('lists every existing category in the form suggestion dropdown, not just the typed one', async () => {
+    const user = userEvent.setup();
+    renderModule({
+      prompts: [
+        makePrompt({ id: 'p1', title: 'Prompt A', section: 'Estudos' }),
+        makePrompt({ id: 'p2', title: 'Prompt B', section: 'Comunidade' }),
+      ],
+    });
+    await user.click(screen.getByLabelText('Novo prompt'));
+    const dialog = screen.getByRole('dialog');
+
+    const inputs = within(dialog).getAllByRole('textbox');
+    const sectionInput = inputs[1] as HTMLInputElement;
+    await user.type(sectionInput, 'Comunidade');
+
+    await user.click(within(dialog).getByLabelText('Ver categorias já criadas'));
+    expect(within(dialog).getByRole('option', { name: 'Estudos' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: 'Comunidade' })).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('option', { name: 'Estudos' }));
+    expect(sectionInput).toHaveValue('Estudos');
+  });
+
   it('toggles the favorites-only filter', async () => {
     const user = userEvent.setup();
     renderModule({
@@ -76,7 +99,7 @@ describe('PromptsVaultModule', () => {
     expect(within(dialog).getByRole('button', { name: 'Salvar' })).toBeEnabled();
   });
 
-  it('creates a prompt with the default section and model', async () => {
+  it('creates a prompt with an empty section and the default model', async () => {
     const user = userEvent.setup();
     const onSavePrompt = vi.fn().mockResolvedValue(undefined);
     renderModule({ onSavePrompt });
@@ -94,7 +117,7 @@ describe('PromptsVaultModule', () => {
     const saved = onSavePrompt.mock.calls[0][0] as PromptItem;
     expect(saved.title).toBe('Meu novo prompt');
     expect(saved.promptText).toBe('Texto do prompt de teste');
-    expect(saved.section).toBe('Estudos');
+    expect(saved.section).toBe('');
     expect(saved.recommendedModel).toBe('gemini-3.7-flash');
   });
 
@@ -108,6 +131,34 @@ describe('PromptsVaultModule', () => {
     expect(confirmSpy).toHaveBeenCalled();
     expect(onDeletePrompt).not.toHaveBeenCalled();
     confirmSpy.mockRestore();
+  });
+
+  it('opens a prompt pre-filled for editing and saves the changes without losing its id or creation date', async () => {
+    const user = userEvent.setup();
+    const onSavePrompt = vi.fn().mockResolvedValue(undefined);
+    const prompt = makePrompt({
+      id: 'p1',
+      title: 'Prompt original',
+      promptText: 'Texto original',
+      createdAt: '2026-01-05T00:00:00.000Z',
+    });
+    renderModule({ prompts: [prompt], onSavePrompt });
+
+    await user.click(screen.getByLabelText('Editar'));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Editar Prompt')).toBeInTheDocument();
+
+    const titleInput = within(dialog).getAllByRole('textbox')[0];
+    expect(titleInput).toHaveValue('Prompt original');
+    await user.clear(titleInput);
+    await user.type(titleInput, 'Prompt editado');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(onSavePrompt).toHaveBeenCalledTimes(1));
+    const saved = onSavePrompt.mock.calls[0][0] as PromptItem;
+    expect(saved.id).toBe('p1');
+    expect(saved.title).toBe('Prompt editado');
+    expect(saved.createdAt).toBe('2026-01-05T00:00:00.000Z');
   });
 
   it('copies the prompt text to the clipboard and bumps its usage count', async () => {

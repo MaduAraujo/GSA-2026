@@ -94,7 +94,8 @@ describe('DeadlinesModule', () => {
     await user.type(titleInput, '  Entrega do desafio  ');
     await user.click(document.getElementById('deadline-form-date') as HTMLButtonElement);
     await user.click(screen.getByRole('button', { name: '15' }));
-    await user.selectOptions(screen.getByDisplayValue('Desafio'), 'Post');
+    await user.click(screen.getByLabelText('Categoria'));
+    await user.click(screen.getByRole('option', { name: 'Post' }));
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSaveDeadline).toHaveBeenCalledTimes(1));

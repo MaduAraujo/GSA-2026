@@ -14,7 +14,7 @@ const MONTH_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Se
 const PLATFORM_COLORS: Record<string, string> = {
   LinkedIn: '#0077B5',
   Instagram: '#E1306C',
-  'WhatsApp / Comunidade': '#34A853',
+  Whatsapp: '#34A853',
 };
 const STATUS_COLORS: Record<string, string> = {
   Publicado: '#34A853',

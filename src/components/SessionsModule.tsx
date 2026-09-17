@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GraduationCap, Plus, Search, X, Trash2, Upload, Calendar, Loader2, Flag, Wrench, ImageOff, Paperclip, FileText, Download, Star, Pencil } from 'lucide-react';
 import { AmbassadorSession, SessionFile } from '../types';
 import { DatePicker } from './DatePicker';
+import { NumberStepper } from './NumberStepper';
 import { usePersistedState } from '../hooks/usePersistedState';
 
 interface SessionsModuleProps {
@@ -416,6 +417,7 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                     id="session-form-date"
                     value={formData.date || ''}
                     onChange={(date) => setFormData({ ...formData, date })}
+                    placeholder="Selecione"
                   />
                 </div>
 
@@ -423,19 +425,26 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Desafio proposto (se tiver)
                   </label>
-                  <input
-                    type="text"
-                    value={formData.challenge || ''}
-                    onChange={(e) => setFormData({ ...formData, challenge: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 mb-2"
-                  />
-
                   <div
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleChallengeFilesDrop}
-                    onClick={() => challengeFileInputRef.current?.click()}
-                    className="border-2 border-dashed border-gray-300 hover:border-[#34A853] bg-[#F8FAFD] rounded-2xl p-4 text-center cursor-pointer transition-all space-y-2"
+                    className="flex items-center gap-2"
                   >
+                    <input
+                      type="text"
+                      value={formData.challenge || ''}
+                      onChange={(e) => setFormData({ ...formData, challenge: e.target.value })}
+                      className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => challengeFileInputRef.current?.click()}
+                      aria-label="Anexar arquivo do desafio (pode selecionar vários)"
+                      title="Anexar arquivo do desafio (pode selecionar vários)"
+                      className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-500 hover:text-[#34A853] hover:border-[#34A853] transition-colors"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
                     <input
                       ref={challengeFileInputRef}
                       type="file"
@@ -443,10 +452,6 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                       className="hidden"
                       onChange={handleChallengeFileChange}
                     />
-                    <div className="w-9 h-9 rounded-full bg-[#34A853]/10 text-[#34A853] flex items-center justify-center mx-auto">
-                      <Paperclip className="w-4.5 h-4.5" />
-                    </div>
-                    <p className="text-xs font-semibold text-gray-700">Arraste ou clique para anexar (pode selecionar vários)</p>
                   </div>
 
                   {challengeFileError && (
@@ -500,13 +505,11 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Pontuação
                     </label>
-                    <input
-                      type="number"
+                    <NumberStepper
+                      id="session-form-score"
                       min={0}
-                      value={formData.score ?? ''}
-                      onChange={(e) => setFormData({ ...formData, score: e.target.value === '' ? undefined : Number(e.target.value) })}
-                      placeholder="0"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                      value={formData.score ?? 0}
+                      onChange={(score) => setFormData({ ...formData, score })}
                     />
                   </div>
                 </div>
@@ -549,7 +552,7 @@ export const SessionsModule: React.FC<SessionsModuleProps> = ({ sessions, onSave
                         <div className="w-12 h-12 rounded-full bg-[#34A853]/10 text-[#34A853] flex items-center justify-center mx-auto">
                           <Upload className="w-6 h-6" />
                         </div>
-                        <p className="text-sm font-semibold text-gray-800">Arraste ou clique para selecionar</p>
+                        <p className="text-sm font-semibold text-gray-800">Arraste ou clique para anexar</p>
                         <p className="text-[11px] text-gray-400">Imagem até 4MB ou vídeo até 50MB</p>
                       </>
                     )}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Trophy, Plus, X, Trash2, Pencil, Loader2, StickyNote } from 'lucide-react';
 import { WeeklyScore } from '../types';
 import { DatePicker } from './DatePicker';
+import { NumberStepper } from './NumberStepper';
 import { usePersistedState } from '../hooks/usePersistedState';
 
 interface WeeklyScoreModuleProps {
@@ -34,6 +35,7 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [openDateField, setOpenDateField] = useState<'start' | 'end' | null>(null);
 
   const sortedScores = [...weeklyScores].sort((a, b) => (a.weekStart < b.weekStart ? 1 : -1));
 
@@ -200,7 +202,7 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                       {formData.id ? 'Editar Pontuação' : 'Nova Pontuação Semanal'}
                     </h3>
-                    <p className="text-xs text-gray-500">Registre quantos pontos você recebeu nessa semana</p>
+                    <p className="text-xs text-gray-500">Registre quantos pontos você recebeu na semana</p>
                   </div>
                 </div>
                 <button
@@ -222,6 +224,8 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                       id="weekly-score-form-start"
                       value={formData.weekStart || ''}
                       onChange={(date) => setFormData({ ...formData, weekStart: date })}
+                      open={openDateField === 'start'}
+                      onOpenChange={(isOpen) => setOpenDateField(isOpen ? 'start' : null)}
                     />
                   </div>
 
@@ -233,6 +237,8 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                       id="weekly-score-form-end"
                       value={formData.weekEnd || ''}
                       onChange={(date) => setFormData({ ...formData, weekEnd: date })}
+                      open={openDateField === 'end'}
+                      onOpenChange={(isOpen) => setOpenDateField(isOpen ? 'end' : null)}
                     />
                   </div>
                 </div>
@@ -241,20 +247,17 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Pontuação *
                   </label>
-                  <input
-                    type="number"
-                    required
+                  <NumberStepper
+                    id="weekly-score-form-points"
                     min={0}
-                    value={formData.points ?? ''}
-                    onChange={(e) => setFormData({ ...formData, points: e.target.value === '' ? undefined : Number(e.target.value) })}
-                    placeholder="Ex: 145"
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
+                    value={formData.points ?? 0}
+                    onChange={(points) => setFormData({ ...formData, points })}
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Observações (opcional)
+                    Observações
                   </label>
                   <textarea
                     value={formData.notes || ''}
@@ -272,13 +275,6 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                 )}
 
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancelar
-                  </button>
                   <button
                     type="submit"
                     disabled={isSaving || !formData.weekStart || !formData.weekEnd || formData.points === undefined}

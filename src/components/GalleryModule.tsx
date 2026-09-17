@@ -406,24 +406,18 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Data (opcional)
+                      Data
                     </label>
                     <DatePicker
                       id="gallery-form-date"
                       value={formData.takenAt || ''}
                       onChange={(date) => setFormData({ ...formData, takenAt: date })}
+                      placeholder="Selecione"
                     />
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancelar
-                  </button>
                   <button
                     type="submit"
                     disabled={isSaving || (!formData.imageData && !videoFile)}

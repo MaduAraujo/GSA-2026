@@ -23,7 +23,7 @@ import { BadgeDefinition } from './data/badgeCatalog';
 import { Navbar, AppTab } from './components/Navbar';
 import { StatsBanner } from './components/StatsBanner';
 import { BadgeUnlockToast } from './components/BadgeUnlockToast';
-import { usePersistedState, clearPersistedDrafts } from './hooks/usePersistedState';
+import { usePersistedState, useLocalPersistedState, clearPersistedDrafts } from './hooks/usePersistedState';
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const AuthScreen = lazy(() => import('./components/AuthScreen').then((m) => ({ default: m.AuthScreen })));
@@ -152,7 +152,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authView, setAuthView] = useState<'home' | 'signIn' | 'signUp'>('home');
-  const [activeTab, setActiveTab] = usePersistedState<AppTab>(
+  const [activeTab, setActiveTab] = useLocalPersistedState<AppTab>(
     'gsa_active_tab',
     'certificates'
   );
@@ -329,7 +329,7 @@ export default function App() {
       const lastPost = [...postsData].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
       RemindersService.checkAndNotify(lastPost?.createdAt || null);
 
-      await syncNewBadges(certsData, promptsData, postsData, badgesData, { silent: true });
+      syncNewBadges(certsData, promptsData, postsData, badgesData, { silent: true });
     } catch (e) {
       console.error('Erro ao carregar dados do armazenamento:', e);
     } finally {
@@ -348,9 +348,7 @@ export default function App() {
     if (earned.length === 0) return;
 
     try {
-      for (const badge of earned) {
-        await StorageService.unlockBadge(badge.id);
-      }
+      await Promise.all(earned.map((badge) => StorageService.unlockBadge(badge.id)));
       const refreshed = await StorageService.getUserBadges();
       setUserBadges(refreshed);
 

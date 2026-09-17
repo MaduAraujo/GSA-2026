@@ -58,10 +58,10 @@ describe('ReferenceLinksModule', () => {
     render(<ReferenceLinksModule referenceLinks={[]} onSaveReferenceLink={onSaveReferenceLink} onDeleteReferenceLink={vi.fn()} />);
     await user.click(screen.getByLabelText('Novo link de referência'));
 
-    const titleInput = within(screen.getByRole('dialog')).getAllByRole('textbox')[0];
-    await user.type(titleInput, '  Portfólio da Ana  ');
+    const textboxes = within(screen.getByRole('dialog')).getAllByRole('textbox');
+    await user.type(textboxes[0], '  Portfólio da Ana  ');
     await user.type(screen.getByPlaceholderText('https://...'), 'https://example.com/ana');
-    await user.type(screen.getByPlaceholderText('Ex: Ana Souza'), '  Ana Souza  ');
+    await user.type(textboxes[2], '  Ana Souza  ');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSaveReferenceLink).toHaveBeenCalledTimes(1));

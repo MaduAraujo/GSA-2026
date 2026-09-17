@@ -42,7 +42,8 @@ describe('WeeklyScoreModule', () => {
     await user.click(screen.getByRole('button', { name: '20' }));
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
 
-    await user.type(screen.getByPlaceholderText('Ex: 145'), '80');
+    await user.clear(document.getElementById('weekly-score-form-points') as HTMLInputElement);
+    await user.type(document.getElementById('weekly-score-form-points') as HTMLInputElement, '80');
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled();
   });
 
@@ -56,7 +57,8 @@ describe('WeeklyScoreModule', () => {
     await user.click(screen.getByRole('button', { name: '10' }));
     await user.click(document.getElementById('weekly-score-form-end') as HTMLButtonElement);
     await user.click(screen.getByRole('button', { name: '20' }));
-    await user.type(screen.getByPlaceholderText('Ex: 145'), '80');
+    await user.clear(document.getElementById('weekly-score-form-points') as HTMLInputElement);
+    await user.type(document.getElementById('weekly-score-form-points') as HTMLInputElement, '80');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSaveWeeklyScore).toHaveBeenCalledTimes(1));
@@ -76,7 +78,8 @@ describe('WeeklyScoreModule', () => {
     await user.click(screen.getByRole('button', { name: '20' }));
     await user.click(document.getElementById('weekly-score-form-end') as HTMLButtonElement);
     await user.click(screen.getByRole('button', { name: '10' }));
-    await user.type(screen.getByPlaceholderText('Ex: 145'), '80');
+    await user.clear(document.getElementById('weekly-score-form-points') as HTMLInputElement);
+    await user.type(document.getElementById('weekly-score-form-points') as HTMLInputElement, '80');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/não pode ser antes/);

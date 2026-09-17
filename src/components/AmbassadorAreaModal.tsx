@@ -269,13 +269,6 @@ export const AmbassadorAreaModal: React.FC<AmbassadorAreaModalProps> = ({
           <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
               onClick={handleSave}
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all active:scale-95"
             >

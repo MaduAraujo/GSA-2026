@@ -22,6 +22,8 @@ import { Challenge, ChallengeSocialLink, ChallengeStatus, GeminiPost, PostPlatfo
 import { DatePicker } from './DatePicker';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { isHttpUrl } from '../utils/safeUrl';
+import { SelectDropdown } from './SelectDropdown';
+import { NumberStepper } from './NumberStepper';
 
 interface ChallengesModuleProps {
   challenges: Challenge[];
@@ -37,7 +39,7 @@ const STATUSES: ChallengeStatus[] = ['Pendente', 'Em Andamento', 'Concluído'];
 const RESULT_PLATFORMS: PostPlatform[] = [
   'LinkedIn',
   'Instagram',
-  'WhatsApp / Comunidade',
+  'Whatsapp',
 ];
 
 const STATUS_STYLES: Record<ChallengeStatus, { bg: string; text: string; icon: typeof Circle }> = {
@@ -50,7 +52,7 @@ const DEFAULT_FORM: Partial<Challenge> = {
   title: '',
   description: '',
   category: '',
-  status: 'Pendente',
+  status: undefined,
   dates: [],
   link: '',
   points: undefined,
@@ -652,7 +654,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                       {isEditMode ? 'Editar Desafio' : 'Novo Desafio'}
                     </h3>
-                    <p className="text-xs text-gray-500">Acompanhe os desafios do programa</p>
+                    <p className="text-xs text-gray-500">Registre os desafios do programa</p>
                   </div>
                 </div>
                 <button
@@ -704,28 +706,20 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Status
                     </label>
-                    <div className="relative">
-                      <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value as ChallengeStatus })}
-                        className="appearance-none w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
-                      >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <SelectDropdown
+                      value={formData.status || ''}
+                      onChange={(v) => setFormData({ ...formData, status: v as ChallengeStatus })}
+                      options={STATUSES.map((s) => ({ value: s, label: s }))}
+                      ariaLabel="Status"
+                      align="center"
+                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Dia(s) do desafio (opcional)
+                    Dia(s) do desafio
                   </label>
-                  <p className="text-[11px] text-gray-500 mb-1.5">
-                    Selecione uma data para adicioná-la — escolha mais de uma se o desafio durar mais de 1 dia.
-                  </p>
                   <DatePicker
                     id="challenge-form-deadline"
                     value={pendingDate}
@@ -759,20 +753,19 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Pontos (opcional)
+                    Pontos
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.points ?? ''}
-                    onChange={(e) => setFormData({ ...formData, points: e.target.value ? Number(e.target.value) : undefined })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                  <NumberStepper
+                    id="challenge-form-points"
+                    min={0}
+                    value={formData.points ?? 0}
+                    onChange={(points) => setFormData({ ...formData, points })}
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Link do desafio (opcional)
+                    Link do desafio
                   </label>
                   <input
                     type="url"
@@ -797,7 +790,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Resultado (opcional)
+                    Resultado
                   </label>
                   <textarea
                     rows={3}
@@ -809,27 +802,19 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
 
                 <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3">
                   <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Publicação (opcional)
+                    Publicação
                   </h4>
-                  <p className="text-[11px] text-gray-500">
-                    Se você publicou este resultado em redes sociais, informe a plataforma e o link de cada uma — cada publicação passa a contar também na tela de Posts.
-                  </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-2 items-end">
                     <div>
                       <label className="block text-[11px] font-bold text-gray-600 mb-1">Plataforma</label>
-                      <div className="relative">
-                        <select
-                          value={pendingLinkPlatform}
-                          onChange={(e) => setPendingLinkPlatform(e.target.value as PostPlatform)}
-                          className="appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-xl text-sm border border-gray-200 bg-white cursor-pointer"
-                        >
-                          {RESULT_PLATFORMS.map((p) => (
-                            <option key={p} value={p}>{p}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
+                      <SelectDropdown
+                        value={pendingLinkPlatform}
+                        onChange={(v) => setPendingLinkPlatform(v as PostPlatform)}
+                        options={RESULT_PLATFORMS.map((p) => ({ value: p, label: p }))}
+                        ariaLabel="Plataforma"
+                        buttonClassName="w-full pl-3.5 pr-8 py-2.5 rounded-xl text-sm border border-gray-200 bg-white"
+                      />
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-600 mb-1">Link da publicação</label>
@@ -874,7 +859,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                   )}
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 mb-1">Link externo (opcional)</label>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">Link externo</label>
                     <p className="text-[11px] text-gray-500 mb-1.5">
                       Se o desafio foi feito em um link externo (site, documento, repositório, etc.) além das redes sociais, cole o link aqui.
                     </p>
@@ -888,7 +873,7 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 mb-2">Imagem ou vídeo (opcional)</label>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-2">Imagem ou vídeo</label>
                     <input
                       ref={resultImageInputRef}
                       type="file"
@@ -961,10 +946,10 @@ export const ChallengesModule: React.FC<ChallengesModuleProps> = ({
                       <button
                         type="button"
                         onClick={() => resultImageInputRef.current?.click()}
-                        className="w-full flex items-center gap-2.5 p-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A73E8] bg-white text-left transition-all"
+                        className="w-full flex items-center justify-center gap-2.5 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A73E8] bg-white transition-all"
                       >
                         <Upload className="w-4 h-4 text-gray-500 shrink-0" />
-                        <span className="text-xs text-gray-600">Anexe uma imagem, vídeo (até 50MB) ou captura da publicação</span>
+                        <span className="max-w-[80%] text-xs text-gray-600 text-center truncate">Anexe uma imagem, vídeo (até 50MB) ou captura da publicação</span>
                       </button>
                     )}
                     {resultImageError && (

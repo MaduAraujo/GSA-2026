@@ -21,7 +21,6 @@ import {
   Linkedin,
   Twitter,
   Image as ImageIcon,
-  ChevronDown,
   Star
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -29,6 +28,8 @@ import { GeminiPost, PostPlatform, PostStatus, ChallengeSocialLink } from '../ty
 import { usePersistedState } from '../hooks/usePersistedState';
 import { DatePicker } from './DatePicker';
 import { isHttpUrl } from '../utils/safeUrl';
+import { SelectDropdown } from './SelectDropdown';
+import { NumberStepper } from './NumberStepper';
 
 interface GeminiPostsModuleProps {
   posts: GeminiPost[];
@@ -40,7 +41,7 @@ interface GeminiPostsModuleProps {
 const PLATFORMS: PostPlatform[] = [
   'LinkedIn',
   'Instagram',
-  'WhatsApp / Comunidade',
+  'Whatsapp',
 ];
 
 const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
@@ -174,7 +175,6 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
       id: crypto.randomUUID(),
       title,
       platform: 'LinkedIn',
-      status: 'Publicado',
       category: '',
       tone: 'Manual',
       content: '',
@@ -200,17 +200,17 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
   };
 
   const handleSavePostToLibrary = async () => {
-    if (!editingPost || !editingPost.title) return;
+    if (!editingPost || !editingPost.title?.trim() || !editingPost.status) return;
     const isManual = editingPost.tone === 'Manual';
     const socialLinks = editingPost.socialLinks || [];
     if (isManual && socialLinks.length === 0) return;
-    if (!isManual && !editingPost.content) return;
+    if (!isManual && !editingPost.content?.trim()) return;
 
     const postToSave: GeminiPost = {
       id: editingPost.id || crypto.randomUUID(),
       title: editingPost.title,
       platform: isManual ? (socialLinks[0]?.platform || 'LinkedIn') : (editingPost.platform || 'LinkedIn'),
-      status: editingPost.status || 'Rascunho',
+      status: editingPost.status,
       category: (editingPost.category || '').trim(),
       tone: editingPost.tone || 'Inspirador',
       content: editingPost.content || '',
@@ -503,73 +503,71 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Título
+                    Título *
                   </label>
                   <input
                     type="text"
+                    required
                     value={editingPost.title || ''}
                     onChange={(e) => setEditingPost({ ...editingPost, title: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${
+                  editingPost.tone === 'Manual' || editingPost.tone === 'Resultado de Desafio'
+                    ? 'lg:grid-cols-3'
+                    : 'lg:grid-cols-4'
+                }`}>
                   {editingPost.tone !== 'Manual' && (
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                        Plataforma
+                        Plataforma *
                       </label>
-                      <div className="relative">
-                        <select
-                          value={editingPost.platform || 'LinkedIn'}
-                          onChange={(e) => setEditingPost({ ...editingPost, platform: e.target.value as PostPlatform })}
-                          className="appearance-none w-full px-3.5 py-2 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
-                        >
-                          {PLATFORMS.map((plt) => (
-                            <option key={plt} value={plt}>{plt}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
+                      <SelectDropdown
+                        value={editingPost.platform || 'LinkedIn'}
+                        onChange={(v) => setEditingPost({ ...editingPost, platform: v as PostPlatform })}
+                        options={PLATFORMS.map((plt) => ({ value: plt, label: plt }))}
+                        ariaLabel="Plataforma"
+                        buttonClassName="w-full px-3.5 py-2 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                      />
                     </div>
                   )}
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Status da Publicação
+                      Status da Publicação *
                     </label>
-                    <div className="relative">
-                      <select
-                        value={editingPost.status || 'Rascunho'}
-                        onChange={(e) => setEditingPost({ ...editingPost, status: e.target.value as PostStatus })}
-                        className="appearance-none w-full px-3.5 py-2 pr-8 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD] cursor-pointer"
-                      >
-                        <option value="Rascunho">Rascunho</option>
-                        <option value="Agendado">Agendado</option>
-                        <option value="Publicado">Publicado</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <SelectDropdown
+                      value={editingPost.status || ''}
+                      onChange={(v) => setEditingPost({ ...editingPost, status: v as PostStatus })}
+                      options={[
+                        { value: 'Rascunho', label: 'Rascunho' },
+                        { value: 'Agendado', label: 'Agendado' },
+                        { value: 'Publicado', label: 'Publicado' },
+                      ]}
+                      ariaLabel="Status da Publicação"
+                      buttonClassName="w-full px-3.5 py-2 pr-8 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
+                      align="center"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Pontuação
+                      Pontuação *
                     </label>
-                    <input
-                      type="number"
+                    <NumberStepper
+                      id="post-form-score"
                       min={0}
-                      value={editingPost.score ?? ''}
-                      onChange={(e) => setEditingPost({ ...editingPost, score: e.target.value === '' ? undefined : Number(e.target.value) })}
-                      placeholder="0"
-                      className="w-full px-3.5 py-2 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                      value={editingPost.score ?? 0}
+                      onChange={(score) => setEditingPost({ ...editingPost, score })}
                     />
                   </div>
 
                   {editingPost.tone !== 'Resultado de Desafio' && (
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                        Data
+                        Data *
                       </label>
                       <DatePicker
                         id="post-form-date"
@@ -578,6 +576,7 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                           if (!date) return;
                           setEditingPost({ ...editingPost, createdAt: new Date(`${date}T12:00:00`).toISOString() });
                         }}
+                        align="center"
                       />
                     </div>
                   )}
@@ -612,23 +611,19 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-2 items-end">
                       <div>
                         <label className="block text-[11px] font-bold text-gray-600 mb-1">Plataforma</label>
-                        <div className="relative">
-                          <select
-                            value={pendingLinkPlatform}
-                            onChange={(e) => setPendingLinkPlatform(e.target.value as PostPlatform)}
-                            className="appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 cursor-pointer"
-                          >
-                            {PLATFORMS.map((plt) => (
-                              <option key={plt} value={plt}>{plt}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
+                        <SelectDropdown
+                          value={pendingLinkPlatform}
+                          onChange={(v) => setPendingLinkPlatform(v as PostPlatform)}
+                          options={PLATFORMS.map((plt) => ({ value: plt, label: plt }))}
+                          ariaLabel="Plataforma"
+                          buttonClassName="w-full pl-3.5 pr-8 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Link da publicação</label>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Link da publicação *</label>
                         <input
                           type="url"
+                          required
                           value={pendingLinkUrl}
                           onChange={(e) => setPendingLinkUrl(e.target.value)}
                           placeholder="https://..."
@@ -712,15 +707,15 @@ export const GeminiPostsModule: React.FC<GeminiPostsModuleProps> = ({
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditingPost(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleSavePostToLibrary}
-                    className="px-6 py-2 rounded-xl text-xs font-bold bg-[#EA4335] hover:bg-[#D93025] text-white shadow-xs transition-all active:scale-95"
+                    disabled={
+                      !editingPost.title?.trim() ||
+                      !editingPost.status ||
+                      (editingPost.tone === 'Manual'
+                        ? (editingPost.socialLinks?.length || 0) === 0
+                        : !editingPost.content?.trim())
+                    }
+                    className="px-6 py-2 rounded-xl text-xs font-bold bg-[#EA4335] hover:bg-[#D93025] text-white shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#EA4335]"
                   >
                     Salvar
                   </button>

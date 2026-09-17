@@ -51,12 +51,35 @@ describe('GeminiPostsModule', () => {
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByPlaceholderText('https://...'), 'https://linkedin.com/post/1');
     await user.click(within(dialog).getByRole('button', { name: 'Adicionar' }));
+    await user.click(within(dialog).getByLabelText('Status da Publicação'));
+    await user.click(within(dialog).getByRole('option', { name: 'Publicado' }));
     await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     expect(onSavePost).not.toHaveBeenCalled();
   });
 
-  it('creates a manual post from a title and a social link', async () => {
+  it('keeps the Salvar button disabled until the title, a social link and the status are filled', async () => {
+    const user = userEvent.setup();
+    render(<GeminiPostsModule posts={[]} onSavePost={vi.fn()} onDeletePost={vi.fn()} />);
+    await user.click(screen.getByLabelText('Novo post'));
+
+    const dialog = screen.getByRole('dialog');
+    const salvarButton = within(dialog).getByRole('button', { name: 'Salvar' });
+    expect(salvarButton).toBeDisabled();
+
+    await user.type(within(dialog).getAllByRole('textbox')[0], 'Conquista de certificação');
+    expect(salvarButton).toBeDisabled();
+
+    await user.type(within(dialog).getByPlaceholderText('https://...'), 'https://linkedin.com/post/1');
+    await user.click(within(dialog).getByRole('button', { name: 'Adicionar' }));
+    expect(salvarButton).toBeDisabled();
+
+    await user.click(within(dialog).getByLabelText('Status da Publicação'));
+    await user.click(within(dialog).getByRole('option', { name: 'Publicado' }));
+    expect(salvarButton).toBeEnabled();
+  });
+
+  it('creates a manual post from a title, a social link and a status', async () => {
     const user = userEvent.setup();
     const onSavePost = vi.fn().mockResolvedValue(undefined);
     render(<GeminiPostsModule posts={[]} onSavePost={onSavePost} onDeletePost={vi.fn()} />);
@@ -66,6 +89,8 @@ describe('GeminiPostsModule', () => {
     await user.type(within(dialog).getAllByRole('textbox')[0], 'Conquista de certificação');
     await user.type(within(dialog).getByPlaceholderText('https://...'), 'https://linkedin.com/post/1');
     await user.click(within(dialog).getByRole('button', { name: 'Adicionar' }));
+    await user.click(within(dialog).getByLabelText('Status da Publicação'));
+    await user.click(within(dialog).getByRole('option', { name: 'Publicado' }));
     await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSavePost).toHaveBeenCalledTimes(1));
@@ -73,6 +98,7 @@ describe('GeminiPostsModule', () => {
     expect(saved.title).toBe('Conquista de certificação');
     expect(saved.tone).toBe('Manual');
     expect(saved.platform).toBe('LinkedIn');
+    expect(saved.status).toBe('Publicado');
     expect(saved.publishedUrl).toBe('https://linkedin.com/post/1');
   });
 

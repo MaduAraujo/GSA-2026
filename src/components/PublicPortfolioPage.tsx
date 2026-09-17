@@ -106,7 +106,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1">Certificados & Badges</h2>
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1">Certificados & Selos</h2>
           {certificates.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-sm text-gray-400">
               Nenhum certificado publicado ainda.

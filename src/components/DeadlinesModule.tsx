@@ -3,6 +3,8 @@ import { CalendarClock, Plus, X, Trash2, Pencil, Loader2, StickyNote, CheckCircl
 import { DeadlineCategory, ProgramDeadline } from '../types';
 import { DatePicker } from './DatePicker';
 import { usePersistedState } from '../hooks/usePersistedState';
+import { SelectDropdown } from './SelectDropdown';
+import { NumberStepper } from './NumberStepper';
 
 interface DeadlinesModuleProps {
   deadlines: ProgramDeadline[];
@@ -22,7 +24,7 @@ const CATEGORY_STYLES: Record<DeadlineCategory, { bg: string; text: string }> = 
 const DEFAULT_FORM: Partial<ProgramDeadline> = {
   title: '',
   date: '',
-  category: 'Desafio',
+  category: undefined,
   notes: '',
   points: undefined,
   week: undefined,
@@ -457,7 +459,6 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                     required
                     value={formData.title || ''}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Ex: Entrega do desafio de comunidade"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
                   />
                 </div>
@@ -471,6 +472,7 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                       id="deadline-form-date"
                       value={formData.date || ''}
                       onChange={(date) => setFormData({ ...formData, date })}
+                      placeholder="Selecione"
                     />
                   </div>
 
@@ -478,29 +480,23 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Categoria
                     </label>
-                    <select
-                      value={formData.category || 'Outro'}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value as DeadlineCategory })}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
-                    >
-                      {CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
+                    <SelectDropdown
+                      value={formData.category || ''}
+                      onChange={(v) => setFormData({ ...formData, category: v as DeadlineCategory })}
+                      options={CATEGORIES.map((category) => ({ value: category, label: category }))}
+                      ariaLabel="Categoria"
+                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Observações (opcional)
+                    Observações
                   </label>
                   <textarea
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
-                    placeholder="Ex: enviar link do post junto com a entrega"
                     className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30 resize-none"
                   />
                 </div>
@@ -508,12 +504,11 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Semana (opcional)
+                      Semana
                     </label>
                     <input
                       type="number"
                       min="1"
-                      placeholder="Ex: 3"
                       value={formData.week ?? ''}
                       onChange={(e) => setFormData({ ...formData, week: e.target.value ? Number(e.target.value) : undefined })}
                       className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
@@ -522,36 +517,32 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      Pontos (opcional)
+                      Pontos
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.points ?? ''}
-                      onChange={(e) => setFormData({ ...formData, points: e.target.value ? Number(e.target.value) : undefined })}
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#EA4335]/30"
+                    <NumberStepper
+                      id="deadline-form-points"
+                      min={0}
+                      value={formData.points ?? 0}
+                      onChange={(points) => setFormData({ ...formData, points })}
                     />
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isCompleted ?? false}
-                    onChange={(e) => setFormData({ ...formData, isCompleted: e.target.checked })}
-                    className="w-4 h-4 rounded border-gray-300 text-[#34A853] focus:ring-[#34A853]/30"
-                  />
-                  <span className="text-sm text-gray-700">Concluído</span>
-                </label>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, isCompleted: !(formData.isCompleted ?? false) })}
+                  aria-pressed={formData.isCompleted ?? false}
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+                    formData.isCompleted
+                      ? 'bg-[#34A853]/10 border-[#34A853]/30 text-[#1E8E3E]'
+                      : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  {formData.isCompleted ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  Concluído
+                </button>
 
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsFormOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    Cancelar
-                  </button>
                   <button
                     type="submit"
                     disabled={isSaving || !formData.title?.trim() || !formData.date}
