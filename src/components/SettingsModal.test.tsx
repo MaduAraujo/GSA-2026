@@ -6,7 +6,7 @@ import { SettingsModal } from './SettingsModal';
 describe('SettingsModal', () => {
   it('renders nothing when closed', () => {
     const { container } = render(
-      <SettingsModal isOpen={false} onClose={vi.fn()} isDarkMode={false} onToggleDarkMode={vi.fn()} />
+      <SettingsModal isOpen={false} onClose={vi.fn()} isDarkMode={false} onToggleDarkMode={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });

@@ -63,7 +63,7 @@ describe('server/app', () => {
     process.env.VITE_SUPABASE_ANON_KEY = '';
     const { app } = await import('./app');
 
-    const res = await request(app).post('/api/gemini/enhance-prompt').send({ prompt: 'oi' });
+    const res = await request(app).post('/api/ai/enhance-prompt').send({ prompt: 'oi' });
     expect(res.status).toBe(500);
     expect(res.body.error).toMatch(/Autenticação do servidor não configurada/);
   });
@@ -73,7 +73,7 @@ describe('server/app', () => {
     process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
     const { app } = await import('./app');
 
-    const res = await request(app).post('/api/gemini/enhance-prompt').send({ prompt: 'oi' });
+    const res = await request(app).post('/api/ai/enhance-prompt').send({ prompt: 'oi' });
     expect(res.status).toBe(401);
     expect(res.body.error).toMatch(/Não autenticado/);
   });
@@ -89,7 +89,7 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/enhance-prompt')
+      .post('/api/ai/enhance-prompt')
       .set('Authorization', 'Bearer bad-token')
       .send({ prompt: 'oi' });
     expect(res.status).toBe(401);
@@ -108,10 +108,7 @@ describe('server/app', () => {
     }));
     const { app } = await import('./app');
 
-    const res = await request(app)
-      .post('/api/gemini/enhance-prompt')
-      .set('Authorization', 'Bearer good-token')
-      .send({});
+    const res = await request(app).post('/api/ai/enhance-prompt').set('Authorization', 'Bearer good-token').send({});
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/prompt original é obrigatório/);
     vi.doUnmock('@supabase/supabase-js');
@@ -130,7 +127,7 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/enhance-prompt')
+      .post('/api/ai/enhance-prompt')
       .set('Authorization', 'Bearer good-token')
       .send({ prompt: 'Crie um post sobre GenAI' });
     expect(res.status).toBe(500);
@@ -152,9 +149,7 @@ describe('server/app', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = '';
     const { app } = await import('./app');
 
-    const res = await request(app)
-      .post('/api/cron/inactivity-scan')
-      .set('Authorization', 'Bearer top-secret');
+    const res = await request(app).post('/api/cron/inactivity-scan').set('Authorization', 'Bearer top-secret');
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
@@ -169,7 +164,7 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/enhance-prompt')
+      .post('/api/ai/enhance-prompt')
       .set('Authorization', 'Bearer good-token')
       .send({ prompt: 'Crie um post', section: 'Estudos' });
 
@@ -188,7 +183,7 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/analyze-certificate')
+      .post('/api/ai/analyze-certificate')
       .set('Authorization', 'Bearer good-token')
       .send({ title: 'Cert', imageBase64: 'data:text/plain;base64,aGVsbG8=' });
 
@@ -216,13 +211,15 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/analyze-certificate')
+      .post('/api/ai/analyze-certificate')
       .set('Authorization', 'Bearer good-token')
       .send({ imageBase64: 'data:image/png;base64,AAA' });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, data: analyzed });
-    expect(groqCreateMock).toHaveBeenCalledWith(expect.objectContaining({ model: 'meta-llama/llama-4-scout-17b-16e-instruct' }));
+    expect(groqCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'meta-llama/llama-4-scout-17b-16e-instruct' }),
+    );
     vi.doUnmock('@supabase/supabase-js');
   });
 
@@ -236,7 +233,7 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/chat')
+      .post('/api/ai/chat')
       .set('Authorization', 'Bearer good-token')
       .send({ message: 'Oi!' });
 
@@ -255,14 +252,14 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/enhance-prompt')
+      .post('/api/ai/enhance-prompt')
       .set('Authorization', 'Bearer good-token')
       .send({ prompt: 'oi' });
 
     expect(res.status).toBe(429);
     expect(rpcMock).toHaveBeenCalledWith(
       'check_and_increment_rate_limit',
-      expect.objectContaining({ p_user_id: 'user-1' })
+      expect.objectContaining({ p_user_id: 'user-1' }),
     );
     expect(groqCreateMock).not.toHaveBeenCalled();
     vi.doUnmock('@supabase/supabase-js');
@@ -279,7 +276,7 @@ describe('server/app', () => {
     const { app } = await import('./app');
 
     const res = await request(app)
-      .post('/api/gemini/enhance-prompt')
+      .post('/api/ai/enhance-prompt')
       .set('Authorization', 'Bearer good-token')
       .send({ prompt: 'oi' });
 
@@ -303,6 +300,63 @@ describe('server/app', () => {
 
     expect(res.status).toBe(500);
     expect(res.body.error).toMatch(/Notificações push não configuradas/);
+    vi.doUnmock('@supabase/supabase-js');
+  });
+
+  it('GET /api/cron/inactivity-scan works too, because Vercel Cron invokes jobs with GET', async () => {
+    process.env.CRON_SECRET = 'top-secret';
+    process.env.VITE_SUPABASE_URL = '';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+    const { app } = await import('./app');
+
+    const res = await request(app).get('/api/cron/inactivity-scan').set('Authorization', 'Bearer top-secret');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('refuses the cron endpoint in production when CRON_SECRET is not configured', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CRON_SECRET = '';
+    const { app } = await import('./app');
+
+    const res = await request(app).get('/api/cron/inactivity-scan');
+    expect(res.status).toBe(500);
+    expect(res.body.error).toMatch(/CRON_SECRET/);
+  });
+
+  it('rejects a chat request with a malformed history before calling the model', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+    process.env.GROQ_API_KEY = 'fake-groq-key';
+    mockAuthedSupabase();
+    const { app } = await import('./app');
+
+    const res = await request(app)
+      .post('/api/ai/chat')
+      .set('Authorization', 'Bearer good-token')
+      .send({ message: 'Oi', history: [{ sender: 'hacker', text: 1 }] });
+
+    expect(res.status).toBe(400);
+    expect(groqCreateMock).not.toHaveBeenCalled();
+    vi.doUnmock('@supabase/supabase-js');
+  });
+
+  it('returns 502 when the model answers analyze-certificate with something that is not the expected JSON', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+    process.env.GROQ_API_KEY = 'fake-groq-key';
+    mockAuthedSupabase();
+    groqCreateMock.mockResolvedValue({ choices: [{ message: { content: 'Desculpe, não consegui ler.' } }] });
+    const { app } = await import('./app');
+
+    const res = await request(app)
+      .post('/api/ai/analyze-certificate')
+      .set('Authorization', 'Bearer good-token')
+      .send({ imageBase64: 'data:image/png;base64,AAA' });
+
+    expect(res.status).toBe(502);
     vi.doUnmock('@supabase/supabase-js');
   });
 });

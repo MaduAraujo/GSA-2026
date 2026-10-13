@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy, Plus, X, Trash2, Pencil, Loader2, StickyNote } from 'lucide-react';
-import { WeeklyScore } from '../types';
+import { type WeeklyScore } from '../types';
 import { DatePicker } from './DatePicker';
 import { NumberStepper } from './NumberStepper';
 import { usePersistedState } from '../hooks/usePersistedState';
@@ -101,11 +101,11 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isFormOpen]);
+  }, [isFormOpen, setIsFormOpen]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 pt-15">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Trophy className="w-6 h-6 text-[#FBBC04]" />
@@ -190,7 +190,11 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
       )}
 
       {isFormOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
             <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
@@ -217,7 +221,10 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label
+                      htmlFor="weekly-score-form-start"
+                      className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                    >
                       Início da semana *
                     </label>
                     <DatePicker
@@ -230,7 +237,10 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label
+                      htmlFor="weekly-score-form-end"
+                      className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                    >
                       Fim da semana *
                     </label>
                     <DatePicker
@@ -244,7 +254,10 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="weekly-score-form-points"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Pontuação *
                   </label>
                   <NumberStepper
@@ -256,10 +269,14 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="weeklyscore-observacoes"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Observações
                   </label>
                   <textarea
+                    id="weeklyscore-observacoes"
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
@@ -269,7 +286,10 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                 </div>
 
                 {formError && (
-                  <p role="alert" className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5">
+                  <p
+                    role="alert"
+                    className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5"
+                  >
                     {formError}
                   </p>
                 )}

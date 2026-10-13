@@ -83,6 +83,7 @@ function mockLoggedIn() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.history.replaceState({}, '', '/');
   vi.stubGlobal(
     'matchMedia',
     vi.fn().mockReturnValue({
@@ -91,7 +92,7 @@ beforeEach(() => {
       removeListener: vi.fn(),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    })
+    }),
   );
   storage.saveCertificate.mockResolvedValue(undefined);
   storage.deleteCertificate.mockResolvedValue(undefined);
@@ -107,9 +108,7 @@ describe('App — authentication gate', () => {
   it('shows the public home page when there is no active session', async () => {
     mockLoggedOut();
     render(<App />);
-    expect(
-      await screen.findByRole('button', { name: 'Entrar' }, { timeout: 5000 })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument();
   });
 
   it('shows the auth screen after clicking Entrar', async () => {
@@ -146,10 +145,37 @@ describe('App — dashboard tab switching', () => {
     render(<App />);
     await screen.findByText('Olá, Ana Souza');
 
-    expect(await screen.findByText('Nenhum certificado encontrado', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText('Nenhum certificado encontrado', {})).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Prompts' }));
-    expect(await screen.findByText('Nenhum prompt encontrado', {}, { timeout: 5000 })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Prompts' }));
+    expect(await screen.findByText('Nenhum prompt encontrado', {})).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/prompts');
+    expect(screen.getByText('Nenhum certificado encontrado').closest('[hidden]')).not.toBeNull();
+  });
+});
+
+describe('App — routing', () => {
+  it('opens the tab named in the URL directly (deep link)', async () => {
+    mockLoggedIn();
+    window.history.replaceState({}, '', '/prompts');
+    render(<App />);
+    expect(await screen.findByText('Nenhum prompt encontrado', {})).toBeInTheDocument();
+    expect(storage.getGalleryPhotos).not.toHaveBeenCalled();
+  });
+
+  it('redirects a signed-out visitor from a protected page to the sign-in screen', async () => {
+    mockLoggedOut();
+    window.history.replaceState({}, '', '/galeria');
+    render(<App />);
+    expect(await screen.findByText('Entre para acessar seus dados')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/entrar');
+  });
+
+  it('sends a signed-in user from / to their dashboard', async () => {
+    mockLoggedIn();
+    render(<App />);
+    await screen.findByText('Olá, Ana Souza');
+    expect(window.location.pathname).toBe('/certificados');
   });
 });
 
@@ -184,7 +210,18 @@ describe('App — badges', () => {
     screen.getByRole('dialog');
     await user.type(document.getElementById('cert-form-title') as HTMLInputElement, 'Meu certificado');
     storage.getCertificates.mockResolvedValue([
-      { id: 'c1', title: 'Meu certificado', issuer: 'Google', issueDate: '2026-01-01', category: 'Cloud', description: '', skills: [], hours: 1, minutes: 0, createdAt: '2026-01-01T00:00:00.000Z' },
+      {
+        id: 'c1',
+        title: 'Meu certificado',
+        issuer: 'Google',
+        issueDate: '2026-01-01',
+        category: 'Cloud',
+        description: '',
+        skills: [],
+        hours: 1,
+        minutes: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
     ]);
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 

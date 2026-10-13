@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PushNotificationsService } from './pushNotifications';
 
 const { savePushSubscription, deletePushSubscription } = vi.hoisted(() => ({
@@ -41,8 +41,7 @@ function stubServiceWorkerSupport({
 describe('PushNotificationsService', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-    // @ts-expect-error - test-only cleanup of a property we defined ourselves
-    delete navigator.serviceWorker;
+    delete (navigator as { serviceWorker?: unknown }).serviceWorker;
   });
 
   it('reports unsupported when serviceWorker/PushManager are unavailable', () => {
@@ -62,7 +61,9 @@ describe('PushNotificationsService', () => {
 
     it('throws when the endpoint itself fails', async () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-      await expect(PushNotificationsService.getVapidPublicKey()).rejects.toThrow('Servidor não configurou uma chave VAPID.');
+      await expect(PushNotificationsService.getVapidPublicKey()).rejects.toThrow(
+        'Servidor não configurou uma chave VAPID.',
+      );
     });
 
     it('throws when the server has no VAPID key configured', async () => {
@@ -83,14 +84,18 @@ describe('PushNotificationsService', () => {
 
     it('delegates to the registrationpushManager', async () => {
       const subscription = makeFakeSubscription();
-      stubServiceWorkerSupport({ registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } } });
+      stubServiceWorkerSupport({
+        registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } },
+      });
       expect(await PushNotificationsService.getCurrentSubscription()).toBe(subscription);
     });
   });
 
   describe('subscribe', () => {
     it('throws when the browser does not support push', async () => {
-      await expect(PushNotificationsService.subscribe()).rejects.toThrow('Este navegador não suporta notificações push.');
+      await expect(PushNotificationsService.subscribe()).rejects.toThrow(
+        'Este navegador não suporta notificações push.',
+      );
     });
 
     it('throws when notification permission is denied', async () => {
@@ -112,7 +117,11 @@ describe('PushNotificationsService', () => {
       await PushNotificationsService.subscribe();
 
       expect(pushManager.subscribe).toHaveBeenCalledWith(expect.objectContaining({ userVisibleOnly: true }));
-      expect(savePushSubscription).toHaveBeenCalledWith({ endpoint: 'https://push.example.com/new', p256dh: 'p256dh-value', auth: 'auth-value' });
+      expect(savePushSubscription).toHaveBeenCalledWith({
+        endpoint: 'https://push.example.com/new',
+        p256dh: 'p256dh-value',
+        auth: 'auth-value',
+      });
     });
 
     it('reuses an existing subscription instead of creating a new one', async () => {
@@ -137,7 +146,9 @@ describe('PushNotificationsService', () => {
 
     it('unsubscribes locally and removes the stored subscription', async () => {
       const subscription = makeFakeSubscription();
-      stubServiceWorkerSupport({ registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } } });
+      stubServiceWorkerSupport({
+        registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } },
+      });
 
       await PushNotificationsService.unsubscribe();
 
@@ -153,20 +164,27 @@ describe('PushNotificationsService', () => {
 
     it('posts the subscription and succeeds', async () => {
       const subscription = makeFakeSubscription();
-      stubServiceWorkerSupport({ registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } } });
+      stubServiceWorkerSupport({
+        registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } },
+      });
       const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
       vi.stubGlobal('fetch', fetchMock);
 
       await PushNotificationsService.sendTestPush();
 
-      const [, init] = fetchMock.mock.calls[0];
+      const [, init] = fetchMock.mock.calls[0]!;
       expect(JSON.parse(init.body)).toEqual({ subscription: subscription.toJSON() });
     });
 
     it('throws the server error message when the test push fails', async () => {
       const subscription = makeFakeSubscription();
-      stubServiceWorkerSupport({ registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } } });
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Falha ao enviar.' }) }));
+      stubServiceWorkerSupport({
+        registration: { pushManager: { getSubscription: vi.fn().mockResolvedValue(subscription) } },
+      });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Falha ao enviar.' }) }),
+      );
 
       await expect(PushNotificationsService.sendTestPush()).rejects.toThrow('Falha ao enviar.');
     });

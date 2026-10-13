@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { captureError } from '../lib/monitoring';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -11,17 +12,18 @@ interface ErrorBoundaryState {
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, error: null };
+  override state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
+  override componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('Erro não tratado capturado pelo ErrorBoundary:', error, info.componentStack);
+    captureError(error, { componentStack: info.componentStack });
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-6">
@@ -29,9 +31,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <div className="w-14 h-14 rounded-2xl bg-[#EA4335]/10 text-[#EA4335] flex items-center justify-center mx-auto">
               <AlertTriangle className="w-7 h-7" />
             </div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              Algo deu errado
-            </h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">Algo deu errado</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               Ocorreu um erro inesperado nesta tela.
               <br />

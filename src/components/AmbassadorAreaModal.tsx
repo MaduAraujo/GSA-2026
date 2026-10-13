@@ -1,6 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, Compass, Upload, Trash2, X, ImageOff, FlaskConical, Users, Rocket, Sparkles, MoreVertical } from 'lucide-react';
-import { AmbassadorProfile } from '../types';
+import {
+  ShieldCheck,
+  Compass,
+  Upload,
+  Trash2,
+  X,
+  ImageOff,
+  FlaskConical,
+  Users,
+  Rocket,
+  Sparkles,
+  MoreVertical,
+} from 'lucide-react';
+import { type AmbassadorProfile } from '../types';
 
 interface AmbassadorAreaModalProps {
   isOpen: boolean;
@@ -100,22 +112,21 @@ export const AmbassadorAreaModal: React.FC<AmbassadorAreaModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in"
+    >
       <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col">
         <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
-
           <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
-                  Área do Embaixador(a)
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Seu papel no programa e o seu selo oficial.
-                </p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Área do Embaixador(a)</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Seu papel no programa e o seu selo oficial.</p>
               </div>
             </div>
             <button
@@ -142,20 +153,21 @@ export const AmbassadorAreaModal: React.FC<AmbassadorAreaModalProps> = ({
                 O que esperamos de quem faz parte do programa?
               </p>
               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                Ser Embaixador(a) é participar ativamente da jornada, experimentar novas possibilidades com o
-                Google Gemini e ajudar esse conhecimento a circular.
+                Ser Embaixador(a) é participar ativamente da jornada, experimentar novas possibilidades com o Google
+                Gemini e ajudar esse conhecimento a circular.
               </p>
               <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                 Ao longo do programa, a proposta é simples: aprender, compartilhar, colaborar e gerar impacto.
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                Ou seja, esperamos de você:
-              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">Ou seja, esperamos de você:</p>
             </div>
 
             <div className="space-y-3">
               {EXPECTATIONS.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="flex items-start gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5">
+                <div
+                  key={title}
+                  className="flex items-start gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5"
+                >
                   <div className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center shrink-0">
                     <Icon className="w-4 h-4" />
                   </div>
@@ -231,13 +243,7 @@ export const AmbassadorAreaModal: React.FC<AmbassadorAreaModalProps> = ({
               )}
             </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
             {seal ? (
               <div className="flex justify-center py-2">
@@ -259,7 +265,10 @@ export const AmbassadorAreaModal: React.FC<AmbassadorAreaModalProps> = ({
             )}
 
             {sealError && (
-              <p role="alert" className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
+              <p
+                role="alert"
+                className="text-xs font-semibold text-red-700 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl px-3.5 py-2.5 flex items-center gap-2"
+              >
                 <ImageOff className="w-3.5 h-3.5 shrink-0" />
                 <span>{sealError}</span>
               </p>
@@ -275,7 +284,6 @@ export const AmbassadorAreaModal: React.FC<AmbassadorAreaModalProps> = ({
               {saved ? 'Salvo!' : 'Salvar'}
             </button>
           </div>
-
         </div>
       </div>
     </div>

@@ -58,7 +58,7 @@ describe('HomePage', () => {
     expect(menuButton).toHaveAttribute('aria-expanded', 'true');
 
     const mobileInstallButtons = screen.getAllByRole('button', { name: 'Instalar' });
-    await user.click(mobileInstallButtons[mobileInstallButtons.length - 1]);
+    await user.click(mobileInstallButtons[mobileInstallButtons.length - 1]!);
 
     expect(onInstallPwa).toHaveBeenCalledTimes(1);
     expect(menuButton).toHaveAttribute('aria-expanded', 'false');

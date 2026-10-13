@@ -4,7 +4,11 @@ import { makeCertificate, makeProfile } from '../test/factories';
 
 describe('exportPortfolioAsPdf', () => {
   let writtenHtml = '';
-  let fakeWindow: { document: { write: (html: string) => void; close: () => void }; focus: () => void; print: () => void };
+  let fakeWindow: {
+    document: { write: (html: string) => void; close: () => void };
+    focus: () => void;
+    print: () => void;
+  };
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -19,7 +23,10 @@ describe('exportPortfolioAsPdf', () => {
       focus: vi.fn(),
       print: vi.fn(),
     };
-    vi.stubGlobal('open', vi.fn(() => fakeWindow as unknown as Window));
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => fakeWindow as unknown as Window),
+    );
     vi.stubGlobal('alert', vi.fn());
   });
 
@@ -29,10 +36,9 @@ describe('exportPortfolioAsPdf', () => {
   });
 
   it('escapes HTML special characters coming from user-entered fields', () => {
-    exportPortfolioAsPdf(
-      makeProfile({ name: '<script>alert(1)</script>', bio: 'A & B' }),
-      [makeCertificate({ title: '<img src=x onerror=alert(1)>' })]
-    );
+    exportPortfolioAsPdf(makeProfile({ name: '<script>alert(1)</script>', bio: 'A & B' }), [
+      makeCertificate({ title: '<img src=x onerror=alert(1)>' }),
+    ]);
 
     expect(writtenHtml).not.toContain('<script>alert(1)</script>');
     expect(writtenHtml).toContain('&lt;script&gt;');
@@ -52,7 +58,10 @@ describe('exportPortfolioAsPdf', () => {
   });
 
   it('alerts and exits gracefully when the popup is blocked', () => {
-    vi.stubGlobal('open', vi.fn(() => null));
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => null),
+    );
     const alertSpy = vi.fn();
     vi.stubGlobal('alert', alertSpy);
 

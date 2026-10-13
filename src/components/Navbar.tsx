@@ -1,33 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Award,
-  Sparkles,
-  FileText,
-  Flag,
-  Camera,
-  BarChart3,
-  GraduationCap,
-  User,
-  Settings,
-  Menu,
-  X,
-  LogOut,
-  ChevronDown,
-  Globe,
-  ShieldCheck,
-  Trophy,
-  Link2,
-  CalendarClock
-} from 'lucide-react';
-import { AmbassadorProfile } from '../types';
+import { User, Settings, Menu, X, LogOut, ChevronDown, Globe, ShieldCheck } from 'lucide-react';
+import type { AmbassadorProfile } from '../types';
+import type { AppTab } from '../routes';
+import { OFFICIAL_SITE_URL } from './navItems';
 
-export type AppTab = 'certificates' | 'prompts' | 'posts' | 'sessions' | 'challenges' | 'gallery' | 'weeklyScore' | 'referenceLinks' | 'deadlines' | 'analytics';
-
-const OFFICIAL_SITE_URL = 'https://amplifica.me/siteembaixadoresestudantis';
+export type { AppTab };
 
 interface NavbarProps {
-  activeTab: AppTab;
-  setActiveTab: (tab: AppTab) => void;
+  isMobileNavOpen: boolean;
+  onToggleMobileNav: () => void;
   profile: AmbassadorProfile;
   onOpenProfile: () => void;
   onOpenAmbassadorArea: () => void;
@@ -36,25 +17,25 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  activeTab,
-  setActiveTab,
+  isMobileNavOpen,
+  onToggleMobileNav,
   profile,
   onOpenProfile,
   onOpenAmbassadorArea,
   onOpenSettings,
   onSignOut,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+    const handleScroll = (e: Event) => {
+      if (e.target === document) setIsScrolled(window.scrollY > 10);
+      else if (e.target instanceof HTMLElement && e.target.id === 'app-scroll') setIsScrolled(e.target.scrollTop > 10);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    return () => document.removeEventListener('scroll', handleScroll, { capture: true });
   }, []);
 
   useEffect(() => {
@@ -67,19 +48,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [accountMenuOpen]);
-
-  const navItems = [
-    { id: 'certificates', label: 'Certificados', icon: Award, color: 'text-[#1A73E8]' },
-    { id: 'prompts', label: 'Prompts', icon: Sparkles, color: 'text-[#F9AB00]' },
-    { id: 'posts', label: 'Posts', icon: FileText, color: 'text-[#EA4335]' },
-    { id: 'sessions', label: 'Sessões', icon: GraduationCap, color: 'text-[#34A853]' },
-    { id: 'challenges', label: 'Desafios', icon: Flag, color: 'text-[#34A853]' },
-    { id: 'gallery', label: 'Galeria', icon: Camera, color: 'text-[#EA4335]' },
-    { id: 'weeklyScore', label: 'Pontuação', icon: Trophy, color: 'text-[#F9AB00]' },
-    { id: 'referenceLinks', label: 'Referências', icon: Link2, color: 'text-[#1A73E8]' },
-    { id: 'deadlines', label: 'Prazos', icon: CalendarClock, color: 'text-[#EA4335]' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-[#1A73E8]' },
-  ];
 
   const iconBtnClass =
     'p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors';
@@ -101,40 +69,38 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-4 h-16">
           <div className="flex items-center shrink-0">
             <svg viewBox="0 0 192 192" className="w-8 h-8">
-              <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke="#1A73E8" strokeWidth="14" strokeLinecap="round" />
-              <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke="#34A853" strokeWidth="14" strokeLinecap="round" />
-              <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke="#FBBC04" strokeWidth="14" strokeLinecap="round" />
-              <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke="#EA4335" strokeWidth="14" strokeLinecap="round" />
+              <path
+                d="M 96,16 A 80,80 0 0,1 176,96"
+                fill="none"
+                stroke="#1A73E8"
+                strokeWidth="14"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 176,96 A 80,80 0 0,1 96,176"
+                fill="none"
+                stroke="#34A853"
+                strokeWidth="14"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 96,176 A 80,80 0 0,1 16,96"
+                fill="none"
+                stroke="#FBBC04"
+                strokeWidth="14"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 16,96 A 80,80 0 0,1 96,16"
+                fill="none"
+                stroke="#EA4335"
+                strokeWidth="14"
+                strokeLinecap="round"
+              />
               <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill="#1A73E8" />
               <circle cx="96" cy="120" r="14" fill="#FBBC04" />
             </svg>
           </div>
-
-          <nav className="hidden md:flex flex-1 items-center justify-center">
-            <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    id={`nav-tab-${item.id}`}
-                    onClick={() => setActiveTab(item.id as any)}
-                    aria-current={isActive ? 'page' : undefined}
-                    aria-label={item.label}
-                    title={item.label}
-                    className={`relative flex items-center justify-center p-2.5 rounded-full transition-all ${
-                      isActive
-                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-xs'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 ${isActive ? item.color : ''}`} />
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
 
           <div className="flex items-center gap-0.5 ml-auto">
             <div className="relative" ref={accountMenuRef}>
@@ -146,11 +112,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors p-0.5 pl-1"
               >
                 <img
-                  src={profile.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                  src={
+                    profile.avatarUrl ||
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+                  }
                   alt={profile.name}
                   className="w-8 h-8 rounded-full object-cover"
                 />
-                <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-gray-500 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`}
+                />
               </button>
 
               {accountMenuOpen && (
@@ -165,7 +136,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   <button
                     id="profile-btn"
-                    onClick={() => { setAccountMenuOpen(false); onOpenProfile(); }}
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      onOpenProfile();
+                    }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <User className="w-4 h-4 text-gray-500" />
@@ -174,7 +148,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   <button
                     id="ambassador-area-btn"
-                    onClick={() => { setAccountMenuOpen(false); onOpenAmbassadorArea(); }}
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      onOpenAmbassadorArea();
+                    }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <ShieldCheck className="w-4 h-4 text-gray-500" />
@@ -183,7 +160,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   <button
                     id="settings-btn"
-                    onClick={() => { setAccountMenuOpen(false); onOpenSettings(); }}
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      onOpenSettings();
+                    }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <Settings className="w-4 h-4 text-gray-500" />
@@ -206,7 +186,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   <button
                     id="sign-out-btn"
-                    onClick={() => { setAccountMenuOpen(false); onSignOut(); }}
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      onSignOut();
+                    }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-[#C5221F] hover:bg-[#FCE8E6] dark:hover:bg-[#C5221F]/10"
                   >
                     <LogOut className="w-4 h-4" />
@@ -217,41 +200,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
-              aria-expanded={mobileMenuOpen}
+              onClick={onToggleMobileNav}
+              aria-label={isMobileNavOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={isMobileNavOpen}
+              aria-controls="app-sidebar"
               className={`${iconBtnClass} md:hidden`}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
-
-        {mobileMenuOpen && (
-          <div className="md:hidden py-3 border-t border-gray-100 dark:border-gray-800 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id as any);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium ${
-                    isActive
-                      ? 'bg-[#1A73E8]/10 text-[#1A73E8] font-semibold'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? item.color : 'text-gray-500'}`} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </header>
   );

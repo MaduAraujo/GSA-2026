@@ -17,8 +17,7 @@ interface SelectDropdownProps {
   align?: 'left' | 'center';
 }
 
-const DEFAULT_BUTTON_CLASSNAME =
-  'w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50';
+const DEFAULT_BUTTON_CLASSNAME = 'w-full px-3.5 py-2.5 pr-8 rounded-xl text-sm border border-gray-200 bg-gray-50';
 
 export const SelectDropdown: React.FC<SelectDropdownProps> = ({
   value,

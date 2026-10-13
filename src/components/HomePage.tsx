@@ -18,12 +18,13 @@ import {
   X,
 } from 'lucide-react';
 import { PwaGuideModal } from './PwaGuideModal';
+import type { BeforeInstallPromptEvent } from '../hooks/usePwaInstall';
 
 interface HomePageProps {
   onLogin: () => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
-  deferredPrompt: any;
+  deferredPrompt: BeforeInstallPromptEvent | null;
   onInstallPwa: () => void;
   isPwaModalOpen: boolean;
   onClosePwaModal: () => void;
@@ -45,7 +46,8 @@ const FEATURES = [
   {
     icon: GraduationCap,
     title: 'Sessões',
-    description: 'Registre cada sessão de estudo: o dia, o desafio proposto, a ferramenta aprendida e a foto de comprovação.',
+    description:
+      'Registre cada sessão de estudo: o dia, o desafio proposto, a ferramenta aprendida e a foto de comprovação.',
     accent: '#EA4335',
   },
   {
@@ -122,7 +124,9 @@ const AchievementStack: React.FC = () => {
           <div className="w-7 h-7 rounded-lg bg-green-600/10 text-green-600 flex items-center justify-center shrink-0">
             <FileText className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-2">Prompts</span>
+          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-2">
+            Prompts
+          </span>
         </div>
         <div className="mt-1.5 flex items-baseline gap-1.5">
           <span className="text-xl font-bold text-gray-900 dark:text-gray-100">12</span>
@@ -141,8 +145,7 @@ const AchievementStack: React.FC = () => {
           <p className="text-[10px] font-bold uppercase tracking-wide text-blue-600">Badge desbloqueada!</p>
           <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5">Voz da Comunidade</p>
           <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />
-            3 posts publicados este mês
+            <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />3 posts publicados este mês
           </p>
         </div>
       </motion.div>
@@ -371,12 +374,14 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </div>
         </section>
-
       </main>
 
       <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
-          <p className="text-center">© 2026 Embaixadores Estudantis do Google.<br className="sm:hidden" /> Todos os direitos reservados.</p>
+          <p className="text-center">
+            © 2026 Embaixadores Estudantis do Google.
+            <br className="sm:hidden" /> Todos os direitos reservados.
+          </p>
         </div>
       </footer>
 

@@ -1,11 +1,11 @@
-import { Certificate, PromptItem, GeminiPost, UserBadge } from '../types';
-import { BADGE_CATALOG, BadgeDefinition, computeBadgeStats } from '../data/badgeCatalog';
+import { type Certificate, type PromptItem, type SocialPost, type UserBadge } from '../types';
+import { BADGE_CATALOG, type BadgeDefinition, computeBadgeStats } from '../data/badgeCatalog';
 
 export function evaluateNewlyEarnedBadges(
   certificates: Certificate[],
   prompts: PromptItem[],
-  posts: GeminiPost[],
-  userBadges: UserBadge[]
+  posts: SocialPost[],
+  userBadges: UserBadge[],
 ): BadgeDefinition[] {
   const stats = computeBadgeStats(certificates, prompts, posts);
   const unlockedIds = new Set(userBadges.map((b) => b.badgeId));

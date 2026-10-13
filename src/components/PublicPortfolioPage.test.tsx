@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PublicPortfolioPage } from './PublicPortfolioPage';
 import { makeCertificate, makeProfile } from '../test/factories';
+import { renderWithProviders as render } from '../test/render';
 
 const { getPublicProfileBySlug, getPublicCertificates } = vi.hoisted(() => ({
   getPublicProfileBySlug: vi.fn(),

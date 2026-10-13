@@ -12,7 +12,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <p>Conteúdo normal</p>
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText('Conteúdo normal')).toBeInTheDocument();
   });
@@ -22,7 +22,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <Bomb />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText('Algo deu errado')).toBeInTheDocument();
     consoleSpy.mockRestore();
@@ -37,7 +37,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <Bomb />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     await user.click(screen.getByRole('button', { name: /Recarregar Página/ }));
     expect(reloadSpy).toHaveBeenCalledTimes(1);

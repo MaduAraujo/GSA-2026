@@ -8,31 +8,25 @@ interface SettingsModalProps {
   onToggleDarkMode: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
-  isOpen,
-  onClose,
-  isDarkMode,
-  onToggleDarkMode,
-}) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, isDarkMode, onToggleDarkMode }) => {
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in"
+    >
       <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col">
         <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
-
           <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 flex items-center justify-center">
                 <Settings className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
-                  Configurações
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Preferências de exibição do aplicativo.
-                </p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Configurações</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Preferências de exibição do aplicativo.</p>
               </div>
             </div>
             <button
@@ -47,13 +41,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-800 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0">
-                {isDarkMode ? <Moon className="w-4.5 h-4.5 text-gray-700 dark:text-gray-300" /> : <Sun className="w-4.5 h-4.5 text-[#F9AB00]" />}
+                {isDarkMode ? (
+                  <Moon className="w-4.5 h-4.5 text-gray-700 dark:text-gray-300" />
+                ) : (
+                  <Sun className="w-4.5 h-4.5 text-[#F9AB00]" />
+                )}
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Modo escuro</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {isDarkMode ? 'Ativado' : 'Desativado'}
-                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{isDarkMode ? 'Ativado' : 'Desativado'}</p>
               </div>
             </div>
             <button
@@ -81,7 +77,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               Concluído
             </button>
           </div>
-
         </div>
       </div>
     </div>

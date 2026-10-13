@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { BadgeDefinition, badgeTierStyle } from '../data/badgeCatalog';
+import { type BadgeDefinition, badgeTierStyle } from '../data/badgeCatalog';
 
 interface BadgeUnlockToastProps {
   badge: BadgeDefinition;

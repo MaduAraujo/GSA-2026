@@ -21,7 +21,7 @@ import {
   Library,
   type LucideIcon,
 } from 'lucide-react';
-import { Certificate, PromptItem, GeminiPost } from '../types';
+import { type Certificate, type PromptItem, type SocialPost } from '../types';
 import { sumCertHours } from '../utils/duration';
 
 export interface BadgeStats {
@@ -36,16 +36,13 @@ export interface BadgeStats {
   publishedPostCount: number;
 }
 
-export function computeBadgeStats(
-  certificates: Certificate[],
-  prompts: PromptItem[],
-  posts: GeminiPost[]
-): BadgeStats {
-  const categories = new Set(
-    certificates.map((c) => c.category?.trim().toLowerCase()).filter(Boolean)
-  );
+export function computeBadgeStats(certificates: Certificate[], prompts: PromptItem[], posts: SocialPost[]): BadgeStats {
+  const categories = new Set(certificates.map((c) => c.category?.trim().toLowerCase()).filter(Boolean));
   const skills = new Set(
-    certificates.flatMap((c) => c.skills || []).map((s) => s.trim().toLowerCase()).filter(Boolean)
+    certificates
+      .flatMap((c) => c.skills || [])
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
   );
 
   return {

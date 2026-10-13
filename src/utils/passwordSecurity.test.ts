@@ -23,7 +23,7 @@ describe('isPasswordLeaked', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(`${suffix}:123\nAAAA1111BBBB2222CCCC3333DDDD444455555555:1`),
-      })
+      }),
     );
 
     await expect(isPasswordLeaked(password)).resolves.toBe(true);
@@ -35,7 +35,7 @@ describe('isPasswordLeaked', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve('AAAA1111BBBB2222CCCC3333DDDD444455555555:1'),
-      })
+      }),
     );
 
     await expect(isPasswordLeaked('some-unrelated-password')).resolves.toBe(false);

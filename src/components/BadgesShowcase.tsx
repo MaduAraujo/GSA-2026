@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Lock, ChevronDown, ChevronUp, Trophy } from 'lucide-react';
-import { Certificate, PromptItem, GeminiPost, UserBadge } from '../types';
+import { type Certificate, type PromptItem, type SocialPost, type UserBadge } from '../types';
 import { BADGE_CATALOG, badgeTierStyle, computeBadgeStats } from '../data/badgeCatalog';
 
 interface BadgesShowcaseProps {
   certificates: Certificate[];
   prompts: PromptItem[];
-  posts: GeminiPost[];
+  posts: SocialPost[];
   userBadges: UserBadge[];
 }
 
@@ -16,18 +16,10 @@ function formatDateBR(iso: string): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({
-  certificates,
-  prompts,
-  posts,
-  userBadges,
-}) => {
+export const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({ certificates, prompts, posts, userBadges }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const stats = useMemo(
-    () => computeBadgeStats(certificates, prompts, posts),
-    [certificates, prompts, posts]
-  );
+  const stats = useMemo(() => computeBadgeStats(certificates, prompts, posts), [certificates, prompts, posts]);
 
   const unlockedMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -100,9 +92,7 @@ export const BadgesShowcase: React.FC<BadgesShowcaseProps> = ({
                 key={badge.id}
                 title={isUnlocked ? badge.description : badge.hint}
                 className={`relative flex flex-col items-center text-center gap-1.5 p-3 rounded-xl border transition-all ${
-                  isUnlocked
-                    ? `${style.bg} border-transparent ring-1 ${style.ring}`
-                    : 'bg-gray-50 border-gray-100'
+                  isUnlocked ? `${style.bg} border-transparent ring-1 ${style.ring}` : 'bg-gray-50 border-gray-100'
                 }`}
               >
                 <div

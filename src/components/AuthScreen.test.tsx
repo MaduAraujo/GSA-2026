@@ -74,7 +74,10 @@ describe('AuthScreen', () => {
     await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'ana@example.com');
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
 
-    expect(resetPasswordForEmail).toHaveBeenCalledWith('ana@example.com', expect.objectContaining({ redirectTo: expect.any(String) }));
+    expect(resetPasswordForEmail).toHaveBeenCalledWith(
+      'ana@example.com',
+      expect.objectContaining({ redirectTo: expect.any(String) }),
+    );
     expect(await screen.findByText('Verifique seu e-mail')).toBeInTheDocument();
   });
 

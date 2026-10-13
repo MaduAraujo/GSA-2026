@@ -71,7 +71,10 @@ const BENEFITS = [
   { icon: UserCheck, text: 'Mentoria e acompanhamento de especialistas certificados.' },
   { icon: Gift, text: 'Kit de boas-vindas exclusivo.' },
   { icon: BadgeCheck, text: 'Selos digitais oficiais para currículo e LinkedIn.' },
-  { icon: Building2, text: 'Chance de participar de imersões presenciais nos escritórios do Google para os mais ativos.' },
+  {
+    icon: Building2,
+    text: 'Chance de participar de imersões presenciais nos escritórios do Google para os mais ativos.',
+  },
   { icon: Users, text: 'Networking com estudantes de todo o país.' },
 ];
 
@@ -119,15 +122,14 @@ export const AboutPage: React.FC = () => {
           </h1>
 
           <p className="mt-5 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            O Programa de Embaixadores Estudantis do Google 2026 é uma iniciativa voltada para universitários com
-            foco em inteligência artificial (IA) e no uso prático do Google Gemini para otimizar os estudos,
-            desenvolver projetos e fortalecer o currículo. O programa busca formar referências locais de inovação
-            e tecnologia dentro das universidades brasileiras.
+            O Programa de Embaixadores Estudantis do Google 2026 é uma iniciativa voltada para universitários com foco
+            em inteligência artificial (IA) e no uso prático do Google Gemini para otimizar os estudos, desenvolver
+            projetos e fortalecer o currículo. O programa busca formar referências locais de inovação e tecnologia
+            dentro das universidades brasileiras.
           </p>
 
           <p className="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Para apoiar essa evolução, a trilha é rica e multidisciplinar, desenvolvendo 4 competências
-            essenciais:
+            Para apoiar essa evolução, a trilha é rica e multidisciplinar, desenvolvendo 4 competências essenciais:
           </p>
         </div>
 
@@ -179,10 +181,7 @@ export const AboutPage: React.FC = () => {
 
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {BENEFITS.map(({ icon: Icon, text }) => (
-              <div
-                key={text}
-                className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5"
-              >
+              <div key={text} className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5">
                 <div className="w-8 h-8 rounded-lg bg-green-600/10 text-green-600 flex items-center justify-center shrink-0">
                   <Icon className="w-4 h-4" />
                 </div>
@@ -191,12 +190,14 @@ export const AboutPage: React.FC = () => {
             ))}
           </div>
         </div>
-
       </main>
 
       <footer className="border-t border-gray-200 bg-white py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600">
-          <p className="text-center">© 2026 Embaixadores Estudantis do Google.<br className="sm:hidden" /> Todos os direitos reservados.</p>
+          <p className="text-center">
+            © 2026 Embaixadores Estudantis do Google.
+            <br className="sm:hidden" /> Todos os direitos reservados.
+          </p>
         </div>
       </footer>
     </div>

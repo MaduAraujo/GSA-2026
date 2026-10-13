@@ -4,7 +4,11 @@ import { makePrompt } from '../test/factories';
 
 describe('exportPromptsAsPdf', () => {
   let writtenHtml = '';
-  let fakeWindow: { document: { write: (html: string) => void; close: () => void }; focus: () => void; print: () => void };
+  let fakeWindow: {
+    document: { write: (html: string) => void; close: () => void };
+    focus: () => void;
+    print: () => void;
+  };
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -19,7 +23,10 @@ describe('exportPromptsAsPdf', () => {
       focus: vi.fn(),
       print: vi.fn(),
     };
-    vi.stubGlobal('open', vi.fn(() => fakeWindow as unknown as Window));
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => fakeWindow as unknown as Window),
+    );
     vi.stubGlobal('alert', vi.fn());
   });
 
@@ -48,7 +55,10 @@ describe('exportPromptsAsPdf', () => {
   });
 
   it('alerts and exits gracefully when the popup is blocked', () => {
-    vi.stubGlobal('open', vi.fn(() => null));
+    vi.stubGlobal(
+      'open',
+      vi.fn(() => null),
+    );
     const alertSpy = vi.fn();
     vi.stubGlobal('alert', alertSpy);
 

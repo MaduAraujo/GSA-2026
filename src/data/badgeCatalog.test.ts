@@ -35,7 +35,7 @@ describe('computeBadgeStats', () => {
         makeCertificate({ id: 'c2', category: 'google cloud', skills: ['gcp', 'Liderança'] }),
       ],
       [],
-      []
+      [],
     );
     expect(stats.categoryCount).toBe(1);
     expect(stats.uniqueSkillCount).toBe(3);
@@ -45,7 +45,7 @@ describe('computeBadgeStats', () => {
     const stats = computeBadgeStats(
       [makeCertificate({ isFavorite: true }), makeCertificate({ id: 'c2', isFavorite: false })],
       [makePrompt({ isFavorite: true })],
-      [makePost({ status: 'Publicado' }), makePost({ id: 'post-2', status: 'Rascunho' })]
+      [makePost({ status: 'Publicado' }), makePost({ id: 'post-2', status: 'Rascunho' })],
     );
     expect(stats.certificateCount).toBe(2);
     expect(stats.favoriteCertCount).toBe(1);

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BadgeUnlockToast } from './BadgeUnlockToast';
 import { BADGE_CATALOG } from '../data/badgeCatalog';
 
-const badge = BADGE_CATALOG[0];
+const badge = BADGE_CATALOG[0]!;
 
 describe('BadgeUnlockToast', () => {
   afterEach(() => {

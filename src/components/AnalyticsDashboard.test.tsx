@@ -25,7 +25,7 @@ describe('AnalyticsDashboard', () => {
         posts={[]}
         sessions={[]}
         challenges={[]}
-      />
+      />,
     );
     expect(document.querySelector('[title="Mar: 1"]')).not.toBeNull();
   });
@@ -41,7 +41,7 @@ describe('AnalyticsDashboard', () => {
         ]}
         sessions={[]}
         challenges={[]}
-      />
+      />,
     );
     const platformSection = screen.getByText('Posts por plataforma').closest('div');
     expect(platformSection).toHaveTextContent(/LinkedIn.*2/s);
@@ -55,7 +55,7 @@ describe('AnalyticsDashboard', () => {
         posts={[makePost({ id: 'p1', status: 'Publicado' }), makePost({ id: 'p2', status: 'Rascunho' })]}
         sessions={[]}
         challenges={[]}
-      />
+      />,
     );
     expect(document.querySelector('[title="Publicado: 1"]')).not.toBeNull();
     expect(document.querySelector('[title="Rascunho: 1"]')).not.toBeNull();
@@ -68,7 +68,7 @@ describe('AnalyticsDashboard', () => {
         posts={[makePost({ score: 10, createdAt: '2026-03-01T00:00:00.000Z' })]}
         sessions={[makeSession({ score: 5, date: '2026-03-02' })]}
         challenges={[makeChallenge({ points: 7, dates: ['2026-03-03'] })]}
-      />
+      />,
     );
     expect(document.querySelector('[title="Mar: 22"]')).not.toBeNull();
   });

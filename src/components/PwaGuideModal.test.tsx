@@ -1,3 +1,4 @@
+import type { BeforeInstallPromptEvent } from '../hooks/usePwaInstall';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -6,7 +7,7 @@ import { PwaGuideModal } from './PwaGuideModal';
 describe('PwaGuideModal', () => {
   it('renders nothing when closed', () => {
     const { container } = render(
-      <PwaGuideModal isOpen={false} onClose={vi.fn()} deferredPrompt={null} onInstall={vi.fn()} />
+      <PwaGuideModal isOpen={false} onClose={vi.fn()} deferredPrompt={null} onInstall={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -21,7 +22,9 @@ describe('PwaGuideModal', () => {
     const user = userEvent.setup();
     const onInstall = vi.fn();
     const onClose = vi.fn();
-    render(<PwaGuideModal isOpen onClose={onClose} deferredPrompt={{}} onInstall={onInstall} />);
+    render(
+      <PwaGuideModal isOpen onClose={onClose} deferredPrompt={{} as BeforeInstallPromptEvent} onInstall={onInstall} />,
+    );
 
     await user.click(screen.getByRole('button', { name: /Instalar Aplicativo Agora/ }));
     expect(onInstall).toHaveBeenCalledTimes(1);

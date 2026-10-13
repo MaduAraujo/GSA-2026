@@ -13,14 +13,14 @@ describe('BadgesShowcase', () => {
 
   it('expands to show badge cards, unlocked ones listed first', async () => {
     const user = userEvent.setup();
-    const unlockedBadge = BADGE_CATALOG[BADGE_CATALOG.length - 2];
+    const unlockedBadge = BADGE_CATALOG[BADGE_CATALOG.length - 2]!;
     render(
       <BadgesShowcase
         certificates={[]}
         prompts={[]}
         posts={[]}
         userBadges={[{ badgeId: unlockedBadge.id, unlockedAt: '2026-01-15T00:00:00.000Z' }]}
-      />
+      />,
     );
     await user.click(screen.getByRole('button'));
 
@@ -34,6 +34,6 @@ describe('BadgesShowcase', () => {
     const user = userEvent.setup();
     render(<BadgesShowcase certificates={[]} prompts={[]} posts={[]} userBadges={[]} />);
     await user.click(screen.getByRole('button'));
-    expect(screen.getByText(BADGE_CATALOG[0].hint)).toBeInTheDocument();
+    expect(screen.getByText(BADGE_CATALOG[0]!.hint)).toBeInTheDocument();
   });
 });

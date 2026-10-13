@@ -15,7 +15,7 @@ describe('StatsBanner', () => {
         sessions={[]}
         profile={makeProfile({ name: 'Ana' })}
         onNavigate={() => {}}
-      />
+      />,
     );
     expect(screen.getByText('Olá, Ana')).toBeInTheDocument();
   });
@@ -30,9 +30,9 @@ describe('StatsBanner', () => {
         sessions={[]}
         profile={makeProfile()}
         onNavigate={() => {}}
-      />
+      />,
     );
-    const postsCard = screen.getByText('Posts Criados').closest('div[class*="cursor-pointer"]');
+    const postsCard = screen.getByText('Posts Criados').closest('button');
     expect(postsCard).toHaveTextContent('1');
   });
 
@@ -46,7 +46,7 @@ describe('StatsBanner', () => {
         sessions={[makeSession({ score: 7 })]}
         profile={makeProfile()}
         onNavigate={() => {}}
-      />
+      />,
     );
     expect(screen.getByText('22')).toBeInTheDocument();
   });
@@ -63,7 +63,7 @@ describe('StatsBanner', () => {
         sessions={[]}
         profile={makeProfile()}
         onNavigate={onNavigate}
-      />
+      />,
     );
     await user.click(screen.getByText('Certificados'));
     expect(onNavigate).toHaveBeenCalledWith('certificates');

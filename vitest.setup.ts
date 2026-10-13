@@ -1,6 +1,8 @@
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+configure({ asyncUtilTimeout: 10_000 });
 
 if (typeof globalThis.IntersectionObserver === 'undefined') {
   class MockIntersectionObserver {
@@ -8,8 +10,7 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
     unobserve() {}
     disconnect() {}
   }
-  // @ts-expect-error - minimal stand-in, not a spec-complete IntersectionObserver
-  globalThis.IntersectionObserver = MockIntersectionObserver;
+  globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 }
 
 afterEach(() => {

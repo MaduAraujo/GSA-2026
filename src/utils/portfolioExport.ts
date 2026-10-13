@@ -1,18 +1,17 @@
-import { Certificate, AmbassadorProfile } from '../types';
+import { type Certificate, type AmbassadorProfile } from '../types';
 import { formatDuration, formatTotalHoursDecimal, sumCertHours } from './duration';
 
 function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: Certificate[]): void {
   const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
   const sorted = [...certificates].sort((a, b) => (a.issueDate < b.issueDate ? 1 : -1));
 
-  const certRows = sorted.map((cert) => `
+  const certRows = sorted
+    .map(
+      (cert) => `
     <div class="cert">
       <div class="cert-header">
         <h3>${escapeHtml(cert.title)}</h3>
@@ -22,7 +21,9 @@ export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: C
       ${cert.description ? `<p class="desc">${escapeHtml(cert.description)}</p>` : ''}
       ${cert.skills?.length ? `<p class="skills">${cert.skills.map((s) => `#${escapeHtml(s)}`).join('  ')}</p>` : ''}
     </div>
-  `).join('');
+  `,
+    )
+    .join('');
 
   const html = `<!doctype html>
 <html lang="pt-BR">

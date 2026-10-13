@@ -8,3 +8,10 @@ coverage/
 !.env.example
 .claude/
 .mcp.jsons
+dist-e2e/
+playwright-report/
+test-results/
+blob-report/
+
+.vercel
+.env*

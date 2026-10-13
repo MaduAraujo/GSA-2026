@@ -2,12 +2,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ChallengesModule } from './ChallengesModule';
-import { Challenge } from '../types';
+import { type Challenge } from '../types';
 import { makeChallenge } from '../test/factories';
 
 describe('ChallengesModule', () => {
   it('shows an empty state when there are no challenges', () => {
-    render(<ChallengesModule challenges={[]} posts={[]} onSaveChallenge={vi.fn()} onDeleteChallenge={vi.fn()} onSavePost={vi.fn()} onDeletePost={vi.fn()} />);
+    render(
+      <ChallengesModule
+        challenges={[]}
+        posts={[]}
+        onSaveChallenge={vi.fn()}
+        onDeleteChallenge={vi.fn()}
+        onSavePost={vi.fn()}
+        onDeletePost={vi.fn()}
+      />,
+    );
     expect(screen.getByText('Nenhum desafio encontrado')).toBeInTheDocument();
   });
 
@@ -15,13 +24,16 @@ describe('ChallengesModule', () => {
     const user = userEvent.setup();
     render(
       <ChallengesModule
-        challenges={[makeChallenge({ id: 'c1', title: 'Desafio pendente', status: 'Pendente' }), makeChallenge({ id: 'c2', title: 'Desafio feito', status: 'Concluído' })]}
+        challenges={[
+          makeChallenge({ id: 'c1', title: 'Desafio pendente', status: 'Pendente' }),
+          makeChallenge({ id: 'c2', title: 'Desafio feito', status: 'Concluído' }),
+        ]}
         posts={[]}
         onSaveChallenge={vi.fn()}
         onDeleteChallenge={vi.fn()}
         onSavePost={vi.fn()}
         onDeletePost={vi.fn()}
-      />
+      />,
     );
     await user.selectOptions(screen.getByLabelText('Filtrar por status'), 'Concluído');
     expect(screen.getByText('Desafio feito')).toBeInTheDocument();
@@ -32,13 +44,16 @@ describe('ChallengesModule', () => {
     const user = userEvent.setup();
     render(
       <ChallengesModule
-        challenges={[makeChallenge({ id: 'c1', title: 'A', category: 'Comunidade' }), makeChallenge({ id: 'c2', title: 'B', category: 'Conteúdo' })]}
+        challenges={[
+          makeChallenge({ id: 'c1', title: 'A', category: 'Comunidade' }),
+          makeChallenge({ id: 'c2', title: 'B', category: 'Conteúdo' }),
+        ]}
         posts={[]}
         onSaveChallenge={vi.fn()}
         onDeleteChallenge={vi.fn()}
         onSavePost={vi.fn()}
         onDeletePost={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByRole('button', { name: 'Conteúdo' }));
     expect(screen.getByText('B')).toBeInTheDocument();
@@ -54,7 +69,7 @@ describe('ChallengesModule', () => {
         onDeleteChallenge={vi.fn()}
         onSavePost={vi.fn()}
         onDeletePost={vi.fn()}
-      />
+      />,
     );
     expect(screen.queryByRole('link', { name: /Detalhes/ })).not.toBeInTheDocument();
   });
@@ -68,7 +83,7 @@ describe('ChallengesModule', () => {
         onDeleteChallenge={vi.fn()}
         onSavePost={vi.fn()}
         onDeletePost={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByRole('link', { name: /Detalhes/ })).toHaveAttribute('href', 'https://example.com/desafio');
   });
@@ -84,11 +99,11 @@ describe('ChallengesModule', () => {
         onDeleteChallenge={vi.fn()}
         onSavePost={vi.fn()}
         onDeletePost={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByTitle('Clique para avançar o status'));
     await waitFor(() => expect(onSaveChallenge).toHaveBeenCalledTimes(1));
-    expect(onSaveChallenge.mock.calls[0][0].status).toBe('Em Andamento');
+    expect(onSaveChallenge.mock.calls[0]![0].status).toBe('Em Andamento');
   });
 
   it('asks for confirmation before deleting and aborts when declined', async () => {
@@ -103,7 +118,7 @@ describe('ChallengesModule', () => {
         onDeleteChallenge={onDeleteChallenge}
         onSavePost={vi.fn()}
         onDeletePost={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByLabelText('Excluir desafio'));
     expect(confirmSpy).toHaveBeenCalled();
@@ -113,7 +128,16 @@ describe('ChallengesModule', () => {
 
   it('keeps the submit button disabled until title and description are filled', async () => {
     const user = userEvent.setup();
-    render(<ChallengesModule challenges={[]} posts={[]} onSaveChallenge={vi.fn()} onDeleteChallenge={vi.fn()} onSavePost={vi.fn()} onDeletePost={vi.fn()} />);
+    render(
+      <ChallengesModule
+        challenges={[]}
+        posts={[]}
+        onSaveChallenge={vi.fn()}
+        onDeleteChallenge={vi.fn()}
+        onSavePost={vi.fn()}
+        onDeletePost={vi.fn()}
+      />,
+    );
     await user.click(screen.getByLabelText('Novo desafio'));
 
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
@@ -122,7 +146,7 @@ describe('ChallengesModule', () => {
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
 
     const textareas = screen.getAllByRole('textbox').filter((el) => el.tagName === 'TEXTAREA');
-    await user.type(textareas[0], 'Descrição do desafio');
+    await user.type(textareas[0]!, 'Descrição do desafio');
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled();
   });
 
@@ -130,16 +154,25 @@ describe('ChallengesModule', () => {
     const user = userEvent.setup();
     const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
     const onSavePost = vi.fn();
-    render(<ChallengesModule challenges={[]} posts={[]} onSaveChallenge={onSaveChallenge} onDeleteChallenge={vi.fn()} onSavePost={onSavePost} onDeletePost={vi.fn()} />);
+    render(
+      <ChallengesModule
+        challenges={[]}
+        posts={[]}
+        onSaveChallenge={onSaveChallenge}
+        onDeleteChallenge={vi.fn()}
+        onSavePost={onSavePost}
+        onDeletePost={vi.fn()}
+      />,
+    );
     await user.click(screen.getByLabelText('Novo desafio'));
 
     await user.type(document.getElementById('challenge-form-title') as HTMLInputElement, '  Meu desafio  ');
     const textareas = screen.getAllByRole('textbox').filter((el) => el.tagName === 'TEXTAREA');
-    await user.type(textareas[0], '  Minha descrição  ');
+    await user.type(textareas[0]!, '  Minha descrição  ');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSaveChallenge).toHaveBeenCalledTimes(1));
-    const saved = onSaveChallenge.mock.calls[0][0] as Challenge;
+    const saved = onSaveChallenge.mock.calls[0]![0] as Challenge;
     expect(saved.title).toBe('Meu desafio');
     expect(saved.description).toBe('Minha descrição');
     expect(saved.status).toBe('Pendente');

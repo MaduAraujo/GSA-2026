@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileModal } from './ProfileModal';
-import { AmbassadorProfile } from '../types';
+import { type AmbassadorProfile } from '../types';
 import { makeProfile } from '../test/factories';
 
 vi.mock('../services/pushNotifications', () => ({
@@ -21,7 +21,7 @@ describe('ProfileModal', () => {
 
   it('renders nothing when closed', () => {
     const { container } = render(
-      <ProfileModal isOpen={false} onClose={vi.fn()} profile={makeProfile()} onSaveProfile={vi.fn()} />
+      <ProfileModal isOpen={false} onClose={vi.fn()} profile={makeProfile()} onSaveProfile={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -32,7 +32,12 @@ describe('ProfileModal', () => {
     const onSaveProfile = vi.fn();
     const onClose = vi.fn();
     render(
-      <ProfileModal isOpen onClose={onClose} profile={makeProfile({ name: 'Ana Souza' })} onSaveProfile={onSaveProfile} />
+      <ProfileModal
+        isOpen
+        onClose={onClose}
+        profile={makeProfile({ name: 'Ana Souza' })}
+        onSaveProfile={onSaveProfile}
+      />,
     );
 
     const nameInput = screen.getByDisplayValue('Ana Souza');
@@ -41,7 +46,7 @@ describe('ProfileModal', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(onSaveProfile).toHaveBeenCalledTimes(1);
-    expect((onSaveProfile.mock.calls[0][0] as AmbassadorProfile).name).toBe('Ana Beatriz');
+    expect((onSaveProfile.mock.calls[0]![0] as AmbassadorProfile).name).toBe('Ana Beatriz');
 
     vi.advanceTimersByTime(800);
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -58,7 +63,14 @@ describe('ProfileModal', () => {
 
   it('turns on the public portfolio toggle and shows a shareable link', async () => {
     const user = userEvent.setup();
-    render(<ProfileModal isOpen onClose={vi.fn()} profile={makeProfile({ isPublic: false, publicSlug: undefined })} onSaveProfile={vi.fn()} />);
+    render(
+      <ProfileModal
+        isOpen
+        onClose={vi.fn()}
+        profile={makeProfile({ isPublic: false, publicSlug: undefined })}
+        onSaveProfile={vi.fn()}
+      />,
+    );
 
     const portfolioSection = screen.getByText('Portfólio público').closest('.p-4') as HTMLElement;
     const portfolioToggle = within(portfolioSection).getByRole('button', { name: 'Ativar' });

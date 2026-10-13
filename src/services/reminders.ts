@@ -36,9 +36,7 @@ export const RemindersService = {
     const daysSinceShown = (now - lastShown) / (1000 * 60 * 60 * 24);
     if (daysSinceShown < REMINDER_INTERVAL_DAYS) return;
 
-    const daysSincePost = lastPostDate
-      ? (now - new Date(lastPostDate).getTime()) / (1000 * 60 * 60 * 24)
-      : Infinity;
+    const daysSincePost = lastPostDate ? (now - new Date(lastPostDate).getTime()) / (1000 * 60 * 60 * 24) : Infinity;
     if (daysSincePost < REMINDER_INTERVAL_DAYS) return;
 
     new Notification('Embaixadora Google 2026', {

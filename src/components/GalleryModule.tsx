@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, Plus, Search, X, Trash2, Upload, Calendar, Loader2, ImageOff, PlayCircle } from 'lucide-react';
-import { GalleryPhoto } from '../types';
+import { type GalleryPhoto } from '../types';
 import { DatePicker } from './DatePicker';
 import { usePersistedState } from '../hooks/usePersistedState';
+import { formatDateBR } from '../utils/date';
 
 interface GalleryModuleProps {
   photos: GalleryPhoto[];
@@ -20,13 +21,6 @@ const DEFAULT_FORM: Partial<GalleryPhoto> = {
 
 const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // Supabase Free plan caps uploads at 50MB
-
-function formatDateBR(isoDate?: string): string {
-  if (!isoDate) return '';
-  const [year, month, day] = isoDate.split('-');
-  if (!year || !month || !day) return isoDate;
-  return `${day}/${month}/${year}`;
-}
 
 export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhoto, onDeletePhoto }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,13 +43,15 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
   }, [videoPreviewUrl]);
 
   const dynamicCategories = Array.from(
-    photos.reduce((map, p) => {
-      const trimmed = p.category?.trim();
-      if (trimmed && !map.has(trimmed.toLowerCase())) {
-        map.set(trimmed.toLowerCase(), trimmed);
-      }
-      return map;
-    }, new Map<string, string>()).values()
+    photos
+      .reduce((map, p) => {
+        const trimmed = p.category?.trim();
+        if (trimmed && !map.has(trimmed.toLowerCase())) {
+          map.set(trimmed.toLowerCase(), trimmed);
+        }
+        return map;
+      }, new Map<string, string>())
+      .values(),
   );
 
   const filteredPhotos = photos.filter((p) => {
@@ -173,7 +169,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isAddModalOpen, viewingPhoto]);
+  }, [isAddModalOpen, viewingPhoto, setIsAddModalOpen]);
 
   return (
     <div className="space-y-6">
@@ -289,9 +285,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
               </div>
               {(photo.caption || photo.takenAt) && (
                 <div className="p-2.5 space-y-0.5">
-                  {photo.caption && (
-                    <p className="text-xs font-semibold text-gray-800 line-clamp-1">{photo.caption}</p>
-                  )}
+                  {photo.caption && <p className="text-xs font-semibold text-gray-800 line-clamp-1">{photo.caption}</p>}
                   {photo.takenAt && (
                     <p className="text-[10px] text-gray-400 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
@@ -306,10 +300,13 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
       )}
 
       {isAddModalOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
             <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
-
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#EA4335]/10 text-[#EA4335] flex items-center justify-center">
@@ -330,9 +327,18 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
               </div>
 
               <div
+                role="button"
+                tabIndex={0}
+                aria-label="Selecionar foto ou vídeo"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
                 className="border-2 border-dashed border-gray-300 hover:border-[#EA4335] bg-[#F8FAFD] rounded-2xl p-6 text-center cursor-pointer transition-all space-y-3"
               >
                 <input
@@ -350,7 +356,11 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                   </div>
                 ) : formData.imageData ? (
                   <div className="flex items-center justify-center gap-4">
-                    <img src={formData.imageData} alt="Prévia" className="h-24 max-w-xs object-contain rounded-lg shadow-xs" />
+                    <img
+                      src={formData.imageData}
+                      alt="Prévia"
+                      className="h-24 max-w-xs object-contain rounded-lg shadow-xs"
+                    />
                     <p className="text-xs text-green-600 font-medium">Foto carregada com sucesso!</p>
                   </div>
                 ) : (
@@ -365,17 +375,24 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
               </div>
 
               {fileError && (
-                <p role="alert" className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5">
+                <p
+                  role="alert"
+                  className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5"
+                >
                   {fileError}
                 </p>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="gallery-legenda"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Legenda
                   </label>
                   <input
+                    id="gallery-legenda"
                     type="text"
                     value={formData.caption}
                     onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
@@ -385,10 +402,14 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label
+                      htmlFor="gallery-categoria"
+                      className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                    >
                       Categoria
                     </label>
                     <input
+                      id="gallery-categoria"
                       type="text"
                       list="gallery-category-suggestions"
                       value={formData.category}
@@ -405,7 +426,10 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    <label
+                      htmlFor="gallery-form-date"
+                      className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                    >
                       Data
                     </label>
                     <DatePicker
@@ -428,21 +452,28 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                   </button>
                 </div>
               </form>
-
             </div>
           </div>
         </div>
       )}
 
       {viewingPhoto && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
             <div className="overflow-y-auto">
               <div className="relative bg-gray-900">
                 {viewingPhoto.mediaType === 'video' ? (
                   <video src={viewingPhoto.imageData} controls className="w-full max-h-[60vh]" />
                 ) : (
-                  <img src={viewingPhoto.imageData} alt={viewingPhoto.caption || 'Foto do programa'} className="w-full max-h-[60vh] object-contain" />
+                  <img
+                    src={viewingPhoto.imageData}
+                    alt={viewingPhoto.caption || 'Foto do programa'}
+                    className="w-full max-h-[60vh] object-contain"
+                  />
                 )}
                 <button
                   onClick={() => setViewingPhoto(null)}

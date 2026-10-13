@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GalleryModule } from './GalleryModule';
-import { GalleryPhoto } from '../types';
+import { type GalleryPhoto } from '../types';
 
 beforeEach(() => {
   vi.stubGlobal('URL', {
@@ -33,10 +33,13 @@ describe('GalleryModule', () => {
     const user = userEvent.setup();
     render(
       <GalleryModule
-        photos={[makePhoto({ id: 'p1', caption: 'Palestra Gemini' }), makePhoto({ id: 'p2', caption: 'Encontro local', category: 'Comunidade' })]}
+        photos={[
+          makePhoto({ id: 'p1', caption: 'Palestra Gemini' }),
+          makePhoto({ id: 'p2', caption: 'Encontro local', category: 'Comunidade' }),
+        ]}
         onSavePhoto={vi.fn()}
         onDeletePhoto={vi.fn()}
-      />
+      />,
     );
     await user.type(screen.getByPlaceholderText('Buscar por legenda ou categoria...'), 'gemini');
     expect(screen.getByAltText('Palestra Gemini')).toBeInTheDocument();
@@ -47,10 +50,13 @@ describe('GalleryModule', () => {
     const user = userEvent.setup();
     render(
       <GalleryModule
-        photos={[makePhoto({ id: 'p1', category: 'Eventos', caption: 'Foto A' }), makePhoto({ id: 'p2', category: 'Comunidade', caption: 'Foto B' })]}
+        photos={[
+          makePhoto({ id: 'p1', category: 'Eventos', caption: 'Foto A' }),
+          makePhoto({ id: 'p2', category: 'Comunidade', caption: 'Foto B' }),
+        ]}
         onSavePhoto={vi.fn()}
         onDeletePhoto={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByRole('button', { name: 'Comunidade' }));
     expect(screen.getByAltText('Foto B')).toBeInTheDocument();
@@ -94,12 +100,12 @@ describe('GalleryModule', () => {
     await waitFor(() => expect(screen.getByAltText('Prévia')).toBeInTheDocument());
 
     const dialog = screen.getByRole('dialog');
-    const captionInput = within(dialog).getAllByRole('textbox')[0];
+    const captionInput = within(dialog).getAllByRole('textbox')[0]!;
     await user.type(captionInput, '  Foto do evento  ');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSavePhoto).toHaveBeenCalledTimes(1));
-    const saved = onSavePhoto.mock.calls[0][0] as GalleryPhoto;
+    const saved = onSavePhoto.mock.calls[0]![0] as GalleryPhoto;
     expect(saved.caption).toBe('Foto do evento');
     expect(saved.imageData).toMatch(/^data:/);
   });
@@ -119,7 +125,7 @@ describe('GalleryModule', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSavePhoto).toHaveBeenCalledTimes(1));
-    const [savedPhoto, savedVideoFile] = onSavePhoto.mock.calls[0];
+    const [savedPhoto, savedVideoFile] = onSavePhoto.mock.calls[0]!;
     expect((savedPhoto as GalleryPhoto).mediaType).toBe('video');
     expect(savedVideoFile).toBe(videoFile);
   });

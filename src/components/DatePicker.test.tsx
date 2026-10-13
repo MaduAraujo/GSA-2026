@@ -48,7 +48,7 @@ describe('DatePicker', () => {
       <div>
         <DatePicker value="2026-03-10" onChange={vi.fn()} />
         <button>Fora</button>
-      </div>
+      </div>,
     );
     await user.click(screen.getByRole('button', { name: '10/03/2026' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();

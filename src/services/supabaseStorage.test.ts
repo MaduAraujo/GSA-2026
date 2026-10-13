@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SupabaseStorageService } from './supabaseStorage';
+import type { Challenge } from '../types';
 import {
   makeCertificate,
   makeChallenge,
@@ -38,7 +39,7 @@ function makeChain(data: unknown, error: unknown = null) {
 }
 
 function makeStorageBucket(
-  overrides: Partial<Record<'upload' | 'createSignedUrl' | 'createSignedUrls' | 'remove', any>> = {}
+  overrides: Partial<Record<'upload' | 'createSignedUrl' | 'createSignedUrls' | 'remove', any>> = {},
 ) {
   return {
     upload: vi.fn().mockResolvedValue({ error: null }),
@@ -47,7 +48,7 @@ function makeStorageBucket(
       Promise.resolve({
         data: paths.map((path) => ({ path, signedUrl: 'https://signed.example.com/file' })),
         error: null,
-      })
+      }),
     ),
     remove: vi.fn().mockResolvedValue({ error: null }),
     ...overrides,
@@ -60,7 +61,7 @@ beforeEach(() => {
   mockStorageFrom.mockReset().mockReturnValue(makeStorageBucket());
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue({ blob: async () => new Blob(['fake-bytes'], { type: 'image/png' }) })
+    vi.fn().mockResolvedValue({ blob: async () => new Blob(['fake-bytes'], { type: 'image/png' }) }),
   );
 });
 
@@ -83,7 +84,7 @@ describe('SupabaseStorageService — profile', () => {
         email: 'ana@example.com',
         is_public: true,
         public_slug: 'ana-1234',
-      })
+      }),
     );
     const profile = await SupabaseStorageService.getProfile();
     expect(profile).toMatchObject({
@@ -121,7 +122,19 @@ describe('SupabaseStorageService — profile', () => {
 describe('SupabaseStorageService — certificates', () => {
   it('maps certificate rows and resolves a signed URL when a file_path is stored', async () => {
     mockFrom.mockReturnValueOnce(
-      makeChain([{ id: 'c1', title: 'Cert', issuer: 'Google', issue_date: '2026-01-01', category: 'Cloud', description: '', skills: ['GCP'], file_path: 'user-1/certificates/c1', created_at: '2026-01-01T00:00:00.000Z' }])
+      makeChain([
+        {
+          id: 'c1',
+          title: 'Cert',
+          issuer: 'Google',
+          issue_date: '2026-01-01',
+          category: 'Cloud',
+          description: '',
+          skills: ['GCP'],
+          file_path: 'user-1/certificates/c1',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
     );
     const bucket = makeStorageBucket({
       createSignedUrls: vi.fn().mockResolvedValue({
@@ -139,10 +152,22 @@ describe('SupabaseStorageService — certificates', () => {
 
   it('falls back to the legacy file_data column when there is no file_path', async () => {
     mockFrom.mockReturnValueOnce(
-      makeChain([{ id: 'c1', title: 'Cert', issuer: 'Google', issue_date: '2026-01-01', category: 'Cloud', description: '', skills: [], file_data: 'data:image/png;base64,AAA', created_at: '2026-01-01T00:00:00.000Z' }])
+      makeChain([
+        {
+          id: 'c1',
+          title: 'Cert',
+          issuer: 'Google',
+          issue_date: '2026-01-01',
+          category: 'Cloud',
+          description: '',
+          skills: [],
+          file_data: 'data:image/png;base64,AAA',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
     );
     const certs = await SupabaseStorageService.getCertificates();
-    expect(certs[0].fileData).toBe('data:image/png;base64,AAA');
+    expect(certs[0]!.fileData).toBe('data:image/png;base64,AAA');
   });
 
   it('uploads a data: URL to storage and stores its path instead of the raw base64', async () => {
@@ -153,8 +178,12 @@ describe('SupabaseStorageService — certificates', () => {
 
     await SupabaseStorageService.saveCertificate(makeCertificate({ id: 'c1', fileData: 'data:image/png;base64,AAA' }));
 
-    expect(bucket.upload).toHaveBeenCalledWith('user-1/certificates/c1', expect.any(Blob), expect.objectContaining({ upsert: true }));
-    const savedRow = chain.upsert.mock.calls[0][0];
+    expect(bucket.upload).toHaveBeenCalledWith(
+      'user-1/certificates/c1',
+      expect.any(Blob),
+      expect.objectContaining({ upsert: true }),
+    );
+    const savedRow = chain.upsert.mock.calls[0]![0]!;
     expect(savedRow.file_path).toBe('user-1/certificates/c1');
     expect(savedRow.file_data).toBeNull();
   });
@@ -189,9 +218,19 @@ describe('SupabaseStorageService — certificates', () => {
 
 describe('SupabaseStorageService — gallery photos', () => {
   it('maps gallery rows, preferring a signed URL over inline data', async () => {
-    mockFrom.mockReturnValueOnce(makeChain([{ id: 'g1', image_path: 'user-1/gallery/g1', caption: 'Foto', category: 'Eventos', created_at: '2026-01-01T00:00:00.000Z' }]));
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'g1',
+          image_path: 'user-1/gallery/g1',
+          caption: 'Foto',
+          category: 'Eventos',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
+    );
     const photos = await SupabaseStorageService.getGalleryPhotos();
-    expect(photos[0].imageData).toBe('https://signed.example.com/file');
+    expect(photos[0]!.imageData).toBe('https://signed.example.com/file');
   });
 
   it('uploads new photo data and clears the inline column', async () => {
@@ -200,10 +239,16 @@ describe('SupabaseStorageService — gallery photos', () => {
     const chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
 
-    await SupabaseStorageService.saveGalleryPhoto({ id: 'g1', imageData: 'data:image/png;base64,AAA', caption: 'Foto', category: 'Eventos', createdAt: '2026-01-01T00:00:00.000Z' });
+    await SupabaseStorageService.saveGalleryPhoto({
+      id: 'g1',
+      imageData: 'data:image/png;base64,AAA',
+      caption: 'Foto',
+      category: 'Eventos',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
 
     expect(bucket.upload).toHaveBeenCalledWith('user-1/gallery/g1', expect.any(Blob), expect.anything());
-    expect(chain.upsert.mock.calls[0][0].image_path).toBe('user-1/gallery/g1');
+    expect(chain.upsert.mock.calls[0]![0].image_path).toBe('user-1/gallery/g1');
   });
 });
 
@@ -217,15 +262,17 @@ describe('SupabaseStorageService — sessions', () => {
           session_date: '2026-01-08',
           tool_learned: 'Gemini',
           proof_image_path: 'user-1/sessions/s1/proof',
-          challenge_files: [{ id: 'f1', name: 'a.png', fileType: 'image/png', path: 'user-1/sessions/s1/challenge-f1' }],
+          challenge_files: [
+            { id: 'f1', name: 'a.png', fileType: 'image/png', path: 'user-1/sessions/s1/challenge-f1' },
+          ],
           created_at: '2026-01-08T00:00:00.000Z',
           updated_at: '2026-01-08T00:00:00.000Z',
         },
-      ])
+      ]),
     );
     const sessions = await SupabaseStorageService.getSessions();
-    expect(sessions[0].proofImage).toBe('https://signed.example.com/file');
-    expect(sessions[0].challengeFiles?.[0].dataUrl).toBe('https://signed.example.com/file');
+    expect(sessions[0]!.proofImage).toBe('https://signed.example.com/file');
+    expect(sessions[0]!.challengeFiles?.[0]!.dataUrl).toBe('https://signed.example.com/file');
   });
 
   it('uploads the proof image and every new challenge file to their own paths', async () => {
@@ -239,13 +286,15 @@ describe('SupabaseStorageService — sessions', () => {
         id: 's1',
         proofImage: 'data:image/png;base64,AAA',
         challengeFiles: [{ id: 'f1', name: 'a.png', fileType: 'image/png', dataUrl: 'data:image/png;base64,BBB' }],
-      })
+      }),
     );
 
     expect(bucket.upload).toHaveBeenCalledWith('user-1/sessions/s1/proof', expect.any(Blob), expect.anything());
     expect(bucket.upload).toHaveBeenCalledWith('user-1/sessions/s1/challenge-f1', expect.any(Blob), expect.anything());
-    const savedRow = chain.upsert.mock.calls[0][0];
-    expect(savedRow.challenge_files).toEqual([{ id: 'f1', name: 'a.png', fileType: 'image/png', fileSize: undefined, path: 'user-1/sessions/s1/challenge-f1' }]);
+    const savedRow = chain.upsert.mock.calls[0]![0]!;
+    expect(savedRow.challenge_files).toEqual([
+      { id: 'f1', name: 'a.png', fileType: 'image/png', fileSize: undefined, path: 'user-1/sessions/s1/challenge-f1' },
+    ]);
   });
 
   it('removes the proof image and every attachment path when a session is deleted', async () => {
@@ -273,7 +322,7 @@ describe('SupabaseStorageService — weekly scores', () => {
           created_at: '2026-08-31T00:00:00.000Z',
           updated_at: '2026-08-31T00:00:00.000Z',
         },
-      ])
+      ]),
     );
     const scores = await SupabaseStorageService.getWeeklyScores();
     expect(scores).toEqual([
@@ -294,7 +343,13 @@ describe('SupabaseStorageService — weekly scores', () => {
     mockFrom.mockReturnValueOnce(chain);
     await SupabaseStorageService.saveWeeklyScore(makeWeeklyScore({ id: 'w1' }));
     expect(chain.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'w1', user_id: 'user-1', week_start: '2026-08-24', week_end: '2026-08-31', points: 145 })
+      expect.objectContaining({
+        id: 'w1',
+        user_id: 'user-1',
+        week_start: '2026-08-24',
+        week_end: '2026-08-31',
+        points: 145,
+      }),
     );
   });
 
@@ -320,7 +375,7 @@ describe('SupabaseStorageService — reference links', () => {
           created_at: '2026-08-20T00:00:00.000Z',
           updated_at: '2026-08-20T00:00:00.000Z',
         },
-      ])
+      ]),
     );
     const links = await SupabaseStorageService.getReferenceLinks();
     expect(links).toEqual([
@@ -341,7 +396,12 @@ describe('SupabaseStorageService — reference links', () => {
     mockFrom.mockReturnValueOnce(chain);
     await SupabaseStorageService.saveReferenceLink(makeReferenceLink({ id: 'r1' }));
     expect(chain.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'r1', user_id: 'user-1', title: 'Portfólio da Ana', url: 'https://example.com/portfolio-ana' })
+      expect.objectContaining({
+        id: 'r1',
+        user_id: 'user-1',
+        title: 'Portfólio da Ana',
+        url: 'https://example.com/portfolio-ana',
+      }),
     );
   });
 
@@ -368,7 +428,7 @@ describe('SupabaseStorageService — program deadlines', () => {
           created_at: '2026-09-01T00:00:00.000Z',
           updated_at: '2026-09-01T00:00:00.000Z',
         },
-      ])
+      ]),
     );
     const deadlines = await SupabaseStorageService.getProgramDeadlines();
     expect(deadlines).toEqual([
@@ -390,7 +450,12 @@ describe('SupabaseStorageService — program deadlines', () => {
     mockFrom.mockReturnValueOnce(chain);
     await SupabaseStorageService.saveProgramDeadline(makeProgramDeadline({ id: 'd1' }));
     expect(chain.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'd1', user_id: 'user-1', title: 'Entrega do desafio de comunidade', category: 'Desafio' })
+      expect.objectContaining({
+        id: 'd1',
+        user_id: 'user-1',
+        title: 'Entrega do desafio de comunidade',
+        category: 'Desafio',
+      }),
     );
   });
 
@@ -405,14 +470,27 @@ describe('SupabaseStorageService — program deadlines', () => {
 
 describe('SupabaseStorageService — prompts and prompt docs', () => {
   it('maps and saves prompts', async () => {
-    mockFrom.mockReturnValueOnce(makeChain([{ id: 'p1', title: 'Prompt', prompt_text: 'Faça X', section: 'Estudos', tags: [], recommended_model: 'gemini-3.7-flash', usage_count: 2, created_at: '2026-01-01T00:00:00.000Z' }]));
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'p1',
+          title: 'Prompt',
+          prompt_text: 'Faça X',
+          section: 'Estudos',
+          tags: [],
+          recommended_model: 'gemini-3.7-flash',
+          usage_count: 2,
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
+    );
     const prompts = await SupabaseStorageService.getPrompts();
     expect(prompts[0]).toMatchObject({ id: 'p1', promptText: 'Faça X', usageCount: 2 });
 
     const chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
     await SupabaseStorageService.savePrompt(makePrompt({ id: 'p1' }));
-    expect(chain.upsert.mock.calls[0][0]).toMatchObject({ id: 'p1', user_id: 'user-1' });
+    expect(chain.upsert.mock.calls[0]![0]).toMatchObject({ id: 'p1', user_id: 'user-1' });
   });
 
   it('sanitizes the file name before uploading a prompt doc', async () => {
@@ -434,11 +512,21 @@ describe('SupabaseStorageService — prompts and prompt docs', () => {
       }),
     });
     mockStorageFrom.mockReturnValue(bucket);
-    mockFrom.mockReturnValueOnce(makeChain([{ id: 'd1', name: 'a.pdf', file_path: 'user-1/d1-a.pdf', file_type: 'application/pdf', created_at: '2026-01-01T00:00:00.000Z' }]));
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'd1',
+          name: 'a.pdf',
+          file_path: 'user-1/d1-a.pdf',
+          file_type: 'application/pdf',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
+    );
 
     const docs = await SupabaseStorageService.getPromptDocs();
-    expect(docs[0].fileData).toBe('https://signed.example.com/view');
-    expect(docs[0].downloadUrl).toBe('https://signed.example.com/view&download=a.pdf');
+    expect(docs[0]!.fileData).toBe('https://signed.example.com/view');
+    expect(docs[0]!.downloadUrl).toBe('https://signed.example.com/view&download=a.pdf');
   });
 });
 
@@ -457,9 +545,9 @@ describe('SupabaseStorageService — challenges, posts, badges', () => {
           created_at: '2026-01-01T00:00:00.000Z',
           updated_at: '2026-01-01T00:00:00.000Z',
         },
-      ])
+      ]),
     );
-    const [challenge] = await SupabaseStorageService.getChallenges();
+    const [challenge] = (await SupabaseStorageService.getChallenges()) as [Challenge];
     expect(challenge.dates).toEqual(['2026-02-01']);
     expect(challenge.socialLinks).toEqual([{ id: 'ch1', platform: 'LinkedIn', link: 'https://example.com/post' }]);
     expect(challenge.linkedPostIds).toEqual(['post-1']);
@@ -469,7 +557,7 @@ describe('SupabaseStorageService — challenges, posts, badges', () => {
     let chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
     await SupabaseStorageService.saveChallenge(makeChallenge({ id: 'ch1' }));
-    expect(chain.upsert.mock.calls[0][0]).toMatchObject({ id: 'ch1', user_id: 'user-1' });
+    expect(chain.upsert.mock.calls[0]![0]).toMatchObject({ id: 'ch1', user_id: 'user-1' });
 
     chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
@@ -480,7 +568,7 @@ describe('SupabaseStorageService — challenges, posts, badges', () => {
     chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
     await SupabaseStorageService.savePost(makePost({ id: 'post-1' }));
-    expect(chain.upsert.mock.calls[0][0]).toMatchObject({ id: 'post-1', user_id: 'user-1' });
+    expect(chain.upsert.mock.calls[0]![0]).toMatchObject({ id: 'post-1', user_id: 'user-1' });
 
     chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
@@ -494,7 +582,7 @@ describe('SupabaseStorageService — challenges, posts, badges', () => {
     await SupabaseStorageService.unlockBadge('first_certificate');
     expect(chain.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ user_id: 'user-1', badge_id: 'first_certificate' }),
-      { onConflict: 'user_id,badge_id', ignoreDuplicates: true }
+      { onConflict: 'user_id,badge_id', ignoreDuplicates: true },
     );
   });
 });

@@ -2,13 +2,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AmbassadorAreaModal } from './AmbassadorAreaModal';
-import { AmbassadorProfile } from '../types';
+import { type AmbassadorProfile } from '../types';
 import { makeProfile } from '../test/factories';
 
 describe('AmbassadorAreaModal', () => {
   it('renders nothing when closed', () => {
     const { container } = render(
-      <AmbassadorAreaModal isOpen={false} onClose={vi.fn()} profile={makeProfile()} onSaveProfile={vi.fn()} />
+      <AmbassadorAreaModal isOpen={false} onClose={vi.fn()} profile={makeProfile()} onSaveProfile={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -20,7 +20,7 @@ describe('AmbassadorAreaModal', () => {
         onClose={vi.fn()}
         profile={makeProfile({ ambassadorSealUrl: undefined })}
         onSaveProfile={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByText('O Papel do(a) Embaixador(a)')).toBeInTheDocument();
     expect(screen.getByText('Selo Embaixador(a)')).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('AmbassadorAreaModal', () => {
         onClose={vi.fn()}
         profile={makeProfile({ ambassadorSealUrl: undefined })}
         onSaveProfile={onSaveProfile}
-      />
+      />,
     );
 
     const file = new File([new Uint8Array(10)], 'selo.png', { type: 'image/png' });
@@ -48,7 +48,7 @@ describe('AmbassadorAreaModal', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(onSaveProfile).toHaveBeenCalledTimes(1);
-    expect((onSaveProfile.mock.calls[0][0] as AmbassadorProfile).ambassadorSealUrl).toMatch(/^data:image\/png/);
+    expect((onSaveProfile.mock.calls[0]![0] as AmbassadorProfile).ambassadorSealUrl).toMatch(/^data:image\/png/);
   });
 
   it('rejects a seal image larger than 3MB', async () => {
@@ -70,7 +70,7 @@ describe('AmbassadorAreaModal', () => {
         onClose={vi.fn()}
         profile={makeProfile({ ambassadorSealUrl: 'data:image/png;base64,AAA' })}
         onSaveProfile={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByAltText('Selo Embaixador(a)')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('AmbassadorAreaModal', () => {
         onClose={vi.fn()}
         profile={makeProfile({ ambassadorSealUrl: 'data:image/png;base64,AAA' })}
         onSaveProfile={vi.fn()}
-      />
+      />,
     );
 
     await user.click(screen.getByLabelText('Opções do selo'));

@@ -1,16 +1,15 @@
-import { PromptItem } from '../types';
+import { type PromptItem } from '../types';
 
 function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function exportPromptsAsPdf(prompts: PromptItem[]): void {
   const sorted = [...prompts].sort((a, b) => a.section.localeCompare(b.section) || a.title.localeCompare(b.title));
 
-  const rows = sorted.map((p) => `
+  const rows = sorted
+    .map(
+      (p) => `
     <div class="prompt">
       <div class="prompt-header">
         <h3>${escapeHtml(p.title)}</h3>
@@ -20,7 +19,9 @@ export function exportPromptsAsPdf(prompts: PromptItem[]): void {
       <pre class="text">${escapeHtml(p.promptText)}</pre>
       ${p.tags?.length ? `<p class="tags">${p.tags.map((t) => `#${escapeHtml(t)}`).join('  ')}</p>` : ''}
     </div>
-  `).join('');
+  `,
+    )
+    .join('');
 
   const html = `<!doctype html>
 <html lang="pt-BR">

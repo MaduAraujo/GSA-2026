@@ -1,11 +1,11 @@
 import React, { useId, useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
-import { Certificate, GeminiPost, AmbassadorSession, Challenge } from '../types';
+import { type Certificate, type SocialPost, type AmbassadorSession, type Challenge } from '../types';
 import { certHoursDecimal, formatTotalHoursDecimal } from '../utils/duration';
 
 interface AnalyticsDashboardProps {
   certificates: Certificate[];
-  posts: GeminiPost[];
+  posts: SocialPost[];
   sessions: AmbassadorSession[];
   challenges: Challenge[];
 }
@@ -33,16 +33,16 @@ function lastMonths(count: number): { key: string; label: string }[] {
   const months: { key: string; label: string }[] = [];
   for (let i = count - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: MONTH_SHORT[d.getMonth()] });
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: MONTH_SHORT[d.getMonth()] ?? '' });
   }
   return months;
 }
 
-const BarChart: React.FC<{ data: { label: string; value: number }[]; color: string; formatValue?: (v: number) => string }> = ({
-  data,
-  color,
-  formatValue = (v) => String(v),
-}) => {
+const BarChart: React.FC<{
+  data: { label: string; value: number }[];
+  color: string;
+  formatValue?: (v: number) => string;
+}> = ({ data, color, formatValue = (v) => String(v) }) => {
   const max = Math.max(1, ...data.map((d) => d.value));
   return (
     <div className="relative h-40 pt-6">
@@ -81,11 +81,11 @@ const BarChart: React.FC<{ data: { label: string; value: number }[]; color: stri
   );
 };
 
-const AreaLineChart: React.FC<{ data: { label: string; value: number }[]; color: string; formatValue?: (v: number) => string }> = ({
-  data,
-  color,
-  formatValue = (v) => String(v),
-}) => {
+const AreaLineChart: React.FC<{
+  data: { label: string; value: number }[];
+  color: string;
+  formatValue?: (v: number) => string;
+}> = ({ data, color, formatValue = (v) => String(v) }) => {
   const gradientId = useId();
   const width = 100;
   const height = 40;
@@ -100,8 +100,8 @@ const AreaLineChart: React.FC<{ data: { label: string; value: number }[]; color:
 
   const smoothPath = points
     .map((p, i) => {
-      if (i === 0) return `M ${p.x} ${p.y}`;
       const prev = points[i - 1];
+      if (i === 0 || !prev) return `M ${p.x} ${p.y}`;
       const midX = (prev.x + p.x) / 2;
       return `C ${midX} ${prev.y}, ${midX} ${p.y}, ${p.x} ${p.y}`;
     })
@@ -128,12 +128,37 @@ const AreaLineChart: React.FC<{ data: { label: string; value: number }[]; color:
             </linearGradient>
           </defs>
           {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1={0} x2={width} y1={height * f} y2={height * f} stroke="#F1F3F4" strokeWidth={0.5} vectorEffect="non-scaling-stroke" />
+            <line
+              key={f}
+              x1={0}
+              x2={width}
+              y1={height * f}
+              y2={height * f}
+              stroke="#F1F3F4"
+              strokeWidth={0.5}
+              vectorEffect="non-scaling-stroke"
+            />
           ))}
           <path d={areaPath} fill={`url(#${gradientId})`} />
-          <path d={smoothPath} fill="none" stroke={color} strokeWidth={1.6} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          <path
+            d={smoothPath}
+            fill="none"
+            stroke={color}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
           {points.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 2 : 1.3} fill="white" stroke={color} strokeWidth={1.2} vectorEffect="non-scaling-stroke">
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={i === points.length - 1 ? 2 : 1.3}
+              fill="white"
+              stroke={color}
+              strokeWidth={1.2}
+              vectorEffect="non-scaling-stroke"
+            >
               <title>{`${p.label}: ${formatValue(p.value)}`}</title>
             </circle>
           ))}
@@ -141,14 +166,21 @@ const AreaLineChart: React.FC<{ data: { label: string; value: number }[]; color:
       </div>
       <div className="flex justify-between px-0.5">
         {data.map((d, i) => (
-          <span key={i} className="text-[10px] font-semibold text-gray-400">{d.label}</span>
+          <span key={i} className="text-[10px] font-semibold text-gray-400">
+            {d.label}
+          </span>
         ))}
       </div>
     </div>
   );
 };
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certificates, posts, sessions, challenges }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
+  certificates,
+  posts,
+  sessions,
+  challenges,
+}) => {
   const months = useMemo(() => lastMonths(6), []);
 
   const certsByMonth = useMemo(() => {
@@ -174,27 +206,28 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certific
   }, [sessions, months]);
 
   const cumulativeHours = useMemo(() => {
-    const [firstYear, firstMonth] = months[0].key.split('-').map(Number);
+    const [firstYear = 0, firstMonth = 0] = (months[0]?.key ?? '').split('-').map(Number);
     const hoursByMonth = new Map(months.map((m) => [m.key, 0]));
 
     let running = 0;
-    certificates.forEach((c) => {
+    for (const c of certificates) {
       const parsed = parseIssueYearMonth(c.issueDate);
-      if (!parsed) return;
-      const isBeforeWindow =
-        parsed.year < firstYear || (parsed.year === firstYear && parsed.month < firstMonth);
+      if (!parsed) continue;
+      const isBeforeWindow = parsed.year < firstYear || (parsed.year === firstYear && parsed.month < firstMonth);
       if (isBeforeWindow) {
         running += certHoursDecimal(c);
-        return;
+        continue;
       }
       const key = `${parsed.year}-${parsed.month}`;
       if (hoursByMonth.has(key)) hoursByMonth.set(key, (hoursByMonth.get(key) || 0) + certHoursDecimal(c));
-    });
+    }
 
-    return months.map((m) => {
+    const series: { label: string; value: number }[] = [];
+    for (const m of months) {
       running += hoursByMonth.get(m.key) || 0;
-      return { label: m.label, value: running };
-    });
+      series.push({ label: m.label, value: running });
+    }
+    return series;
   }, [certificates, months]);
 
   const scoreByMonth = useMemo(() => {
@@ -322,7 +355,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ certific
                   }}
                   title={`${status}: ${count}`}
                 />
-              ) : null
+              ) : null,
             )}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">

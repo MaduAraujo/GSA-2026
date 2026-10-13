@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useEffectEvent } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DatePickerProps {
@@ -17,8 +17,18 @@ const POPUP_MARGIN = 8;
 
 const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const MONTH_LABELS = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
 ];
 
 function parseISODate(value: string): Date | null {
@@ -52,7 +62,15 @@ function getBoundsRect(el: HTMLElement | null): { top: number; left: number; rig
   return { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange, align = 'left', placeholder = 'Selecionar data', open, onOpenChange }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({
+  id,
+  value,
+  onChange,
+  align = 'left',
+  placeholder = 'Selecionar data',
+  open,
+  onOpenChange,
+}) => {
   const selectedDate = parseISODate(value);
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = open !== undefined;
@@ -70,34 +88,35 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange, ali
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+  const close = useEffectEvent(() => setIsOpen(false));
+
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen && selectedDate) setViewDate(selectedDate);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
-    if (selectedDate) setViewDate(selectedDate);
 
     const updatePosition = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
       const bounds = getBoundsRect(buttonRef.current);
       const popupHeight = popupRef.current?.offsetHeight || POPUP_HEIGHT;
-      const left = Math.min(
-        Math.max(rect.left, bounds.left + POPUP_MARGIN),
-        bounds.right - POPUP_WIDTH - POPUP_MARGIN
-      );
+      const left = Math.min(Math.max(rect.left, bounds.left + POPUP_MARGIN), bounds.right - POPUP_WIDTH - POPUP_MARGIN);
       const fitsBelow = rect.bottom + 8 + popupHeight <= bounds.bottom - POPUP_MARGIN;
-      const top = fitsBelow
-        ? rect.bottom + 8
-        : Math.max(bounds.top + POPUP_MARGIN, rect.top - popupHeight - 8);
+      const top = fitsBelow ? rect.bottom + 8 : Math.max(bounds.top + POPUP_MARGIN, rect.top - popupHeight - 8);
       setPopupPosition({ top, left });
     };
     updatePosition();
 
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+        close();
       }
     };
-    const handleScroll = () => setIsOpen(false);
+    const handleScroll = () => close();
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('resize', updatePosition);
     document.addEventListener('scroll', handleScroll, true);
@@ -207,13 +226,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({ id, value, onChange, ali
                     isSameDay(day)
                       ? 'bg-[#1A73E8] text-white font-bold'
                       : isToday(day)
-                      ? 'text-[#1A73E8] font-bold hover:bg-[#1A73E8]/10'
-                      : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-[#1A73E8] font-bold hover:bg-[#1A73E8]/10'
+                        : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   {day}
                 </button>
-              )
+              ),
             )}
           </div>
         </div>

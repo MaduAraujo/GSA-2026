@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CertificatesModule } from './CertificatesModule';
-import { Certificate } from '../types';
+import { type Certificate } from '../types';
 import { makeCertificate, makeProfile } from '../test/factories';
 
 vi.mock('canvas-confetti', () => ({ default: vi.fn() }));
@@ -45,7 +45,10 @@ describe('CertificatesModule', () => {
   it('filters certificates by category chip', async () => {
     const user = userEvent.setup();
     renderModule({
-      certificates: [makeCertificate({ id: 'c1', category: 'Google Cloud', title: 'Cert A' }), makeCertificate({ id: 'c2', category: 'Liderança', title: 'Cert B' })],
+      certificates: [
+        makeCertificate({ id: 'c1', category: 'Google Cloud', title: 'Cert A' }),
+        makeCertificate({ id: 'c2', category: 'Liderança', title: 'Cert B' }),
+      ],
     });
     await user.click(screen.getByRole('button', { name: 'Liderança' }));
     expect(screen.getByText('Cert B')).toBeInTheDocument();
@@ -55,7 +58,10 @@ describe('CertificatesModule', () => {
   it('toggles the favorites-only filter', async () => {
     const user = userEvent.setup();
     renderModule({
-      certificates: [makeCertificate({ id: 'c1', title: 'Favorito', isFavorite: true }), makeCertificate({ id: 'c2', title: 'Comum', isFavorite: false })],
+      certificates: [
+        makeCertificate({ id: 'c1', title: 'Favorito', isFavorite: true }),
+        makeCertificate({ id: 'c2', title: 'Comum', isFavorite: false }),
+      ],
     });
     const favBtn = screen.getByRole('button', { name: 'Favoritos' });
     expect(favBtn).toHaveAttribute('aria-pressed', 'false');
@@ -70,7 +76,7 @@ describe('CertificatesModule', () => {
     const { onSaveCertificate } = renderModule({ certificates: [makeCertificate({ isFavorite: false })] });
     await user.click(screen.getByLabelText('Favoritar certificado'));
     await waitFor(() => expect(onSaveCertificate).toHaveBeenCalledTimes(1));
-    const saved = (onSaveCertificate as ReturnType<typeof vi.fn>).mock.calls[0][0] as Certificate;
+    const saved = (onSaveCertificate as ReturnType<typeof vi.fn>).mock.calls[0]![0] as Certificate;
     expect(saved.isFavorite).toBe(true);
   });
 
@@ -86,7 +92,7 @@ describe('CertificatesModule', () => {
 
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(onSaveCertificate).toHaveBeenCalledTimes(1));
-    const saved = (onSaveCertificate as ReturnType<typeof vi.fn>).mock.calls[0][0] as Certificate;
+    const saved = (onSaveCertificate as ReturnType<typeof vi.fn>).mock.calls[0]![0] as Certificate;
     expect(saved.title).toBe('Certificação de IA');
     expect(saved.issuer).toBe('');
   });

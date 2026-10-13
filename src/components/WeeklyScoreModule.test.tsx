@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WeeklyScoreModule } from './WeeklyScoreModule';
-import { WeeklyScore } from '../types';
+import { type WeeklyScore } from '../types';
 import { makeWeeklyScore } from '../test/factories';
 
 describe('WeeklyScoreModule', () => {
@@ -20,7 +20,7 @@ describe('WeeklyScoreModule', () => {
         ]}
         onSaveWeeklyScore={vi.fn()}
         onDeleteWeeklyScore={vi.fn()}
-      />
+      />,
     );
     const rows = screen.getAllByText(/^\d{2}\/\d{2} a \d{2}\/\d{2}$/);
     expect(rows[0]).toHaveTextContent('01/09 a 07/09');
@@ -62,7 +62,7 @@ describe('WeeklyScoreModule', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(onSaveWeeklyScore).toHaveBeenCalledTimes(1));
-    const saved = onSaveWeeklyScore.mock.calls[0][0] as WeeklyScore;
+    const saved = onSaveWeeklyScore.mock.calls[0]![0] as WeeklyScore;
     expect(saved.points).toBe(80);
     expect(saved.weekStart).toMatch(/^\d{4}-\d{2}-10$/);
     expect(saved.weekEnd).toMatch(/^\d{4}-\d{2}-20$/);
@@ -93,7 +93,7 @@ describe('WeeklyScoreModule', () => {
         weeklyScores={[makeWeeklyScore({ id: 'w1', points: 145 })]}
         onSaveWeeklyScore={vi.fn()}
         onDeleteWeeklyScore={vi.fn()}
-      />
+      />,
     );
     await user.click(screen.getByLabelText('Editar pontuação'));
     expect(within(screen.getByRole('dialog')).getByText('Editar Pontuação')).toBeInTheDocument();
@@ -109,7 +109,7 @@ describe('WeeklyScoreModule', () => {
         weeklyScores={[makeWeeklyScore({ id: 'w1' })]}
         onSaveWeeklyScore={vi.fn()}
         onDeleteWeeklyScore={onDeleteWeeklyScore}
-      />
+      />,
     );
 
     await user.click(screen.getByLabelText('Excluir pontuação'));

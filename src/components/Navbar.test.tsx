@@ -1,13 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { Navbar } from './Navbar';
 import { makeProfile } from '../test/factories';
+import { renderWithProviders } from '../test/render';
 
 function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = {}) {
   const props = {
-    activeTab: 'certificates' as const,
-    setActiveTab: vi.fn(),
+    isMobileNavOpen: false,
+    onToggleMobileNav: vi.fn(),
     profile: makeProfile({ name: 'Ana Souza', email: 'ana@example.com' }),
     onOpenProfile: vi.fn(),
     onOpenAmbassadorArea: vi.fn(),
@@ -15,22 +16,18 @@ function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = 
     onSignOut: vi.fn(),
     ...overrides,
   };
-  render(<Navbar {...props} />);
+  renderWithProviders(<Navbar {...props} />);
   return props;
 }
 
 describe('Navbar', () => {
-  it('marks the active tab with aria-current', () => {
-    renderNavbar({ activeTab: 'prompts' });
-    expect(screen.getByRole('button', { name: 'Prompts' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('button', { name: 'Certificados' })).not.toHaveAttribute('aria-current');
-  });
-
-  it('calls setActiveTab with the clicked tab id', async () => {
+  it('toggles the mobile sidebar from the menu button', async () => {
     const user = userEvent.setup();
-    const { setActiveTab } = renderNavbar();
-    await user.click(screen.getByRole('button', { name: 'Desafios' }));
-    expect(setActiveTab).toHaveBeenCalledWith('challenges');
+    const { onToggleMobileNav } = renderNavbar();
+    const button = screen.getByRole('button', { name: 'Abrir menu' });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    await user.click(button);
+    expect(onToggleMobileNav).toHaveBeenCalledTimes(1);
   });
 
   it('opens the account menu and shows the profile name and email', async () => {
@@ -66,5 +63,19 @@ describe('Navbar', () => {
     await user.click(screen.getByLabelText('Abrir menu da conta'));
     await user.click(screen.getByText('Sair da conta'));
     expect(onSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('gains a shadow when the desktop content area (#app-scroll) scrolls', () => {
+    renderNavbar();
+    const scroller = document.createElement('div');
+    scroller.id = 'app-scroll';
+    document.body.appendChild(scroller);
+    const header = screen.getByRole('banner');
+    expect(header).not.toHaveClass('shadow-sm');
+
+    scroller.scrollTop = 50;
+    fireEvent.scroll(scroller);
+    expect(header).toHaveClass('shadow-sm');
+    scroller.remove();
   });
 });

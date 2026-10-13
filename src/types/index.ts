@@ -1,0 +1,222 @@
+export type CertificateCategory = string;
+
+export interface Certificate {
+  id: string;
+  title: string;
+  issuer: string;
+  issueDate: string;
+  category: CertificateCategory;
+  description: string;
+  fileData?: string;
+  fileName?: string;
+  fileType?: 'image' | 'pdf' | 'document';
+  skills: string[];
+  credentialUrl?: string;
+  credentialId?: string;
+  hours?: number;
+  minutes?: number;
+  isFavorite?: boolean;
+  createdAt: string;
+}
+
+export type CertificateItem = Certificate;
+export type PromptSection = string;
+
+export interface PromptItem {
+  id: string;
+  title: string;
+  promptText: string;
+  section: PromptSection;
+  description?: string;
+  tags: string[];
+  variables?: string[];
+  sharedDocs?: string[];
+  recommendedModel: 'gemini-3.7-flash' | 'gemini-3.1-pro-preview' | 'gemini-3.1-flash-lite';
+  isFavorite?: boolean;
+  usageCount: number;
+  lastUsed?: string;
+  createdAt: string;
+}
+
+export interface PromptDoc {
+  id: string;
+  name: string;
+  filePath: string;
+  fileData?: string;
+  downloadUrl?: string;
+  fileType: string;
+  fileSize?: number;
+  createdAt: string;
+}
+
+export type PostPlatform = 'LinkedIn' | 'Instagram' | 'Whatsapp';
+export type PostStatus = 'Rascunho' | 'Agendado' | 'Publicado';
+
+export interface SocialPost {
+  id: string;
+  title: string;
+  platform: PostPlatform;
+  status: PostStatus;
+  category: string;
+  tone: string;
+  content: string;
+  promptUsed?: string;
+  hashtags: string[];
+  visualIdea?: string;
+  scheduledDate?: string;
+  publishedUrl?: string;
+  likes?: number;
+  comments?: number;
+  score?: number;
+  socialLinks?: ChallengeSocialLink[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ChallengeStatus = 'Pendente' | 'Em Andamento' | 'Concluído';
+
+export type ChallengeCategory = string;
+
+export interface ChallengeSocialLink {
+  id: string;
+  platform: PostPlatform;
+  link: string;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  category: ChallengeCategory;
+  status: ChallengeStatus;
+  deadline?: string;
+  dates?: string[];
+  link?: string;
+  points?: number;
+  result?: string;
+  resultImage?: string;
+  resultMediaType?: 'image' | 'video';
+  resultLink?: string;
+  resultPlatform?: PostPlatform;
+  socialLinks?: ChallengeSocialLink[];
+  externalLink?: string;
+  linkedPostId?: string;
+  linkedPostIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GalleryCategory = string;
+
+export interface GalleryPhoto {
+  id: string;
+  imageData: string;
+  mediaType?: 'image' | 'video';
+  caption: string;
+  category: GalleryCategory;
+  takenAt?: string;
+  createdAt: string;
+}
+
+export interface SessionFile {
+  id: string;
+  name: string;
+  dataUrl: string;
+  fileType: string;
+  fileSize?: number;
+}
+
+export interface AmbassadorSession {
+  id: string;
+  title: string;
+  date: string;
+  challenge?: string;
+  challengeFiles?: SessionFile[];
+  toolLearned: string;
+  proofImage?: string;
+  proofMediaType?: 'image' | 'video';
+  score?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeeklyScore {
+  id: string;
+  weekStart: string;
+  weekEnd: string;
+  points: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReferenceLink {
+  id: string;
+  title: string;
+  url: string;
+  sharedBy?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DeadlineCategory = 'Desafio' | 'Sessão' | 'Post' | 'Outro';
+
+export interface ProgramDeadline {
+  id: string;
+  title: string;
+  date: string;
+  category: DeadlineCategory;
+  notes?: string;
+  points?: number;
+  week?: number;
+  isCompleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type EventDuration = 30 | 45 | 60;
+
+export interface HostedEvent {
+  id: string;
+  title: string;
+  date: string;
+  durationMinutes: EventDuration;
+  format?: string;
+  location?: string;
+  notes?: string;
+  participants?: number;
+  checklistDone: string[];
+  validationDone: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserBadge {
+  badgeId: string;
+  unlockedAt: string;
+}
+
+export interface AmbassadorProfile {
+  name: string;
+  role: string;
+  cohort?: string;
+  university: string;
+  course: string;
+  bio: string;
+  avatarUrl: string;
+  email?: string;
+  linkedInUrl?: string;
+  githubUrl?: string;
+  instagramUrl?: string;
+  goal2026: string;
+  isPublic?: boolean;
+  publicSlug?: string;
+  ambassadorSealUrl?: string;
+}
+
+export interface PushSubscriptionKeys {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}

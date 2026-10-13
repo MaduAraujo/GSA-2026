@@ -1,0 +1,11 @@
+dist
+coverage
+node_modules
+playwright-report
+test-results
+package-lock.json
+src/types/database.ts
+supabase/.temp
+.claude
+.mcp.json
+supabase/config.toml

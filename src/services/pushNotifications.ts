@@ -58,7 +58,7 @@ export const PushNotificationsService = {
       const key = urlBase64ToUint8Array(publicKey);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: key as unknown as BufferSource, 
+        applicationServerKey: key as unknown as BufferSource,
       });
     }
 

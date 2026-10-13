@@ -1,13 +1,14 @@
 import {
-  AmbassadorProfile,
-  AmbassadorSession,
-  Certificate,
-  Challenge,
-  GeminiPost,
-  PromptItem,
-  WeeklyScore,
-  ReferenceLink,
-  ProgramDeadline,
+  type AmbassadorProfile,
+  type AmbassadorSession,
+  type Certificate,
+  type Challenge,
+  type SocialPost,
+  type PromptItem,
+  type WeeklyScore,
+  type ReferenceLink,
+  type HostedEvent,
+  type ProgramDeadline,
 } from '../types';
 
 export function makeProfile(overrides: Partial<AmbassadorProfile> = {}): AmbassadorProfile {
@@ -53,7 +54,7 @@ export function makePrompt(overrides: Partial<PromptItem> = {}): PromptItem {
   };
 }
 
-export function makePost(overrides: Partial<GeminiPost> = {}): GeminiPost {
+export function makePost(overrides: Partial<SocialPost> = {}): SocialPost {
   return {
     id: 'post-1',
     title: 'Conquista desbloqueada',
@@ -127,6 +128,20 @@ export function makeProgramDeadline(overrides: Partial<ProgramDeadline> = {}): P
     date: '2026-09-30',
     category: 'Desafio',
     isCompleted: false,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    updatedAt: '2026-09-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function makeHostedEvent(overrides: Partial<HostedEvent> = {}): HostedEvent {
+  return {
+    id: 'event-1',
+    title: 'Engenharia de Prompts',
+    date: '2026-09-20',
+    durationMinutes: 60,
+    checklistDone: [],
+    validationDone: [],
     createdAt: '2026-09-01T00:00:00.000Z',
     updatedAt: '2026-09-01T00:00:00.000Z',
     ...overrides,

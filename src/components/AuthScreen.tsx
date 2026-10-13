@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { isPasswordLeaked } from '../utils/passwordSecurity';
+import { errorMessage } from '../utils/errors';
 
 interface AuthScreenProps {
   initialMode?: 'signIn' | 'signUp';
@@ -37,7 +38,12 @@ const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', onBack, isDarkMode, onToggleDarkMode }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({
+  initialMode = 'signIn',
+  onBack,
+  isDarkMode,
+  onToggleDarkMode,
+}) => {
   const reduceMotion = useReducedMotion();
   const [mode, setMode] = useState<'signIn' | 'signUp' | 'forgotPassword'>(initialMode);
   const [email, setEmail] = useState('');
@@ -64,8 +70,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
       });
       if (resetError) throw resetError;
       setResetSent(true);
-    } catch (err: any) {
-      setError(err.message || 'Não foi possível enviar o link. Tente novamente.');
+    } catch (err) {
+      setError(errorMessage(err, 'Não foi possível enviar o link. Tente novamente.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -86,16 +92,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
         if (signInError) throw signInError;
       } else {
         if (await isPasswordLeaked(password)) {
-          throw new Error(
-            'Essa senha já apareceu em vazamentos conhecidos. Escolha outra senha para sua segurança.'
-          );
+          throw new Error('Essa senha já apareceu em vazamentos conhecidos. Escolha outra senha para sua segurança.');
         }
         const { error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
         setInfoMessage('Conta criada! Verifique seu e-mail para confirmar o cadastro, se necessário.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Não foi possível autenticar. Tente novamente.');
+    } catch (err) {
+      setError(errorMessage(err, 'Não foi possível autenticar. Tente novamente.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -163,8 +167,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
                 <div className="space-y-1.5">
                   <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Verifique seu e-mail</h2>
                   <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                    Enviamos um link de redefinição para <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span>.
-                    Abra o link para criar uma nova senha.
+                    Enviamos um link de redefinição para{' '}
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span>. Abra o link para
+                    criar uma nova senha.
                   </p>
                 </div>
 
@@ -196,148 +201,156 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
               </motion.div>
             ) : (
               <>
-            <div className="text-center space-y-1">
-              <div className="mx-auto w-11 h-11 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
-                {mode === 'signIn' && <LogIn className="w-5 h-5" />}
-                {mode === 'signUp' && <UserPlus className="w-5 h-5" />}
-                {mode === 'forgotPassword' && <KeyRound className="w-5 h-5" />}
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {mode === 'signIn' && 'Entre para acessar seus dados'}
-                {mode === 'signUp' && 'Crie sua conta para começar'}
-                {mode === 'forgotPassword' && 'Informe seu e-mail para receber o link de redefinição'}
-              </p>
-            </div>
-
-            {mode !== 'forgotPassword' && (
-              <div className="relative flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
-                <motion.div
-                  className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-white dark:bg-gray-700 shadow-xs"
-                  initial={false}
-                  animate={{ x: mode === 'signIn' ? 4 : 'calc(100% + 4px)' }}
-                  transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => switchMode('signIn')}
-                  className={`relative z-10 flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-                    mode === 'signIn'
-                      ? 'text-gray-900 dark:text-gray-100'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  Entrar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchMode('signUp')}
-                  className={`relative z-10 flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-                    mode === 'signUp'
-                      ? 'text-gray-900 dark:text-gray-100'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  Criar conta
-                </button>
-              </div>
-            )}
-
-            {error && (
-              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {infoMessage && (
-              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20 text-xs font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{infoMessage}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-800 dark:text-gray-300 uppercase tracking-wider mb-1">
-                  E-mail
-                </label>
-                <div className="group relative">
-                  <Mail className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                  />
+                <div className="text-center space-y-1">
+                  <div className="mx-auto w-11 h-11 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                    {mode === 'signIn' && <LogIn className="w-5 h-5" />}
+                    {mode === 'signUp' && <UserPlus className="w-5 h-5" />}
+                    {mode === 'forgotPassword' && <KeyRound className="w-5 h-5" />}
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {mode === 'signIn' && 'Entre para acessar seus dados'}
+                    {mode === 'signUp' && 'Crie sua conta para começar'}
+                    {mode === 'forgotPassword' && 'Informe seu e-mail para receber o link de redefinição'}
+                  </p>
                 </div>
-              </div>
 
-              {mode !== 'forgotPassword' && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-800 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    Senha
-                  </label>
-                  <div className="group relative">
-                    <Lock className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                {mode !== 'forgotPassword' && (
+                  <div className="relative flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
+                    <motion.div
+                      className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-white dark:bg-gray-700 shadow-xs"
+                      initial={false}
+                      animate={{ x: mode === 'signIn' ? 4 : 'calc(100% + 4px)' }}
+                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                      onClick={() => switchMode('signIn')}
+                      className={`relative z-10 flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                        mode === 'signIn'
+                          ? 'text-gray-900 dark:text-gray-100'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      Entrar
                     </button>
-                  </div>
-                  {mode === 'signIn' && (
                     <button
                       type="button"
-                      onClick={() => switchMode('forgotPassword')}
-                      className="mt-1.5 text-xs font-semibold text-blue-600 hover:underline"
+                      onClick={() => switchMode('signUp')}
+                      className={`relative z-10 flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
+                        mode === 'signUp'
+                          ? 'text-gray-900 dark:text-gray-100'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
                     >
-                      Esqueceu a senha?
+                      Criar conta
                     </button>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {infoMessage && (
+                  <div className="p-3 rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20 text-xs font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{infoMessage}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="auth-e-mail"
+                      className="block text-xs font-bold text-gray-800 dark:text-gray-300 uppercase tracking-wider mb-1"
+                    >
+                      E-mail
+                    </label>
+                    <div className="group relative">
+                      <Mail className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="auth-e-mail"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      />
+                    </div>
+                  </div>
+
+                  {mode !== 'forgotPassword' && (
+                    <div>
+                      <label
+                        htmlFor="auth-senha"
+                        className="block text-xs font-bold text-gray-800 dark:text-gray-300 uppercase tracking-wider mb-1"
+                      >
+                        Senha
+                      </label>
+                      <div className="group relative">
+                        <Lock className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          id="auth-senha"
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          minLength={6}
+                          autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {mode === 'signIn' && (
+                        <button
+                          type="button"
+                          onClick={() => switchMode('forgotPassword')}
+                          className="mt-1.5 text-xs font-semibold text-blue-600 hover:underline"
+                        >
+                          Esqueceu a senha?
+                        </button>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSubmitting
-                  ? 'Aguarde...'
-                  : mode === 'signIn'
-                  ? 'Entrar'
-                  : mode === 'signUp'
-                  ? 'Criar conta'
-                  : 'Enviar'}
-              </button>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isSubmitting
+                      ? 'Aguarde...'
+                      : mode === 'signIn'
+                        ? 'Entrar'
+                        : mode === 'signUp'
+                          ? 'Criar conta'
+                          : 'Enviar'}
+                  </button>
+                </form>
 
-            {mode === 'forgotPassword' && (
-              <p className="text-center text-xs text-gray-600 dark:text-gray-400">
-                <button
-                  type="button"
-                  onClick={() => switchMode('signIn')}
-                  className="font-semibold text-blue-600 hover:underline"
-                >
-                  Voltar para o login
-                </button>
-              </p>
-            )}
+                {mode === 'forgotPassword' && (
+                  <p className="text-center text-xs text-gray-600 dark:text-gray-400">
+                    <button
+                      type="button"
+                      onClick={() => switchMode('signIn')}
+                      className="font-semibold text-blue-600 hover:underline"
+                    >
+                      Voltar para o login
+                    </button>
+                  </p>
+                )}
               </>
             )}
           </div>

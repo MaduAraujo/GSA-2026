@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link2, Plus, X, Trash2, Pencil, Loader2, StickyNote, ExternalLink, User } from 'lucide-react';
-import { ReferenceLink } from '../types';
+import { type ReferenceLink } from '../types';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { isHttpUrl } from '../utils/safeUrl';
 
@@ -23,7 +23,10 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
   onDeleteReferenceLink,
 }) => {
   const [isFormOpen, setIsFormOpen] = usePersistedState('gsa_reference_link_modal_open', false);
-  const [formData, setFormData] = usePersistedState<Partial<ReferenceLink>>('gsa_reference_link_form_draft', DEFAULT_FORM);
+  const [formData, setFormData] = usePersistedState<Partial<ReferenceLink>>(
+    'gsa_reference_link_form_draft',
+    DEFAULT_FORM,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -92,11 +95,11 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isFormOpen]);
+  }, [isFormOpen, setIsFormOpen]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 pt-15">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
             <Link2 className="w-6 h-6 text-[#1A73E8]" />
@@ -197,7 +200,11 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
       )}
 
       {isFormOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
             <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
@@ -223,10 +230,14 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="referencelinks-titulo"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Título *
                   </label>
                   <input
+                    id="referencelinks-titulo"
                     type="text"
                     required
                     value={formData.title || ''}
@@ -236,10 +247,14 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="referencelinks-link"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Link *
                   </label>
                   <input
+                    id="referencelinks-link"
                     type="url"
                     required
                     value={formData.url || ''}
@@ -250,10 +265,14 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="referencelinks-compartilhado-por"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Compartilhado por
                   </label>
                   <input
+                    id="referencelinks-compartilhado-por"
                     type="text"
                     value={formData.sharedBy || ''}
                     onChange={(e) => setFormData({ ...formData, sharedBy: e.target.value })}
@@ -262,10 +281,14 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  <label
+                    htmlFor="referencelinks-observacoes"
+                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
+                  >
                     Observações
                   </label>
                   <textarea
+                    id="referencelinks-observacoes"
                     value={formData.notes || ''}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={3}
@@ -274,7 +297,10 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                 </div>
 
                 {formError && (
-                  <p role="alert" className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5">
+                  <p
+                    role="alert"
+                    className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5"
+                  >
                     {formError}
                   </p>
                 )}

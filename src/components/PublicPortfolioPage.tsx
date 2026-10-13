@@ -1,49 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { Award, Clock, Calendar, ExternalLink, FileText, Loader2, ShieldAlert } from 'lucide-react';
-import { AmbassadorProfile, Certificate } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import type React from 'react';
+import { Award, Clock, Calendar, ExternalLink, Loader2, ShieldAlert } from 'lucide-react';
 import { SupabaseStorageService } from '../services/supabaseStorage';
 import { formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
 import { isHttpUrl } from '../utils/safeUrl';
+import { formatDateBR } from '../utils/date';
 
 interface PublicPortfolioPageProps {
   slug: string;
 }
 
-function formatDateBR(isoDate: string): string {
-  const [year, month, day] = (isoDate || '').split('-');
-  if (!year || !month || !day) return isoDate || '';
-  return `${day}/${month}/${year}`;
-}
-
 export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }) => {
-  const [profile, setProfile] = useState<AmbassadorProfile | null>(null);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'not-found' | 'error'>('loading');
+  const { data, status } = useQuery({
+    queryKey: ['public-portfolio', slug],
+    queryFn: async () => {
+      const found = await SupabaseStorageService.getPublicProfileBySlug(slug);
+      if (!found) return null;
+      const certificates = await SupabaseStorageService.getPublicCertificates(found.userId);
+      return { profile: found.profile, certificates };
+    },
+    retry: false,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const found = await SupabaseStorageService.getPublicProfileBySlug(slug);
-        if (cancelled) return;
-        if (!found) {
-          setStatus('not-found');
-          return;
-        }
-        setProfile(found.profile);
-        const certs = await SupabaseStorageService.getPublicCertificates(found.userId);
-        if (!cancelled) setCertificates(certs);
-        if (!cancelled) setStatus('ready');
-      } catch {
-        if (!cancelled) setStatus('error');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
-
-  if (status === 'loading') {
+  if (status === 'pending') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="w-6 h-6 animate-spin text-[#1A73E8]" />
@@ -51,20 +30,19 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
     );
   }
 
-  if (status === 'not-found' || status === 'error' || !profile) {
+  if (status === 'error' || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
         <div className="text-center space-y-3 max-w-sm">
           <ShieldAlert className="w-10 h-10 text-gray-300 mx-auto" />
           <h1 className="text-lg font-bold text-gray-900">Portfólio não encontrado</h1>
-          <p className="text-sm text-gray-500">
-            Este link pode estar incorreto ou o portfólio não está mais público.
-          </p>
+          <p className="text-sm text-gray-500">Este link pode estar incorreto ou o portfólio não está mais público.</p>
         </div>
       </div>
     );
   }
 
+  const { profile, certificates } = data;
   const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
 
   return (
@@ -79,7 +57,10 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
           <img
-            src={profile.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+            src={
+              profile.avatarUrl ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+            }
             alt={profile.name}
             className="w-20 h-20 rounded-2xl object-cover ring-2 ring-[#1A73E8]/20 shrink-0"
           />
@@ -88,7 +69,9 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
               Embaixadora Estudantil Google 2026
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{profile.name}</h1>
-            <p className="text-sm text-gray-600 mt-0.5">{profile.role} • {profile.university}</p>
+            <p className="text-sm text-gray-600 mt-0.5">
+              {profile.role} • {profile.university}
+            </p>
             {profile.bio && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{profile.bio}</p>}
 
             <div className="flex items-center justify-center sm:justify-start gap-4 mt-4">
@@ -133,7 +116,9 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
                         <Clock className="w-3 h-3 text-[#34A853]" />
                         {formatDuration(cert.hours, cert.minutes)}
                       </span>
-                    ) : <span />}
+                    ) : (
+                      <span />
+                    )}
                     {isHttpUrl(cert.credentialUrl) && (
                       <a
                         href={cert.credentialUrl}
