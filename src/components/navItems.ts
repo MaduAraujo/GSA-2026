@@ -3,10 +3,12 @@ import {
   BookOpen,
   BarChart3,
   CalendarClock,
+  CalendarDays,
   Camera,
   FileText,
   Flag,
   GraduationCap,
+  History,
   Headset,
   Link2,
   ScrollText,
@@ -34,6 +36,8 @@ export const NAV_ITEMS: Array<{ id: AppTab; label: string; icon: typeof Award; c
 ];
 
 export const PAGE_ITEMS: Array<{ id: AppPage; label: string; icon: typeof Award }> = [
+  { id: 'agenda', label: 'Agenda', icon: CalendarDays },
+  { id: 'pastSessions', label: 'Acervo de Encontros', icon: History },
   { id: 'guidelines', label: 'Diretrizes', icon: ScrollText },
   { id: 'support', label: 'Suporte', icon: Headset },
 ];

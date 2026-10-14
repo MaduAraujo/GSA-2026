@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Settings, Menu, X, LogOut, ChevronDown, Globe, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router';
+import { User, Settings, Menu, X, LogOut, ChevronDown, Globe, ShieldCheck, Trophy } from 'lucide-react';
 import type { AmbassadorProfile } from '../types';
-import type { AppTab } from '../routes';
+import { PAGE_PATHS, type AppTab } from '../routes';
 import { OFFICIAL_SITE_URL } from './navItems';
 
 export type { AppTab };
@@ -103,6 +104,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex items-center gap-0.5 ml-auto">
+            <Link to={PAGE_PATHS.levels} aria-label="Níveis" title="Níveis" className={iconBtnClass}>
+              <Trophy className="w-5 h-5 text-[#F9AB00]" />
+            </Link>
+
             <div className="relative" ref={accountMenuRef}>
               <button
                 id="account-menu-btn"

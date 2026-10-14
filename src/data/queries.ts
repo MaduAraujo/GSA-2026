@@ -13,6 +13,7 @@ import type {
   PromptDoc,
   PromptItem,
   ReferenceLink,
+  SessionSummary,
   SocialPost,
   UserBadge,
   WeeklyScore,
@@ -30,6 +31,7 @@ export interface Collections {
   referenceLinks: ReferenceLink[];
   deadlines: ProgramDeadline[];
   hostedEvents: HostedEvent[];
+  sessionSummaries: SessionSummary[];
   userBadges: UserBadge[];
 }
 
@@ -47,6 +49,7 @@ const fetchers: { [K in CollectionName]: () => Promise<Collections[K]> } = {
   referenceLinks: () => Storage.getReferenceLinks(),
   deadlines: () => Storage.getProgramDeadlines(),
   hostedEvents: () => Storage.getHostedEvents(),
+  sessionSummaries: () => Storage.getSessionSummaries(),
   userBadges: () => Storage.getUserBadges(),
 };
 

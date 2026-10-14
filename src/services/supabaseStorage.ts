@@ -5,6 +5,7 @@ import * as profile from './storage/profile';
 import * as program from './storage/program';
 import * as prompts from './storage/prompts';
 import * as push from './storage/push';
+import * as sessionSummaries from './storage/sessionSummaries';
 
 export const SupabaseStorageService = {
   ...profile,
@@ -14,6 +15,7 @@ export const SupabaseStorageService = {
   ...media,
   ...program,
   ...push,
+  ...sessionSummaries,
   exportAllData: async () => (await import('./storage/backup')).exportAllData(),
   importAllData: async (json: string) => (await import('./storage/backup')).importAllData(json),
 };

@@ -192,6 +192,14 @@ export interface HostedEvent {
   updatedAt: string;
 }
 
+export interface SessionSummary {
+  sessionId: string;
+  fileName: string;
+  filePath: string;
+  url?: string;
+  createdAt: string;
+}
+
 export interface UserBadge {
   badgeId: string;
   unlockedAt: string;

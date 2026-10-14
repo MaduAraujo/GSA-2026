@@ -21,6 +21,11 @@ function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = 
 }
 
 describe('Navbar', () => {
+  it('links the trophy next to the profile photo to the levels page', () => {
+    renderNavbar();
+    expect(screen.getByRole('link', { name: 'Níveis' })).toHaveAttribute('href', '/niveis');
+  });
+
   it('toggles the mobile sidebar from the menu button', async () => {
     const user = userEvent.setup();
     const { onToggleMobileNav } = renderNavbar();

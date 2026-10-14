@@ -30,6 +30,20 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Suporte' })).not.toHaveAttribute('aria-current');
   });
 
+  it('links Agenda to the agenda page', () => {
+    renderWithProviders(<Sidebar activeTab={null} activePage="agenda" />);
+    const link = screen.getByRole('link', { name: 'Agenda' });
+    expect(link).toHaveAttribute('href', '/agenda');
+    expect(link).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('links Acervo de Encontros to the past sessions page', () => {
+    renderWithProviders(<Sidebar activeTab={null} activePage="pastSessions" />);
+    const link = screen.getByRole('link', { name: 'Acervo de Encontros' });
+    expect(link).toHaveAttribute('href', '/acervo');
+    expect(link).toHaveAttribute('aria-current', 'page');
+  });
+
   it('collapses to icons only and remembers the choice', async () => {
     const user = userEvent.setup();
     const { unmount } = renderWithProviders(<Sidebar activeTab="certificates" />);

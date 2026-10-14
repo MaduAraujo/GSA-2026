@@ -52,6 +52,9 @@ const AmbassadorAreaModal = lazy(() =>
 const SettingsModal = lazy(() => import('../components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
 
 const PAGE_COMPONENTS: Record<AppPage, LazyExoticComponent<ComponentType>> = {
+  agenda: lazy(() => import('../components/AgendaPage').then((m) => ({ default: m.AgendaPage }))),
+  pastSessions: lazy(() => import('../components/PastSessionsPage').then((m) => ({ default: m.PastSessionsPage }))),
+  levels: lazy(() => import('../components/LevelsPage').then((m) => ({ default: m.LevelsPage }))),
   guidelines: lazy(() => import('../components/GuidelinesPage').then((m) => ({ default: m.GuidelinesPage }))),
   support: lazy(() => import('../components/SupportPage').then((m) => ({ default: m.SupportPage }))),
 };
@@ -161,7 +164,7 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
           onMobileClose={closeMobileNav}
         />
 
-        <div id="app-scroll" className="flex-1 min-w-0 flex flex-col md:overflow-y-auto md:overscroll-contain">
+        <div id="app-scroll" className="relative flex-1 min-w-0 flex flex-col md:overflow-y-auto md:overscroll-contain">
           <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
             {isInitialLoad ? (
               <div className="space-y-6 animate-pulse" role="status" aria-label="Carregando seus dados">

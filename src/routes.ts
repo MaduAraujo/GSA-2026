@@ -34,12 +34,18 @@ export const ROUTES = {
   about: '/sobre',
   portfolio: '/p/:slug',
   support: '/suporte',
+  agenda: '/agenda',
+  pastSessions: '/acervo',
+  levels: '/niveis',
   guidelines: '/diretrizes',
 } as const;
 
-export type AppPage = 'guidelines' | 'support';
+export type AppPage = 'agenda' | 'pastSessions' | 'levels' | 'guidelines' | 'support';
 
 export const PAGE_PATHS: Record<AppPage, string> = {
+  agenda: ROUTES.agenda,
+  pastSessions: ROUTES.pastSessions,
+  levels: ROUTES.levels,
   guidelines: ROUTES.guidelines,
   support: ROUTES.support,
 };

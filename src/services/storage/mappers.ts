@@ -17,6 +17,7 @@ import type {
   PromptItem,
   ReferenceLink,
   SessionFile,
+  SessionSummary,
   SocialPost,
   UserBadge,
   WeeklyScore,
@@ -542,5 +543,15 @@ export function hostedEventToRow(event: HostedEvent, userId: string): TablesInse
     validation_done: event.validationDone,
     created_at: event.createdAt,
     updated_at: event.updatedAt,
+  };
+}
+
+export function rowToSessionSummary(row: Tables<'session_summaries'>, signedUrls: SignedUrls): SessionSummary {
+  return {
+    sessionId: row.session_id,
+    fileName: row.file_name,
+    filePath: row.file_path,
+    url: signedUrls.get(row.file_path),
+    createdAt: row.created_at,
   };
 }
