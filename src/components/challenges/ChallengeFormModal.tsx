@@ -10,7 +10,7 @@ import { planChallengeSave, RESULT_PLATFORMS, STATUSES } from './challengeModel'
 import type { ChallengeFormState } from './useChallengeForm';
 
 const MAX_RESULT_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
-const MAX_RESULT_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // Supabase Free plan caps uploads at 50MB
+const MAX_RESULT_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 
 interface ChallengeFormModalProps {
   form: ChallengeFormState;

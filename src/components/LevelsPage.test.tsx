@@ -33,8 +33,8 @@ describe('LevelsView', () => {
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
       `VOCÊ ESTÁ A ${left} PONTOS PARA DESBLOQUEAR O PRÓXIMO NÍVEL NO PROGRAMA`,
     );
-    expect(screen.getByText('Nível atual').nextSibling).toHaveTextContent('Expert de Comunidade');
-    expect(screen.getByText('Próximo marco!').nextSibling).toHaveTextContent('Catalisador(a)');
+    expect(screen.getByText('Nível Atual').nextSibling).toHaveTextContent('Expert de Comunidade');
+    expect(screen.getByText('Próximo Marco!').nextSibling).toHaveTextContent('Catalisador(a)');
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(levelProgress(points).percent));
     expect(screen.getAllByRole('listitem')[1]).toHaveAttribute('aria-current', 'step');
   });

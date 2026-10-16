@@ -1,6 +1,6 @@
 import { Compass, Rocket, Users } from 'lucide-react';
 
-export const LEVEL_MIN_POINTS = [0, 500, 1000] as const;
+export const LEVEL_MIN_POINTS = [0, 500, 1200] as const;
 
 export const LEVELS = [
   {

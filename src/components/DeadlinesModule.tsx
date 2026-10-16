@@ -153,7 +153,6 @@ const MonthGroup: React.FC<MonthGroupProps> = ({
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  {/* Título em uma linha só (com reticências), e o selo de categoria sempre à direita dele. */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <p

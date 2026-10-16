@@ -20,7 +20,7 @@ const DEFAULT_FORM: Partial<GalleryPhoto> = {
 };
 
 const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
-const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // Supabase Free plan caps uploads at 50MB
+const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 
 export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhoto, onDeletePhoto }) => {
   const [searchQuery, setSearchQuery] = useState('');

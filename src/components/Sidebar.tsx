@@ -115,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        <nav className="sidebar-scroll flex-1 min-h-0 px-2 py-2 md:py-0 space-y-1">
+        <nav className="sidebar-scroll min-h-0 md:flex-1 px-2 py-2 md:py-0 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;

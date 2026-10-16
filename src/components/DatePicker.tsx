@@ -11,8 +11,8 @@ interface DatePickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const POPUP_WIDTH = 288; // w-72
-const POPUP_HEIGHT = 336; // approx rendered height of the calendar popup
+const POPUP_WIDTH = 288;
+const POPUP_HEIGHT = 336;
 const POPUP_MARGIN = 8;
 
 const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
