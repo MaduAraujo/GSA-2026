@@ -84,9 +84,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id="app-sidebar"
         aria-label="Navegação principal"
         inert={!isDesktop && !mobileOpen}
-        className={`flex flex-col shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-200 ${
+        className={`flex flex-col shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 fixed top-0 left-0 z-50 w-72 max-h-dvh border-b rounded-br-2xl transition-transform duration-200 ${
           mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-        } md:static md:inset-auto md:z-auto md:h-auto md:translate-x-0 md:shadow-none md:transition-[width] ${
+        } md:static md:inset-auto md:z-auto md:h-auto md:max-h-none md:border-b-0 md:rounded-none md:translate-x-0 md:shadow-none md:transition-[width] ${
           collapsed ? 'md:w-17' : 'md:w-60'
         }`}
       >

@@ -80,7 +80,24 @@ export const PAST_SESSIONS: PastSession[] = [
     id: 'gemini-05-apps-conectados',
     title: 'Apps conectados',
     series: 'Sessão 05 de Google Gemini',
-    date: '01/10',
+    date: '13/10',
     people: [{ role: 'Team Leaders', names: 'Fabi Gontijo G4, Estêvão Zilioli (Time Amplifica)' }],
+  },
+  {
+    id: 'masterclass-creator-02',
+    title: 'Leo Candido',
+    series: 'Masterclass com Creator #2',
+    date: '16/10',
+    people: [
+      { role: 'Creator', names: 'Leo Candido' },
+      { role: 'Team Leader', names: 'Iolanda França' },
+    ],
+  },
+  {
+    id: 'unboxing-oficial-dicas-facilitacao',
+    title: 'Dicas de facilitação',
+    series: 'Unboxing Oficial',
+    date: '20/10',
+    people: [{ role: 'Team Leaders', names: 'Dani Veronezi (Time Amplifica), Eduardo Aquino (Time Amplifica)' }],
   },
 ];
