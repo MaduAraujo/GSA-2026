@@ -84,9 +84,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id="app-sidebar"
         aria-label="Navegação principal"
         inert={!isDesktop && !mobileOpen}
-        className={`flex flex-col shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 fixed top-0 left-0 z-50 w-72 max-h-dvh border-b rounded-br-2xl transition-transform duration-200 ${
+        className={`flex flex-col shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 fixed top-0 left-0 z-50 w-72 max-h-dvh overflow-y-auto overscroll-contain border-b rounded-br-2xl transition-transform duration-200 ${
           mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-        } md:static md:inset-auto md:z-auto md:h-auto md:max-h-none md:border-b-0 md:rounded-none md:translate-x-0 md:shadow-none md:transition-[width] ${
+        } md:static md:inset-auto md:z-auto md:h-auto md:max-h-none md:overflow-visible md:border-b-0 md:rounded-none md:translate-x-0 md:shadow-none md:transition-[width] ${
           collapsed ? 'md:w-17' : 'md:w-60'
         }`}
       >
@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+          <div className="sticky top-0 z-10 shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Menu</span>
             <button
               onClick={onMobileClose}
@@ -115,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        <nav className="sidebar-scroll min-h-0 md:flex-1 px-2 py-2 md:py-0 space-y-1">
+        <nav className="sidebar-scroll shrink-0 md:shrink md:min-h-0 md:flex-1 px-2 py-2 md:py-0 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
