@@ -14,12 +14,15 @@ export default function CertificatesTab() {
   const prompts = useCollectionData('prompts');
   const posts = useCollectionData('posts');
   const userBadges = useCollectionData('userBadges');
+  const levelBadges = useCollection('levelBadges');
   const { data: profile } = useProfile();
 
   const saveCertificate = useCollectionMutation(['certificates'], Storage.saveCertificate, () =>
     syncBadges({ silent: false }),
   );
   const deleteCertificate = useCollectionMutation(['certificates'], Storage.deleteCertificate);
+  const uploadLevelBadge = useCollectionMutation(['levelBadges'], Storage.uploadLevelBadge);
+  const deleteLevelBadge = useCollectionMutation(['levelBadges'], Storage.deleteLevelBadge);
 
   if (certificates.isPending || !profile) return <TabSkeleton />;
 
@@ -29,7 +32,11 @@ export default function CertificatesTab() {
       prompts={prompts}
       posts={posts}
       userBadges={userBadges}
+      levelBadges={levelBadges.data ?? []}
+      isLevelBadgesLoading={levelBadges.isPending}
       profile={profile}
+      onUploadLevelBadge={uploadLevelBadge}
+      onDeleteLevelBadge={deleteLevelBadge}
       onSaveCertificate={saveCertificate}
       onDeleteCertificate={deleteCertificate}
       onCreatePostFromCertificate={(cert: Certificate) =>

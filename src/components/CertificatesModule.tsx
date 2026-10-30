@@ -16,13 +16,14 @@ import {
 import { useRef, useState } from 'react';
 import { useDismiss } from '../hooks/useDismiss';
 import { usePersistedState } from '../hooks/usePersistedState';
-import type { AmbassadorProfile, Certificate, PromptItem, SocialPost, UserBadge } from '../types';
+import type { AmbassadorProfile, Certificate, LevelBadge, PromptItem, SocialPost, UserBadge } from '../types';
 import { certHoursDecimal, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
 import { BadgesShowcase } from './BadgesShowcase';
 import { CertificateDetailModal } from './certificates/CertificateDetailModal';
 import { CertificateExportModal } from './certificates/CertificateExportModal';
 import { CertificateFormModal } from './certificates/CertificateFormModal';
 import { CertificateGrid, CertificateTable } from './certificates/CertificateViews';
+import { LevelBadgesSection } from './certificates/LevelBadgesSection';
 import { useCertificateForm } from './certificates/useCertificateForm';
 
 interface CertificatesModuleProps {
@@ -30,7 +31,11 @@ interface CertificatesModuleProps {
   prompts: PromptItem[];
   posts: SocialPost[];
   userBadges: UserBadge[];
+  levelBadges: LevelBadge[];
+  isLevelBadgesLoading: boolean;
   profile: AmbassadorProfile;
+  onUploadLevelBadge: (level: number, file: File) => Promise<void>;
+  onDeleteLevelBadge: (badge: LevelBadge) => Promise<void>;
   onSaveCertificate: (cert: Certificate) => Promise<void>;
   onDeleteCertificate: (id: string) => Promise<void>;
   onCreatePostFromCertificate: (cert: Certificate) => void;
@@ -88,7 +93,11 @@ export function CertificatesModule({
   prompts,
   posts,
   userBadges,
+  levelBadges,
+  isLevelBadgesLoading,
   profile,
+  onUploadLevelBadge,
+  onDeleteLevelBadge,
   onSaveCertificate,
   onDeleteCertificate,
   onCreatePostFromCertificate,
@@ -236,6 +245,14 @@ export function CertificatesModule({
       )}
 
       <BadgesShowcase certificates={certificates} prompts={prompts} posts={posts} userBadges={userBadges} />
+
+      <LevelBadgesSection
+        level={2}
+        badges={levelBadges}
+        isLoading={isLevelBadgesLoading}
+        onUpload={onUploadLevelBadge}
+        onDelete={onDeleteLevelBadge}
+      />
 
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">

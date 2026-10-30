@@ -200,6 +200,15 @@ export interface SessionSummary {
   createdAt: string;
 }
 
+export interface LevelBadge {
+  id: string;
+  level: number;
+  fileName: string;
+  filePath: string;
+  url?: string;
+  createdAt: string;
+}
+
 export interface UserBadge {
   badgeId: string;
   unlockedAt: string;

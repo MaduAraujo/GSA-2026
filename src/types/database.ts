@@ -577,6 +577,33 @@ export type Database = {
         }
         Relationships: []
       }
+      level_badges: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          level: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          level?: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          level?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       session_summaries: {
         Row: {
           created_at: string

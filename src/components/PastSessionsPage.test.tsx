@@ -25,7 +25,7 @@ describe('PastSessionsList', () => {
     expect(screen.getByText(/guarde o seu resumo de cada encontro/)).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(10);
+    expect(items).toHaveLength(11);
     expect(items[0]).toHaveTextContent('Sessão 01 de Google Gemini');
     expect(items[0]).toHaveTextContent('Study Notebooks');
     expect(items[0]).toHaveTextContent('28/08');
@@ -42,11 +42,14 @@ describe('PastSessionsList', () => {
     expect(items[4]).toHaveTextContent('Googler:Bernardo Barlach, Gerente de Programa');
     expect(items[6]).toHaveTextContent('Café com Team Leaders');
     expect(items[6]!.querySelector('p.uppercase')).toBeNull();
+    expect(items[10]).toHaveTextContent('Conversa com Googler #02');
+    expect(items[10]).toHaveTextContent('Googler:Julia Harnsich, Software Engineer no Google');
+    expect(items[10]).toHaveTextContent('Team Leader:Iolanda França (Time Amplifica)');
   });
 
   it('offers an upload on every session without a summary', () => {
     renderList();
-    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(10);
+    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(11);
     expect(screen.queryByRole('link', { name: /Ver resumo/ })).not.toBeInTheDocument();
   });
 
@@ -58,7 +61,7 @@ describe('PastSessionsList', () => {
     expect(link).toHaveAttribute('href', 'https://signed.example/gemini-01-study-notebooks');
     expect(link).toHaveAttribute('target', '_blank');
     expect(first.querySelector('button')).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(9);
+    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(10);
   });
 
   it('uploads the chosen file for that session', async () => {
@@ -87,7 +90,7 @@ describe('PastSessionsList', () => {
       new File(['x'], 'r.pdf', { type: 'application/pdf' }),
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar o resumo');
-    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(10);
+    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(11);
   });
 
   it('hides the actions while summaries are loading', () => {

@@ -100,4 +100,14 @@ export const PAST_SESSIONS: PastSession[] = [
     date: '20/10',
     people: [{ role: 'Team Leaders', names: 'Dani Veronezi (Time Amplifica), Eduardo Aquino (Time Amplifica)' }],
   },
+  {
+    id: 'conversa-googler-02',
+    title: 'Julia Harnsich',
+    series: 'Conversa com Googler #02',
+    date: '27/10',
+    people: [
+      { role: 'Googler', names: 'Julia Harnsich, Software Engineer no Google' },
+      { role: 'Team Leader', names: 'Iolanda França (Time Amplifica)' },
+    ],
+  },
 ];

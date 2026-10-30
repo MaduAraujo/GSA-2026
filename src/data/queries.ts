@@ -9,6 +9,7 @@ import type {
   Challenge,
   GalleryPhoto,
   HostedEvent,
+  LevelBadge,
   ProgramDeadline,
   PromptDoc,
   PromptItem,
@@ -32,6 +33,7 @@ export interface Collections {
   deadlines: ProgramDeadline[];
   hostedEvents: HostedEvent[];
   sessionSummaries: SessionSummary[];
+  levelBadges: LevelBadge[];
   userBadges: UserBadge[];
 }
 
@@ -50,6 +52,7 @@ const fetchers: { [K in CollectionName]: () => Promise<Collections[K]> } = {
   deadlines: () => Storage.getProgramDeadlines(),
   hostedEvents: () => Storage.getHostedEvents(),
   sessionSummaries: () => Storage.getSessionSummaries(),
+  levelBadges: () => Storage.getLevelBadges(),
   userBadges: () => Storage.getUserBadges(),
 };
 

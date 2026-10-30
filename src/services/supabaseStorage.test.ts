@@ -645,6 +645,82 @@ describe('SupabaseStorageService — session summaries', () => {
   });
 });
 
+describe('SupabaseStorageService — level badges', () => {
+  it('lists badges with signed URLs from the user-files bucket', async () => {
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'b1',
+          user_id: 'user-1',
+          level: 2,
+          file_path: 'user-1/level-badges/2-1-badge.png',
+          file_name: 'badge.png',
+          created_at: '2026-10-30T12:00:00Z',
+        },
+      ]),
+    );
+    const badges = await SupabaseStorageService.getLevelBadges();
+    expect(mockStorageFrom).toHaveBeenCalledWith('user-files');
+    expect(badges).toEqual([
+      {
+        id: 'b1',
+        level: 2,
+        fileName: 'badge.png',
+        filePath: 'user-1/level-badges/2-1-badge.png',
+        url: 'https://signed.example.com/file',
+        createdAt: '2026-10-30T12:00:00Z',
+      },
+    ]);
+  });
+
+  it('uploads the file into the user folder and records it', async () => {
+    const bucket = makeStorageBucket();
+    mockStorageFrom.mockReturnValue(bucket);
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+
+    const file = new File(['x'], 'meu badge.png', { type: 'image/png' });
+    await SupabaseStorageService.uploadLevelBadge(2, file);
+
+    const path = bucket.upload.mock.calls[0][0] as string;
+    expect(path).toMatch(/^user-1\/level-badges\/2-\d+-meu_badge\.png$/);
+    expect(chain.insert).toHaveBeenCalledWith({
+      user_id: 'user-1',
+      level: 2,
+      file_path: path,
+      file_name: 'meu badge.png',
+    });
+  });
+
+  it('removes the uploaded file when recording it fails', async () => {
+    const bucket = makeStorageBucket();
+    mockStorageFrom.mockReturnValue(bucket);
+    mockFrom.mockReturnValueOnce(makeChain(null, { message: 'boom' }));
+
+    await expect(SupabaseStorageService.uploadLevelBadge(2, new File(['x'], 'b.png'))).rejects.toEqual({
+      message: 'boom',
+    });
+    expect(bucket.remove).toHaveBeenCalledWith([bucket.upload.mock.calls[0][0]]);
+  });
+
+  it('deletes the row and its file', async () => {
+    const bucket = makeStorageBucket();
+    mockStorageFrom.mockReturnValue(bucket);
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+
+    await SupabaseStorageService.deleteLevelBadge({
+      id: 'b1',
+      level: 2,
+      fileName: 'badge.png',
+      filePath: 'user-1/level-badges/2-1-badge.png',
+      createdAt: '2026-10-30T12:00:00Z',
+    });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'b1');
+    expect(bucket.remove).toHaveBeenCalledWith(['user-1/level-badges/2-1-badge.png']);
+  });
+});
+
 describe('SupabaseStorageService — auth guard', () => {
   it('rejects write operations when there is no authenticated user', async () => {
     mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: null });

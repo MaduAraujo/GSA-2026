@@ -17,6 +17,7 @@ import type {
   PromptItem,
   ReferenceLink,
   SessionFile,
+  LevelBadge,
   SessionSummary,
   SocialPost,
   UserBadge,
@@ -549,6 +550,17 @@ export function hostedEventToRow(event: HostedEvent, userId: string): TablesInse
 export function rowToSessionSummary(row: Tables<'session_summaries'>, signedUrls: SignedUrls): SessionSummary {
   return {
     sessionId: row.session_id,
+    fileName: row.file_name,
+    filePath: row.file_path,
+    url: signedUrls.get(row.file_path),
+    createdAt: row.created_at,
+  };
+}
+
+export function rowToLevelBadge(row: Tables<'level_badges'>, signedUrls: SignedUrls): LevelBadge {
+  return {
+    id: row.id,
+    level: row.level,
     fileName: row.file_name,
     filePath: row.file_path,
     url: signedUrls.get(row.file_path),
