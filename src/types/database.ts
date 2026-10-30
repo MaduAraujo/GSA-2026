@@ -577,13 +577,12 @@ export type Database = {
         }
         Relationships: []
       }
-      level_badges: {
+      earned_badges: {
         Row: {
           created_at: string
           file_name: string
           file_path: string
           id: string
-          level: number
           user_id: string
         }
         Insert: {
@@ -591,7 +590,6 @@ export type Database = {
           file_name: string
           file_path: string
           id?: string
-          level?: number
           user_id?: string
         }
         Update: {
@@ -599,7 +597,6 @@ export type Database = {
           file_name?: string
           file_path?: string
           id?: string
-          level?: number
           user_id?: string
         }
         Relationships: []

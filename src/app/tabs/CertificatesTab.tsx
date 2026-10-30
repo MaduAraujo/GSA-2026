@@ -14,15 +14,15 @@ export default function CertificatesTab() {
   const prompts = useCollectionData('prompts');
   const posts = useCollectionData('posts');
   const userBadges = useCollectionData('userBadges');
-  const levelBadges = useCollection('levelBadges');
+  const earnedBadges = useCollection('earnedBadges');
   const { data: profile } = useProfile();
 
   const saveCertificate = useCollectionMutation(['certificates'], Storage.saveCertificate, () =>
     syncBadges({ silent: false }),
   );
   const deleteCertificate = useCollectionMutation(['certificates'], Storage.deleteCertificate);
-  const uploadLevelBadge = useCollectionMutation(['levelBadges'], Storage.uploadLevelBadge);
-  const deleteLevelBadge = useCollectionMutation(['levelBadges'], Storage.deleteLevelBadge);
+  const uploadEarnedBadge = useCollectionMutation(['earnedBadges'], Storage.uploadEarnedBadge);
+  const deleteEarnedBadge = useCollectionMutation(['earnedBadges'], Storage.deleteEarnedBadge);
 
   if (certificates.isPending || !profile) return <TabSkeleton />;
 
@@ -32,11 +32,11 @@ export default function CertificatesTab() {
       prompts={prompts}
       posts={posts}
       userBadges={userBadges}
-      levelBadges={levelBadges.data ?? []}
-      isLevelBadgesLoading={levelBadges.isPending}
+      earnedBadges={earnedBadges.data ?? []}
+      isEarnedBadgesLoading={earnedBadges.isPending}
       profile={profile}
-      onUploadLevelBadge={uploadLevelBadge}
-      onDeleteLevelBadge={deleteLevelBadge}
+      onUploadEarnedBadge={uploadEarnedBadge}
+      onDeleteEarnedBadge={deleteEarnedBadge}
       onSaveCertificate={saveCertificate}
       onDeleteCertificate={deleteCertificate}
       onCreatePostFromCertificate={(cert: Certificate) =>

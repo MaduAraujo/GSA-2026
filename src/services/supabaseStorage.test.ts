@@ -645,28 +645,26 @@ describe('SupabaseStorageService — session summaries', () => {
   });
 });
 
-describe('SupabaseStorageService — level badges', () => {
+describe('SupabaseStorageService — earned badges', () => {
   it('lists badges with signed URLs from the user-files bucket', async () => {
     mockFrom.mockReturnValueOnce(
       makeChain([
         {
           id: 'b1',
           user_id: 'user-1',
-          level: 2,
-          file_path: 'user-1/level-badges/2-1-badge.png',
+          file_path: 'user-1/earned-badges/1-badge.png',
           file_name: 'badge.png',
           created_at: '2026-10-30T12:00:00Z',
         },
       ]),
     );
-    const badges = await SupabaseStorageService.getLevelBadges();
+    const badges = await SupabaseStorageService.getEarnedBadges();
     expect(mockStorageFrom).toHaveBeenCalledWith('user-files');
     expect(badges).toEqual([
       {
         id: 'b1',
-        level: 2,
         fileName: 'badge.png',
-        filePath: 'user-1/level-badges/2-1-badge.png',
+        filePath: 'user-1/earned-badges/1-badge.png',
         url: 'https://signed.example.com/file',
         createdAt: '2026-10-30T12:00:00Z',
       },
@@ -680,13 +678,12 @@ describe('SupabaseStorageService — level badges', () => {
     mockFrom.mockReturnValueOnce(chain);
 
     const file = new File(['x'], 'meu badge.png', { type: 'image/png' });
-    await SupabaseStorageService.uploadLevelBadge(2, file);
+    await SupabaseStorageService.uploadEarnedBadge(file);
 
     const path = bucket.upload.mock.calls[0][0] as string;
-    expect(path).toMatch(/^user-1\/level-badges\/2-\d+-meu_badge\.png$/);
+    expect(path).toMatch(/^user-1\/earned-badges\/\d+-meu_badge\.png$/);
     expect(chain.insert).toHaveBeenCalledWith({
       user_id: 'user-1',
-      level: 2,
       file_path: path,
       file_name: 'meu badge.png',
     });
@@ -697,7 +694,7 @@ describe('SupabaseStorageService — level badges', () => {
     mockStorageFrom.mockReturnValue(bucket);
     mockFrom.mockReturnValueOnce(makeChain(null, { message: 'boom' }));
 
-    await expect(SupabaseStorageService.uploadLevelBadge(2, new File(['x'], 'b.png'))).rejects.toEqual({
+    await expect(SupabaseStorageService.uploadEarnedBadge(new File(['x'], 'b.png'))).rejects.toEqual({
       message: 'boom',
     });
     expect(bucket.remove).toHaveBeenCalledWith([bucket.upload.mock.calls[0][0]]);
@@ -709,15 +706,14 @@ describe('SupabaseStorageService — level badges', () => {
     const chain = makeChain(null);
     mockFrom.mockReturnValueOnce(chain);
 
-    await SupabaseStorageService.deleteLevelBadge({
+    await SupabaseStorageService.deleteEarnedBadge({
       id: 'b1',
-      level: 2,
       fileName: 'badge.png',
-      filePath: 'user-1/level-badges/2-1-badge.png',
+      filePath: 'user-1/earned-badges/1-badge.png',
       createdAt: '2026-10-30T12:00:00Z',
     });
     expect(chain.eq).toHaveBeenCalledWith('id', 'b1');
-    expect(bucket.remove).toHaveBeenCalledWith(['user-1/level-badges/2-1-badge.png']);
+    expect(bucket.remove).toHaveBeenCalledWith(['user-1/earned-badges/1-badge.png']);
   });
 });
 

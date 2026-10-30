@@ -17,7 +17,7 @@ import type {
   PromptItem,
   ReferenceLink,
   SessionFile,
-  LevelBadge,
+  EarnedBadge,
   SessionSummary,
   SocialPost,
   UserBadge,
@@ -557,10 +557,9 @@ export function rowToSessionSummary(row: Tables<'session_summaries'>, signedUrls
   };
 }
 
-export function rowToLevelBadge(row: Tables<'level_badges'>, signedUrls: SignedUrls): LevelBadge {
+export function rowToEarnedBadge(row: Tables<'earned_badges'>, signedUrls: SignedUrls): EarnedBadge {
   return {
     id: row.id,
-    level: row.level,
     fileName: row.file_name,
     filePath: row.file_path,
     url: signedUrls.get(row.file_path),

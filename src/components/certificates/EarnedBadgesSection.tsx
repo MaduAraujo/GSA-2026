@@ -1,33 +1,24 @@
 import { BadgeCheck, FileText, Loader2, Paperclip, Trash2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import type { LevelBadge } from '../../types';
+import type { EarnedBadge } from '../../types';
 
 const MAX_BADGE_SIZE_BYTES = 50 * 1024 * 1024;
 const BADGE_ACCEPT = 'image/*,.pdf';
 
-interface LevelBadgesSectionProps {
-  level: number;
-  badges: LevelBadge[];
+interface EarnedBadgesSectionProps {
+  badges: EarnedBadge[];
   isLoading: boolean;
-  onUpload: (level: number, file: File) => Promise<void>;
-  onDelete: (badge: LevelBadge) => Promise<void>;
+  onUpload: (file: File) => Promise<void>;
+  onDelete: (badge: EarnedBadge) => Promise<void>;
 }
 
 const isImage = (fileName: string) => /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(fileName);
 
-export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
-  level,
-  badges,
-  isLoading,
-  onUpload,
-  onDelete,
-}) => {
+export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({ badges, isLoading, onUpload, onDelete }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const levelBadges = badges.filter((b) => b.level === level);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -43,7 +34,7 @@ export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
 
     setIsUploading(true);
     try {
-      for (const file of files) await onUpload(level, file);
+      for (const file of files) await onUpload(file);
     } catch {
       setError('Não foi possível anexar o badge. Tente novamente.');
     } finally {
@@ -51,7 +42,7 @@ export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
     }
   };
 
-  const handleDelete = async (badge: LevelBadge) => {
+  const handleDelete = async (badge: EarnedBadge) => {
     if (!confirm('Deseja realmente remover este badge?')) return;
     setError(null);
     setDeletingId(badge.id);
@@ -66,7 +57,7 @@ export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
 
   return (
     <section
-      aria-labelledby="level-badges-heading"
+      aria-labelledby="earned-badges-heading"
       className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5"
     >
       <div className="flex items-center justify-between gap-3">
@@ -75,12 +66,10 @@ export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
             <BadgeCheck className="w-4.5 h-4.5" />
           </div>
           <div className="min-w-0">
-            <h3 id="level-badges-heading" className="text-sm font-bold text-gray-900">
-              Badges do Nível {level}
+            <h3 id="earned-badges-heading" className="text-sm font-bold text-gray-900">
+              Badges
             </h3>
-            <p className="text-[11px] text-gray-500 font-medium">
-              Anexe os badges que você conquistou ao avançar para o Nível {level}
-            </p>
+            <p className="text-[11px] text-gray-500 font-medium">Anexe os badges que você for conquistando</p>
           </div>
         </div>
 
@@ -91,7 +80,7 @@ export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
           accept={BADGE_ACCEPT}
           onChange={handleFileChange}
           className="hidden"
-          aria-label={`Arquivos dos badges do Nível ${level}`}
+          aria-label="Arquivos dos badges"
         />
         <button
           type="button"
@@ -112,15 +101,15 @@ export const LevelBadgesSection: React.FC<LevelBadgesSectionProps> = ({
         </p>
       )}
 
-      {!isLoading && levelBadges.length === 0 && (
+      {!isLoading && badges.length === 0 && (
         <p className="mt-4 rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">
           Nenhum badge anexado ainda.
         </p>
       )}
 
-      {levelBadges.length > 0 && (
+      {badges.length > 0 && (
         <ul className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {levelBadges.map((badge) => (
+          {badges.map((badge) => (
             <li
               key={badge.id}
               className="group relative rounded-xl border border-gray-200 bg-[#F8FAFD] overflow-hidden"

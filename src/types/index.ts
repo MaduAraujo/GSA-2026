@@ -200,9 +200,8 @@ export interface SessionSummary {
   createdAt: string;
 }
 
-export interface LevelBadge {
+export interface EarnedBadge {
   id: string;
-  level: number;
   fileName: string;
   filePath: string;
   url?: string;
