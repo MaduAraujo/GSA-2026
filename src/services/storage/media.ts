@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import type { AmbassadorSession, Challenge, GalleryPhoto } from '../../types';
+import type { Json } from '../../types/database';
 import {
   getBatchSignedUrls,
   isDataUrl,
@@ -9,13 +10,16 @@ import {
   USER_FILES_BUCKET,
 } from './files';
 import {
+  challengeMediaOf,
   challengeToRow,
   galleryPhotoToRow,
   rowToChallenge,
   rowToGalleryPhoto,
   rowToSession,
   sessionToRow,
+  storedChallengeMedia,
   storedSessionFiles,
+  type StoredChallengeMedia,
   type StoredSessionFile,
 } from './mappers';
 
@@ -25,30 +29,50 @@ export async function getChallenges(): Promise<Challenge[]> {
   const rows = data ?? [];
   const signedUrls = await getBatchSignedUrls(
     USER_FILES_BUCKET,
-    rows.map((r) => r.result_image_path),
+    rows.flatMap((r) => [r.result_image_path, ...storedChallengeMedia(r.media).map((m) => m.path)]),
   );
   return rows.map((row) => rowToChallenge(row, signedUrls));
 }
 
-export async function saveChallenge(challenge: Challenge, resultVideoFile?: File): Promise<void> {
+const challengeFilePaths = (row: { media: Json | null; result_image_path: string | null } | null) =>
+  [...storedChallengeMedia(row?.media).map((m) => m.path), row?.result_image_path].filter((p): p is string => !!p);
+
+export async function saveChallenge(challenge: Challenge, mediaFiles: Record<string, File> = {}): Promise<void> {
   const userId = await requireUserId();
-  let resultImagePath: string | null = null;
-  if (resultVideoFile) {
-    resultImagePath = `${userId}/challenges/${challenge.id}`;
-    await uploadUserFile(resultVideoFile, resultImagePath);
-  } else if (isDataUrl(challenge.resultImage)) {
-    resultImagePath = `${userId}/challenges/${challenge.id}`;
-    await uploadUserFile(challenge.resultImage, resultImagePath);
-  }
-  const { error } = await supabase.from('challenges').upsert(challengeToRow(challenge, userId, resultImagePath));
+  const items = challengeMediaOf(challenge).filter(
+    (item) => mediaFiles[item.id] || item.path || !item.url.startsWith('blob:'),
+  );
+  const media: StoredChallengeMedia[] = await Promise.all(
+    items.map(async (item) => {
+      const base = { id: item.id, name: item.name, kind: item.kind, mimeType: item.mimeType, fileSize: item.fileSize };
+      const file = mediaFiles[item.id];
+      if (file || isDataUrl(item.url)) {
+        const path = `${userId}/challenges/${challenge.id}/media-${item.id}`;
+        await uploadUserFile(file ?? item.url, path);
+        return { ...base, path };
+      }
+      return item.path ? { ...base, path: item.path } : { ...base, url: item.url };
+    }),
+  );
+
+  const { data: previous } = await supabase
+    .from('challenges')
+    .select('media, result_image_path')
+    .eq('id', challenge.id)
+    .maybeSingle();
+  const { error } = await supabase.from('challenges').upsert(challengeToRow(challenge, userId, media));
   if (error) throw error;
+
+  const kept = new Set(media.map((m) => m.path));
+  await removeUserFiles(challengeFilePaths(previous).filter((path) => !kept.has(path)));
 }
 
 export async function deleteChallenge(id: string): Promise<void> {
   const userId = await requireUserId();
+  const { data: row } = await supabase.from('challenges').select('media, result_image_path').eq('id', id).maybeSingle();
   const { error } = await supabase.from('challenges').delete().eq('id', id);
   if (error) throw error;
-  await removeUserFiles([`${userId}/challenges/${id}`]);
+  await removeUserFiles(Array.from(new Set([`${userId}/challenges/${id}`, ...challengeFilePaths(row)])));
 }
 
 export async function getGalleryPhotos(): Promise<GalleryPhoto[]> {

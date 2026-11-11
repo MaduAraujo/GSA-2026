@@ -4,8 +4,11 @@ import type {
   AmbassadorSession,
   Certificate,
   Challenge,
+  ChallengeMedia,
+  ChallengeMediaKind,
   ChallengeSocialLink,
   ChallengeStatus,
+  ChallengeType,
   DeadlineCategory,
   EventDuration,
   GalleryPhoto,
@@ -17,6 +20,7 @@ import type {
   PromptItem,
   ReferenceLink,
   SessionFile,
+  SessionType,
   EarnedBadge,
   SessionSummary,
   SocialPost,
@@ -35,11 +39,32 @@ export interface StoredSessionFile {
   dataUrl?: string;
 }
 
+export interface StoredChallengeMedia {
+  id: string;
+  name: string;
+  kind: ChallengeMediaKind;
+  mimeType?: string;
+  fileSize?: number;
+  path?: string;
+  url?: string;
+}
+
 const asJson = (value: unknown) => value as Json;
 const mediaType = (value: string | null | undefined): 'image' | 'video' => (value === 'video' ? 'video' : 'image');
 
 export function storedSessionFiles(value: Json | null | undefined): StoredSessionFile[] {
   return Array.isArray(value) ? (value as unknown as StoredSessionFile[]) : [];
+}
+
+export function storedChallengeMedia(value: Json | null | undefined): StoredChallengeMedia[] {
+  return Array.isArray(value) ? (value as unknown as StoredChallengeMedia[]) : [];
+}
+
+export function challengeMediaOf(challenge: Challenge): ChallengeMedia[] {
+  if (challenge.media) return challenge.media;
+  if (!challenge.resultImage) return [];
+  const kind = challenge.resultMediaType === 'video' ? 'video' : 'image';
+  return [{ id: 'result', name: kind === 'video' ? 'Vídeo' : 'Imagem', kind, url: challenge.resultImage }];
 }
 
 export const EMPTY_PROFILE: AmbassadorProfile = {
@@ -288,11 +313,35 @@ export function rowToChallenge(row: Tables<'challenges'>, signedUrls: SignedUrls
         : undefined;
 
   const resultImage = row.result_image_path ? signedUrls.get(row.result_image_path) : (row.result_image ?? undefined);
+  const stored = storedChallengeMedia(row.media);
+  const media: ChallengeMedia[] | undefined =
+    stored.length > 0
+      ? stored.map((m) => ({
+          id: m.id,
+          name: m.name,
+          kind: m.kind,
+          mimeType: m.mimeType,
+          fileSize: m.fileSize,
+          path: m.path,
+          url: m.path ? signedUrls.get(m.path) || '' : (m.url ?? ''),
+        }))
+      : resultImage
+        ? [
+            {
+              id: 'result',
+              name: row.result_media_type === 'video' ? 'Vídeo' : 'Imagem',
+              kind: mediaType(row.result_media_type),
+              url: resultImage,
+              path: row.result_image_path ?? undefined,
+            },
+          ]
+        : undefined;
 
   return {
     id: row.id,
     title: row.title,
     description: row.description ?? '',
+    type: row.type as ChallengeType,
     category: row.category ?? '',
     status: row.status as ChallengeStatus,
     deadline: dates?.[0] ?? row.deadline ?? undefined,
@@ -300,8 +349,7 @@ export function rowToChallenge(row: Tables<'challenges'>, signedUrls: SignedUrls
     link: row.link ?? undefined,
     points: row.points ?? undefined,
     result: row.result ?? undefined,
-    resultImage,
-    resultMediaType: mediaType(row.result_media_type),
+    media,
     resultLink: row.result_link ?? undefined,
     resultPlatform: (row.result_platform ?? undefined) as PostPlatform | undefined,
     socialLinks,
@@ -316,7 +364,7 @@ export function rowToChallenge(row: Tables<'challenges'>, signedUrls: SignedUrls
 export function challengeToRow(
   challenge: Challenge,
   userId: string,
-  resultImagePath: string | null,
+  media: StoredChallengeMedia[],
 ): TablesInsert<'challenges'> {
   const dates = challenge.dates && challenge.dates.length > 0 ? challenge.dates : undefined;
   const firstLink = challenge.socialLinks?.[0];
@@ -326,6 +374,7 @@ export function challengeToRow(
     user_id: userId,
     title: challenge.title,
     description: challenge.description ?? '',
+    type: challenge.type ?? 'Desafio',
     category: challenge.category ?? '',
     status: challenge.status,
     deadline: dates?.[0] || challenge.deadline || null,
@@ -333,9 +382,10 @@ export function challengeToRow(
     link: challenge.link || null,
     points: challenge.points ?? null,
     result: challenge.result || null,
-    result_image: resultImagePath ? null : challenge.resultImage || null,
-    result_image_path: resultImagePath,
-    result_media_type: challenge.resultMediaType || 'image',
+    result_image: null,
+    result_image_path: null,
+    result_media_type: 'image',
+    media: media.length > 0 ? asJson(media) : null,
     result_link: firstLink?.link || challenge.resultLink || null,
     result_platform: firstLink?.platform || challenge.resultPlatform || null,
     social_links: challenge.socialLinks && challenge.socialLinks.length > 0 ? asJson(challenge.socialLinks) : null,
@@ -395,6 +445,7 @@ export function rowToSession(row: Tables<'sessions'>, signedUrls: SignedUrls): A
 
   return {
     id: row.id,
+    type: row.type as SessionType,
     title: row.title,
     date: row.session_date,
     challenge: row.challenge ?? undefined,
@@ -417,6 +468,7 @@ export function sessionToRow(
   return {
     id: session.id,
     user_id: userId,
+    type: session.type ?? 'Sessão',
     title: session.title,
     session_date: session.date,
     challenge: session.challenge || null,

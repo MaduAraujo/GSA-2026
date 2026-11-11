@@ -11,6 +11,7 @@ import {
   MAX_IMAGE_SIZE_BYTES,
   MAX_PROOF_VIDEO_SIZE_BYTES,
 } from './sessionFiles';
+import { SESSION_TYPES, sessionTypeLabels, sessionTypeOf } from './sessionTypes';
 import type { SessionFormState } from './useSessionForm';
 
 interface SessionFormModalProps {
@@ -116,6 +117,7 @@ export function SessionFormModal({ form, onSaveSession }: SessionFormModalProps)
       await onSaveSession(
         {
           id: formData.id || crypto.randomUUID(),
+          type: sessionTypeOf(formData),
           title: formData.title.trim(),
           date: formData.date,
           challenge: (formData.challenge || '').trim() || undefined,
@@ -161,7 +163,7 @@ export function SessionFormModal({ form, onSaveSession }: SessionFormModalProps)
               </div>
               <div>
                 <h3 id="session-form-heading" className="text-lg sm:text-xl font-bold text-gray-900">
-                  {formData.id ? 'Editar Sessão' : 'Nova Sessão'}
+                  {formData.id ? sessionTypeLabels(formData).editLabel : sessionTypeLabels(formData).newLabel}
                 </h3>
                 <p className="text-xs text-gray-500">Registre o que você fez e aprendeu</p>
               </div>
@@ -177,8 +179,33 @@ export function SessionFormModal({ form, onSaveSession }: SessionFormModalProps)
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <span className={labelClass}>Tipo *</span>
+              <div role="radiogroup" aria-label="Tipo" className="grid grid-cols-3 gap-2">
+                {SESSION_TYPES.map(({ type }) => {
+                  const selected = sessionTypeOf(formData) === type;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setFormData({ ...formData, type })}
+                      className={`px-2 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                        selected
+                          ? 'bg-[#34A853] border-[#34A853] text-white shadow-xs'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="session-form-title" className={labelClass}>
-                Sessão *
+                Título *
               </label>
               <input
                 id="session-form-title"

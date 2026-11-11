@@ -110,4 +110,21 @@ export const PAST_SESSIONS: PastSession[] = [
       { role: 'Team Leader', names: 'Iolanda França (Time Amplifica)' },
     ],
   },
+  {
+    id: 'masterclass-creator-03',
+    title: 'Giulia Bordignon',
+    series: 'Masterclass com Creator #3',
+    date: '06/11',
+    people: [
+      { role: 'Creator', names: 'Giulia Bordignon' },
+      { role: 'Team Leader', names: 'Iolanda França' },
+    ],
+  },
+  {
+    id: 'gemini-06-acoes-programadas',
+    title: 'Ações programadas',
+    series: 'Sessão 06 de Google Gemini',
+    date: '09/11',
+    people: [{ role: 'Team Leaders', names: 'Savio Ferraz G8, Estêvão Zilioli (Time Amplifica)' }],
+  },
 ];

@@ -77,16 +77,31 @@ export type ChallengeStatus = 'Pendente' | 'Em Andamento' | 'Concluído';
 
 export type ChallengeCategory = string;
 
+export type ChallengeType = 'Desafio' | 'Ação de Impacto' | 'Aquecimento';
+
 export interface ChallengeSocialLink {
   id: string;
   platform: PostPlatform;
   link: string;
 }
 
+export type ChallengeMediaKind = 'image' | 'video' | 'audio';
+
+export interface ChallengeMedia {
+  id: string;
+  name: string;
+  kind: ChallengeMediaKind;
+  url: string;
+  mimeType?: string;
+  fileSize?: number;
+  path?: string;
+}
+
 export interface Challenge {
   id: string;
   title: string;
   description: string;
+  type?: ChallengeType;
   category: ChallengeCategory;
   status: ChallengeStatus;
   deadline?: string;
@@ -94,6 +109,8 @@ export interface Challenge {
   link?: string;
   points?: number;
   result?: string;
+  media?: ChallengeMedia[];
+  /** Anexo único antigo; só aparece em backups e é convertido em `media` ao salvar. */
   resultImage?: string;
   resultMediaType?: 'image' | 'video';
   resultLink?: string;
@@ -126,8 +143,11 @@ export interface SessionFile {
   fileSize?: number;
 }
 
+export type SessionType = 'Conversa' | 'Masterclass' | 'Sessão';
+
 export interface AmbassadorSession {
   id: string;
+  type?: SessionType;
   title: string;
   date: string;
   challenge?: string;

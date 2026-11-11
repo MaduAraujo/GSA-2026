@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePersistedState } from '../../hooks/usePersistedState';
-import type { Challenge } from '../../types';
+import type { Challenge, ChallengeMedia, ChallengeMediaKind, ChallengeType } from '../../types';
 
 export const DEFAULT_CHALLENGE_FORM: Partial<Challenge> = {
   title: '',
@@ -11,8 +11,7 @@ export const DEFAULT_CHALLENGE_FORM: Partial<Challenge> = {
   link: '',
   points: undefined,
   result: '',
-  resultImage: '',
-  resultMediaType: 'image',
+  media: [],
   socialLinks: [],
   externalLink: '',
 };
@@ -24,18 +23,45 @@ export function useChallengeForm() {
     'gsa_challenge_form_draft',
     DEFAULT_CHALLENGE_FORM,
   );
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<Record<string, File>>({});
+  const previewUrls = useRef(new Set<string>());
 
   useEffect(() => {
-    return () => {
-      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
-    };
-  }, [videoPreviewUrl]);
+    // Prévias blob: de um rascunho salvo não sobrevivem a um recarregamento da página.
+    setFormData((prev) => ({ ...prev, media: (prev.media || []).filter((m) => !m.url.startsWith('blob:')) }));
+    const urls = previewUrls.current;
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const setVideo = (file: File | null) => {
-    setVideoFile(file);
-    setVideoPreviewUrl(file ? URL.createObjectURL(file) : null);
+  const clearFiles = () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+    setMediaFiles({});
+  };
+
+  const addMediaFile = (file: File, kind: ChallengeMediaKind) => {
+    const url = URL.createObjectURL(file);
+    previewUrls.current.add(url);
+    const item: ChallengeMedia = {
+      id: crypto.randomUUID(),
+      name: file.name,
+      kind,
+      url,
+      mimeType: file.type,
+      fileSize: file.size,
+    };
+    setMediaFiles((prev) => ({ ...prev, [item.id]: file }));
+    setFormData((prev) => ({ ...prev, media: [...(prev.media || []), item] }));
+  };
+
+  const removeMedia = (id: string) => {
+    setFormData((prev) => {
+      const removed = (prev.media || []).find((m) => m.id === id);
+      if (removed && previewUrls.current.delete(removed.url)) URL.revokeObjectURL(removed.url);
+      return { ...prev, media: (prev.media || []).filter((m) => m.id !== id) };
+    });
+    setMediaFiles(({ [id]: _removed, ...rest }) => rest);
   };
 
   return {
@@ -43,25 +69,29 @@ export function useChallengeForm() {
     isEditMode,
     formData,
     setFormData,
-    videoFile,
-    videoPreviewUrl,
-    setVideo,
+    mediaFiles,
+    addMediaFile,
+    removeMedia,
     close: () => setIsOpen(false),
     reset: () => {
       setFormData(DEFAULT_CHALLENGE_FORM);
       setIsEditMode(false);
-      setVideo(null);
+      clearFiles();
     },
-    openCreate: () => {
-      setFormData(DEFAULT_CHALLENGE_FORM);
+    openCreate: (type: ChallengeType = 'Desafio') => {
+      setFormData({ ...DEFAULT_CHALLENGE_FORM, type });
       setIsEditMode(false);
-      setVideo(null);
+      clearFiles();
       setIsOpen(true);
     },
     openEdit: (challenge: Challenge) => {
-      setFormData({ ...challenge, dates: challenge.dates || (challenge.deadline ? [challenge.deadline] : []) });
+      setFormData({
+        ...challenge,
+        dates: challenge.dates || (challenge.deadline ? [challenge.deadline] : []),
+        media: challenge.media || [],
+      });
       setIsEditMode(true);
-      setVideo(null);
+      clearFiles();
       setIsOpen(true);
     },
   };

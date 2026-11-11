@@ -14,8 +14,8 @@ export const AGENDA_WEEKS: Array<{ week: number; start: string; end: string; url
   { week: 8, url: `${AGENDA_BASE_URL}/semana8`, start: '12/10', end: '18/10' },
   { week: 9, url: `${AGENDA_BASE_URL}/semana9`, start: '19/10', end: '25/10' },
   { week: 10, url: `${AGENDA_BASE_URL}/semana10`, start: '26/10', end: '01/11' },
-  { week: 11, start: '02/11', end: '08/11' },
-  { week: 12, start: '09/11', end: '15/11' },
+  { week: 11, url: `${AGENDA_BASE_URL}/semana11`, start: '02/11', end: '08/11' },
+  { week: 12, url: `${AGENDA_BASE_URL}/semana12`, start: '09/11', end: '15/11' },
 ];
 
 const toDate = (dayMonth: string, endOfDay = false) => {

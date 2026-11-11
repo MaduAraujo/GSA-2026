@@ -30,10 +30,10 @@ describe('AgendaPage', () => {
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
   });
 
-  it('links weeks 1–10 to their Google Sites page in a new tab', () => {
+  it('links all twelve weeks to their Google Sites page in a new tab', () => {
     render(<AgendaPage />);
     const links = screen.getAllByRole('link', { name: /^Semana/ });
-    expect(links).toHaveLength(10);
+    expect(links).toHaveLength(12);
     expect(links[0]).toHaveAttribute(
       'href',
       'https://sites.google.com/amplifica.me/embaixadoresestudantis/agenda/semana1',
@@ -44,8 +44,10 @@ describe('AgendaPage', () => {
     );
     expect(links[0]).toHaveAttribute('target', '_blank');
     expect(links[0]).toHaveAttribute('rel', expect.stringContaining('noopener'));
-    expect(screen.getAllByRole('listitem')[10]!.querySelector('a')).toBeNull();
-    expect(screen.getAllByRole('listitem')[11]!.querySelector('a')).toBeNull();
+    expect(links[11]).toHaveAttribute(
+      'href',
+      'https://sites.google.com/amplifica.me/embaixadoresestudantis/agenda/semana12',
+    );
   });
 
   it('highlights the current week', () => {

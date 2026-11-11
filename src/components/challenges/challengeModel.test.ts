@@ -31,7 +31,6 @@ describe('planChallengeSave', () => {
         socialLinks: [{ id: 'l1', platform: 'Instagram', link: 'https://instagram.com/p/1' }],
       },
       [],
-      false,
       NOW,
     );
 
@@ -56,7 +55,6 @@ describe('planChallengeSave', () => {
         socialLinks: [{ id: 'l1', platform: 'LinkedIn', link: 'https://linkedin.com/a' }],
       },
       [existing],
-      false,
       NOW,
     );
     expect(plan.post).toMatchObject({ id: 'post-1', likes: 42, tone: 'Inspirador' });
@@ -67,7 +65,6 @@ describe('planChallengeSave', () => {
     const plan = planChallengeSave(
       { title: 'Desafio', description: 'desc', linkedPostIds: ['post-1'], socialLinks: [] },
       [makePost({ id: 'post-1' })],
-      false,
       NOW,
     );
     expect(plan.post).toBeNull();
@@ -75,8 +72,12 @@ describe('planChallengeSave', () => {
     expect(plan.challenge.linkedPostIds).toBeUndefined();
   });
 
-  it('records the media type as video when a new video was picked', () => {
-    const plan = planChallengeSave({ title: 'D', description: 'd', resultMediaType: 'image' }, [], true, NOW);
-    expect(plan.challenge.resultMediaType).toBe('video');
+  it('keeps every attachment and drops an empty list', () => {
+    const media = [
+      { id: 'm1', name: 'foto.png', kind: 'image' as const, url: 'blob:1' },
+      { id: 'm2', name: 'musica.mp3', kind: 'audio' as const, url: 'blob:2' },
+    ];
+    expect(planChallengeSave({ title: 'D', description: 'd', media }, [], NOW).challenge.media).toEqual(media);
+    expect(planChallengeSave({ title: 'D', description: 'd', media: [] }, [], NOW).challenge.media).toBeUndefined();
   });
 });

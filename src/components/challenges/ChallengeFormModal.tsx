@@ -1,45 +1,64 @@
-import { Calendar, Flag, Loader2, Share2, Upload, X } from 'lucide-react';
+import { Calendar, Flag, Loader2, Music, Share2, Upload, X } from 'lucide-react';
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import type { Challenge, ChallengeSocialLink, ChallengeStatus, PostPlatform, SocialPost } from '../../types';
+import type {
+  Challenge,
+  ChallengeMedia,
+  ChallengeMediaKind,
+  ChallengeSocialLink,
+  ChallengeStatus,
+  ChallengeType,
+  PostPlatform,
+  SocialPost,
+} from '../../types';
 import { formatDateBR } from '../../utils/date';
 import { DatePicker } from '../DatePicker';
 import { NumberStepper } from '../NumberStepper';
 import { SelectDropdown } from '../SelectDropdown';
-import { planChallengeSave, RESULT_PLATFORMS, STATUSES } from './challengeModel';
+import { CHALLENGE_TYPES, challengeTypeOf, planChallengeSave, RESULT_PLATFORMS, STATUSES } from './challengeModel';
 import type { ChallengeFormState } from './useChallengeForm';
 
-const MAX_RESULT_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
-const MAX_RESULT_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_MEDIA_SIZE_BYTES = 50 * 1024 * 1024;
+
+const MEDIA_KIND_LABELS: Record<ChallengeMediaKind, string> = { image: 'Foto', video: 'Vídeo', audio: 'Música' };
+
+function mediaKindOf(file: File): ChallengeMediaKind | null {
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type.startsWith('video/')) return 'video';
+  if (file.type.startsWith('audio/')) return 'audio';
+  return null;
+}
 
 interface ChallengeFormModalProps {
   form: ChallengeFormState;
   categories: string[];
   posts: SocialPost[];
-  onSaveChallenge: (challenge: Challenge, resultVideoFile?: File) => Promise<void>;
+  onSaveChallenge: (challenge: Challenge, mediaFiles?: Record<string, File>) => Promise<void>;
   onSavePost: (post: SocialPost) => Promise<void>;
   onDeletePost: (id: string) => Promise<void>;
 }
 
-function MediaPreview({ kind, src, onRemove }: { kind: 'video' | 'image'; src: string; onRemove: () => void }) {
+function MediaPreview({ item, onRemove }: { item: ChallengeMedia; onRemove: () => void }) {
+  const thumbClass = 'w-14 h-14 rounded-lg object-cover shrink-0 border border-gray-200';
   return (
     <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-gray-200">
-      {kind === 'video' ? (
-        <video src={src} muted className="w-14 h-14 rounded-lg object-cover shrink-0 border border-gray-200" />
+      {item.kind === 'video' ? (
+        <video src={item.url} muted className={thumbClass} />
+      ) : item.kind === 'audio' ? (
+        <div className={`${thumbClass} flex items-center justify-center bg-[#1A73E8]/10 text-[#1A73E8]`}>
+          <Music className="w-6 h-6" />
+        </div>
       ) : (
-        <img
-          src={src}
-          alt="Prévia do resultado"
-          className="w-14 h-14 rounded-lg object-cover shrink-0 border border-gray-200"
-        />
+        <img src={item.url} alt={item.name} className={thumbClass} />
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-green-700">{kind === 'video' ? 'Vídeo anexado' : 'Imagem anexada'}</p>
+        <p className="text-xs font-semibold text-green-700">{MEDIA_KIND_LABELS[item.kind]}</p>
+        <p className="text-xs text-gray-600 truncate">{item.name}</p>
       </div>
       <button
         type="button"
         onClick={onRemove}
-        aria-label={kind === 'video' ? 'Remover vídeo' : 'Remover imagem'}
+        aria-label={`Remover ${item.name}`}
         className="p-1.5 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"
       >
         <X className="w-4 h-4" />
@@ -56,7 +75,9 @@ export function ChallengeFormModal({
   onSavePost,
   onDeletePost,
 }: ChallengeFormModalProps) {
-  const { formData, setFormData, isEditMode, videoFile, videoPreviewUrl } = form;
+  const { formData, setFormData, isEditMode, mediaFiles } = form;
+  const hasNewFiles = Object.keys(mediaFiles).length > 0;
+  const typeLabels = CHALLENGE_TYPES.find((t) => t.type === challengeTypeOf(formData)) ?? CHALLENGE_TYPES[0]!;
   const [isSaving, setIsSaving] = useState(false);
   const [pendingDate, setPendingDate] = useState('');
   const [pendingLinkPlatform, setPendingLinkPlatform] = useState<PostPlatform>('LinkedIn');
@@ -67,40 +88,22 @@ export function ChallengeFormModal({
   useFocusTrap(dialogRef, form.close);
 
   const handleMediaChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!file) return;
+    if (files.length === 0) return;
 
-    setMediaError(null);
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-
-    if (!isImage && !isVideo) {
-      setMediaError('Envie um arquivo de imagem ou vídeo.');
-      return;
+    const errors: string[] = [];
+    for (const file of files) {
+      const kind = mediaKindOf(file);
+      if (!kind) {
+        errors.push(`"${file.name}" não é foto, vídeo ou música.`);
+      } else if (file.size > MAX_MEDIA_SIZE_BYTES) {
+        errors.push(`"${file.name}" é muito grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). O limite é 50MB.`);
+      } else {
+        form.addMediaFile(file, kind);
+      }
     }
-    if (isImage && file.size > MAX_RESULT_IMAGE_SIZE_BYTES) {
-      setMediaError(`Imagem muito grande (${sizeMb}MB). O limite é 4MB.`);
-      return;
-    }
-    if (isVideo && file.size > MAX_RESULT_VIDEO_SIZE_BYTES) {
-      setMediaError(`Vídeo muito grande (${sizeMb}MB). O limite é 50MB.`);
-      return;
-    }
-
-    if (isVideo) {
-      form.setVideo(file);
-      setFormData((prev) => ({ ...prev, resultImage: '', resultMediaType: 'video' }));
-      return;
-    }
-
-    form.setVideo(null);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFormData((prev) => ({ ...prev, resultImage: event.target?.result as string, resultMediaType: 'image' }));
-    };
-    reader.readAsDataURL(file);
+    setMediaError(errors.length > 0 ? errors.join(' ') : null);
   };
 
   const addDate = (date: string) => {
@@ -119,23 +122,18 @@ export function ChallengeFormModal({
     setPendingLinkUrl('');
   };
 
-  const clearMedia = () => {
-    form.setVideo(null);
-    setFormData((prev) => ({ ...prev, resultImage: '', resultMediaType: 'image' }));
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.title?.trim() || !formData.description?.trim()) return;
 
     setIsSaving(true);
     try {
-      const plan = planChallengeSave(formData, posts, !!videoFile);
+      const plan = planChallengeSave(formData, posts);
       if (plan.post) await onSavePost(plan.post);
       for (const staleId of plan.staleLinkedPostIds) {
         await onDeletePost(staleId);
       }
-      await onSaveChallenge(plan.challenge, videoFile || undefined);
+      await onSaveChallenge(plan.challenge, mediaFiles);
       form.close();
       form.reset();
     } catch (err) {
@@ -167,7 +165,7 @@ export function ChallengeFormModal({
               </div>
               <div>
                 <h3 id="challenge-form-heading" className="text-lg sm:text-xl font-bold text-gray-900">
-                  {isEditMode ? 'Editar Desafio' : 'Novo Desafio'}
+                  {isEditMode ? typeLabels.editLabel : typeLabels.newLabel}
                 </h3>
                 <p className="text-xs text-gray-500">Registre os desafios do programa</p>
               </div>
@@ -183,8 +181,33 @@ export function ChallengeFormModal({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <span className={labelClass}>Tipo *</span>
+              <div role="radiogroup" aria-label="Tipo" className="grid grid-cols-3 gap-2">
+                {CHALLENGE_TYPES.map(({ type }) => {
+                  const selected = challengeTypeOf(formData) === type;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setFormData({ ...formData, type: type as ChallengeType })}
+                      className={`px-2 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                        selected
+                          ? 'bg-[#34A853] border-[#34A853] text-white shadow-xs'
+                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="challenge-form-title" className={labelClass}>
-                Título do Desafio *
+                Título *
               </label>
               <input
                 id="challenge-form-title"
@@ -409,36 +432,35 @@ export function ChallengeFormModal({
               </div>
 
               <div>
-                <span className="block text-[11px] font-bold text-gray-600 mb-2">Imagem ou vídeo</span>
+                <span className="block text-[11px] font-bold text-gray-600 mb-2">Fotos, vídeos e músicas</span>
                 <input
                   ref={mediaInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  multiple
+                  accept="image/*,video/*,audio/*"
+                  aria-label="Anexar fotos, vídeos ou músicas"
                   className="hidden"
                   onChange={handleMediaChange}
                 />
-                {videoPreviewUrl ? (
-                  <MediaPreview kind="video" src={videoPreviewUrl} onRemove={clearMedia} />
-                ) : formData.resultImage && formData.resultMediaType === 'video' ? (
-                  <MediaPreview kind="video" src={formData.resultImage} onRemove={clearMedia} />
-                ) : formData.resultImage ? (
-                  <MediaPreview
-                    kind="image"
-                    src={formData.resultImage}
-                    onRemove={() => setFormData((prev) => ({ ...prev, resultImage: '' }))}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => mediaInputRef.current?.click()}
-                    className="w-full flex items-center justify-center gap-2.5 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A73E8] bg-white transition-all"
-                  >
-                    <Upload className="w-4 h-4 text-gray-500 shrink-0" />
-                    <span className="max-w-[80%] text-xs text-gray-600 text-center truncate">
-                      Anexe uma imagem, vídeo (até 50MB) ou captura da publicação
-                    </span>
-                  </button>
+                {formData.media && formData.media.length > 0 && (
+                  <div className="space-y-1.5 mb-2">
+                    {formData.media.map((item) => (
+                      <MediaPreview key={item.id} item={item} onRemove={() => form.removeMedia(item.id)} />
+                    ))}
+                  </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => mediaInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2.5 py-6 px-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-[#1A73E8] bg-white transition-all"
+                >
+                  <Upload className="w-4 h-4 text-gray-500 shrink-0" />
+                  <span className="max-w-[80%] text-xs text-gray-600 text-center">
+                    {formData.media && formData.media.length > 0
+                      ? 'Adicionar mais arquivos'
+                      : 'Anexe fotos, vídeos ou músicas (até 50MB cada)'}
+                  </span>
+                </button>
                 {mediaError && (
                   <p
                     role="alert"
@@ -464,7 +486,7 @@ export function ChallengeFormModal({
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#34A853] hover:bg-[#2E7D32] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSaving ? (videoFile ? 'Enviando vídeo...' : 'Salvando...') : 'Salvar'}
+                {isSaving ? (hasNewFiles ? 'Enviando arquivos...' : 'Salvando...') : 'Salvar'}
               </button>
             </div>
           </form>

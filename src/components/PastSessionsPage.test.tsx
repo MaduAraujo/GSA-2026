@@ -25,7 +25,7 @@ describe('PastSessionsList', () => {
     expect(screen.getByText(/guarde o seu resumo de cada encontro/)).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(11);
+    expect(items).toHaveLength(13);
     expect(items[0]).toHaveTextContent('Sessão 01 de Google Gemini');
     expect(items[0]).toHaveTextContent('Study Notebooks');
     expect(items[0]).toHaveTextContent('28/08');
@@ -49,7 +49,7 @@ describe('PastSessionsList', () => {
 
   it('offers an upload on every session without a summary', () => {
     renderList();
-    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(11);
+    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(13);
     expect(screen.queryByRole('link', { name: /Ver resumo/ })).not.toBeInTheDocument();
   });
 
@@ -61,7 +61,7 @@ describe('PastSessionsList', () => {
     expect(link).toHaveAttribute('href', 'https://signed.example/gemini-01-study-notebooks');
     expect(link).toHaveAttribute('target', '_blank');
     expect(first.querySelector('button')).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(10);
+    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(12);
   });
 
   it('uploads the chosen file for that session', async () => {
@@ -90,7 +90,7 @@ describe('PastSessionsList', () => {
       new File(['x'], 'r.pdf', { type: 'application/pdf' }),
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível enviar o resumo');
-    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(11);
+    expect(screen.getAllByRole('button', { name: 'Enviar resumo' })).toHaveLength(13);
   });
 
   it('hides the actions while summaries are loading', () => {

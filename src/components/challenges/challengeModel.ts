@@ -1,8 +1,21 @@
 import { CheckCircle2, Circle, Clock3 } from 'lucide-react';
-import type { Challenge, ChallengeStatus, PostPlatform, SocialPost } from '../../types';
+import type { Challenge, ChallengeStatus, ChallengeType, PostPlatform, SocialPost } from '../../types';
 import { formatDateBR } from '../../utils/date';
 
 export const STATUSES: ChallengeStatus[] = ['Pendente', 'Em Andamento', 'Concluído'];
+
+export const CHALLENGE_TYPES: { type: ChallengeType; tab: string; newLabel: string; editLabel: string }[] = [
+  { type: 'Desafio', tab: 'Desafios', newLabel: 'Novo Desafio', editLabel: 'Editar Desafio' },
+  {
+    type: 'Ação de Impacto',
+    tab: 'Ações de Impacto',
+    newLabel: 'Nova Ação de Impacto',
+    editLabel: 'Editar Ação de Impacto',
+  },
+  { type: 'Aquecimento', tab: 'Aquecimento', newLabel: 'Novo Aquecimento', editLabel: 'Editar Aquecimento' },
+];
+
+export const challengeTypeOf = (challenge: Partial<Challenge>): ChallengeType => challenge.type ?? 'Desafio';
 
 export const RESULT_PLATFORMS: PostPlatform[] = ['LinkedIn', 'Instagram', 'Whatsapp'];
 
@@ -35,7 +48,6 @@ export interface ChallengeSavePlan {
 export function planChallengeSave(
   formData: Partial<Challenge>,
   posts: SocialPost[],
-  hasNewVideo: boolean,
   now = new Date().toISOString(),
 ): ChallengeSavePlan {
   const title = (formData.title || '').trim();
@@ -74,6 +86,7 @@ export function planChallengeSave(
     id: formData.id || crypto.randomUUID(),
     title,
     description: (formData.description || '').trim(),
+    type: challengeTypeOf(formData),
     category: (formData.category || '').trim(),
     status: formData.status || 'Pendente',
     deadline: dates[0] || undefined,
@@ -81,8 +94,7 @@ export function planChallengeSave(
     link: formData.link || undefined,
     points: formData.points ? Number(formData.points) : undefined,
     result: (formData.result || '').trim() || undefined,
-    resultImage: formData.resultImage || undefined,
-    resultMediaType: hasNewVideo ? 'video' : formData.resultMediaType || 'image',
+    media: formData.media && formData.media.length > 0 ? formData.media : undefined,
     resultLink: firstLink?.link,
     resultPlatform: firstLink?.platform,
     socialLinks: socialLinks.length > 0 ? socialLinks : undefined,

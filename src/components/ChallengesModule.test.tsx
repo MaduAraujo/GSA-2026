@@ -1,11 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChallengesModule } from './ChallengesModule';
 import { type Challenge } from '../types';
 import { makeChallenge } from '../test/factories';
 
 describe('ChallengesModule', () => {
+  beforeEach(() => sessionStorage.clear());
+
   it('shows an empty state when there are no challenges', () => {
     render(
       <ChallengesModule
@@ -17,7 +19,7 @@ describe('ChallengesModule', () => {
         onDeletePost={vi.fn()}
       />,
     );
-    expect(screen.getByText('Nenhum desafio encontrado')).toBeInTheDocument();
+    expect(screen.getByText('Nenhum item')).toBeInTheDocument();
   });
 
   it('filters by status', async () => {
@@ -138,7 +140,7 @@ describe('ChallengesModule', () => {
         onDeletePost={vi.fn()}
       />,
     );
-    await user.click(screen.getByLabelText('Novo desafio'));
+    await user.click(screen.getByLabelText('Novo Desafio'));
 
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
 
@@ -164,7 +166,7 @@ describe('ChallengesModule', () => {
         onDeletePost={vi.fn()}
       />,
     );
-    await user.click(screen.getByLabelText('Novo desafio'));
+    await user.click(screen.getByLabelText('Novo Desafio'));
 
     await user.type(document.getElementById('challenge-form-title') as HTMLInputElement, '  Meu desafio  ');
     const textareas = screen.getAllByRole('textbox').filter((el) => el.tagName === 'TEXTAREA');
@@ -177,5 +179,116 @@ describe('ChallengesModule', () => {
     expect(saved.description).toBe('Minha descrição');
     expect(saved.status).toBe('Pendente');
     expect(onSavePost).not.toHaveBeenCalled();
+  });
+
+  it('separates challenges by type into tabs with counts', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChallengesModule
+        challenges={[
+          makeChallenge({ id: 'c1', title: 'Desafio da semana', category: 'Gemini' }),
+          makeChallenge({ id: 'c2', title: 'Mutirão na escola', type: 'Ação de Impacto', category: 'Escola' }),
+          makeChallenge({ id: 'c3', title: 'Quebra-gelo', type: 'Aquecimento', category: '' }),
+          makeChallenge({ id: 'c4', title: 'Outra ação', type: 'Ação de Impacto', category: '' }),
+        ]}
+        posts={[]}
+        onSaveChallenge={vi.fn()}
+        onDeleteChallenge={vi.fn()}
+        onSavePost={vi.fn()}
+        onDeletePost={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: /Desafios/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Ações de Impacto/ })).toHaveTextContent('2');
+    expect(screen.getByText('Desafio da semana')).toBeInTheDocument();
+    expect(screen.queryByText('Mutirão na escola')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /Ações de Impacto/ }));
+    expect(screen.getByText('Mutirão na escola')).toBeInTheDocument();
+    expect(screen.getByText('Outra ação')).toBeInTheDocument();
+    expect(screen.queryByText('Desafio da semana')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quebra-gelo')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Escola' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Nova Ação de Impacto')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /Aquecimento/ }));
+    expect(screen.getByText('Quebra-gelo')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Escola' })).not.toBeInTheDocument();
+  });
+
+  it('creates an item with the type of the open tab', async () => {
+    const user = userEvent.setup();
+    const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ChallengesModule
+        challenges={[]}
+        posts={[]}
+        onSaveChallenge={onSaveChallenge}
+        onDeleteChallenge={vi.fn()}
+        onSavePost={vi.fn()}
+        onDeletePost={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole('tab', { name: /Aquecimento/ }));
+    await user.click(screen.getByLabelText('Novo Aquecimento'));
+    expect(screen.getByRole('heading', { name: 'Novo Aquecimento' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Aquecimento' })).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('radio', { name: 'Ação de Impacto' }));
+    expect(screen.getByRole('heading', { name: 'Nova Ação de Impacto' })).toBeInTheDocument();
+    await user.type(document.getElementById('challenge-form-title') as HTMLInputElement, 'Mutirão');
+    const textareas = screen.getAllByRole('textbox').filter((el) => el.tagName === 'TEXTAREA');
+    await user.type(textareas[0]!, 'Descrição');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(onSaveChallenge).toHaveBeenCalledTimes(1));
+    expect((onSaveChallenge.mock.calls[0]![0] as Challenge).type).toBe('Ação de Impacto');
+  });
+
+  it('attaches several photos, videos and songs and sends the files on save', async () => {
+    let n = 0;
+    URL.createObjectURL = vi.fn(() => `blob:preview-${++n}`);
+    URL.revokeObjectURL = vi.fn();
+    const user = userEvent.setup({ applyAccept: false });
+    const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ChallengesModule
+        challenges={[]}
+        posts={[]}
+        onSaveChallenge={onSaveChallenge}
+        onDeleteChallenge={vi.fn()}
+        onSavePost={vi.fn()}
+        onDeletePost={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByLabelText('Novo Desafio'));
+    const input = screen.getByLabelText('Anexar fotos, vídeos ou músicas');
+    const photo = new File(['p'], 'foto.png', { type: 'image/png' });
+    const video = new File(['v'], 'video.mp4', { type: 'video/mp4' });
+    const song = new File(['s'], 'musica.mp3', { type: 'audio/mpeg' });
+    const pdf = new File(['d'], 'doc.pdf', { type: 'application/pdf' });
+
+    await user.upload(input, [photo, video]);
+    await user.upload(input, [song, pdf]);
+    expect(screen.getByRole('alert')).toHaveTextContent('"doc.pdf" não é foto, vídeo ou música.');
+    expect(screen.getByText('foto.png')).toBeInTheDocument();
+    expect(screen.getByText('video.mp4')).toBeInTheDocument();
+    expect(screen.getByText('musica.mp3')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Remover video.mp4'));
+    expect(screen.queryByText('video.mp4')).not.toBeInTheDocument();
+
+    await user.type(document.getElementById('challenge-form-title') as HTMLInputElement, 'Com anexos');
+    const textareas = screen.getAllByRole('textbox').filter((el) => el.tagName === 'TEXTAREA');
+    await user.type(textareas[0]!, 'Descrição');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(onSaveChallenge).toHaveBeenCalledTimes(1));
+    const [saved, files] = onSaveChallenge.mock.calls[0]! as [Challenge, Record<string, File>];
+    expect(saved.media?.map((m) => [m.name, m.kind])).toEqual([
+      ['foto.png', 'image'],
+      ['musica.mp3', 'audio'],
+    ]);
+    expect(Object.values(files)).toEqual([photo, song]);
   });
 });

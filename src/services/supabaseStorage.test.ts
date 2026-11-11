@@ -553,14 +553,95 @@ describe('SupabaseStorageService — challenges, posts, badges', () => {
     expect(challenge.linkedPostIds).toEqual(['post-1']);
   });
 
+  it('reads challenge attachments with signed URLs and turns the legacy single image into one', async () => {
+    mockFrom.mockReturnValueOnce(
+      makeChain([
+        {
+          id: 'ch1',
+          title: 'Desafio',
+          status: 'Concluído',
+          media: [
+            { id: 'm1', name: 'foto.png', kind: 'image', path: 'user-1/challenges/ch1/media-m1' },
+            { id: 'm2', name: 'musica.mp3', kind: 'audio', path: 'user-1/challenges/ch1/media-m2' },
+          ],
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'ch2',
+          title: 'Antigo',
+          status: 'Concluído',
+          result_image_path: 'user-1/challenges/ch2',
+          result_media_type: 'video',
+          created_at: '2026-01-01T00:00:00.000Z',
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
+    );
+    const [withMedia, legacy] = (await SupabaseStorageService.getChallenges()) as [Challenge, Challenge];
+    expect(withMedia.media).toEqual([
+      expect.objectContaining({ id: 'm1', kind: 'image', url: 'https://signed.example.com/file' }),
+      expect.objectContaining({ id: 'm2', kind: 'audio', url: 'https://signed.example.com/file' }),
+    ]);
+    expect(legacy.media).toEqual([
+      expect.objectContaining({ kind: 'video', path: 'user-1/challenges/ch2', url: 'https://signed.example.com/file' }),
+    ]);
+  });
+
+  it('uploads each new attachment, keeps existing ones and removes the ones taken out', async () => {
+    const bucket = makeStorageBucket();
+    mockStorageFrom.mockReturnValue(bucket);
+    const chain = makeChain({
+      media: [
+        { id: 'kept', name: 'a.png', kind: 'image', path: 'user-1/challenges/ch1/media-kept' },
+        { id: 'gone', name: 'b.png', kind: 'image', path: 'user-1/challenges/ch1/media-gone' },
+      ],
+      result_image_path: null,
+    });
+    mockFrom.mockReturnValue(chain);
+    const photo = new File(['x'], 'nova.png', { type: 'image/png' });
+    const song = new File(['y'], 'musica.mp3', { type: 'audio/mpeg' });
+
+    await SupabaseStorageService.saveChallenge(
+      makeChallenge({
+        id: 'ch1',
+        media: [
+          {
+            id: 'kept',
+            name: 'a.png',
+            kind: 'image',
+            url: 'https://signed/a',
+            path: 'user-1/challenges/ch1/media-kept',
+          },
+          { id: 'new1', name: 'nova.png', kind: 'image', url: 'blob:1' },
+          { id: 'new2', name: 'musica.mp3', kind: 'audio', url: 'blob:2' },
+          { id: 'stale', name: 'perdido.png', kind: 'image', url: 'blob:3' },
+        ],
+      }),
+      { new1: photo, new2: song },
+    );
+
+    expect(bucket.upload).toHaveBeenCalledWith('user-1/challenges/ch1/media-new1', photo, expect.anything());
+    expect(bucket.upload).toHaveBeenCalledWith('user-1/challenges/ch1/media-new2', song, expect.anything());
+    expect(bucket.upload).toHaveBeenCalledTimes(2);
+    const row = chain.upsert.mock.calls[0]![0];
+    expect(row.media).toEqual([
+      expect.objectContaining({ id: 'kept', path: 'user-1/challenges/ch1/media-kept' }),
+      expect.objectContaining({ id: 'new1', path: 'user-1/challenges/ch1/media-new1' }),
+      expect.objectContaining({ id: 'new2', kind: 'audio', path: 'user-1/challenges/ch1/media-new2' }),
+    ]);
+    expect(row.result_image_path).toBeNull();
+    expect(bucket.remove).toHaveBeenCalledWith(['user-1/challenges/ch1/media-gone']);
+  });
+
   it('saves and deletes challenges and posts', async () => {
     let chain = makeChain(null);
-    mockFrom.mockReturnValueOnce(chain);
+    mockFrom.mockReturnValue(chain);
     await SupabaseStorageService.saveChallenge(makeChallenge({ id: 'ch1' }));
     expect(chain.upsert.mock.calls[0]![0]).toMatchObject({ id: 'ch1', user_id: 'user-1' });
 
     chain = makeChain(null);
-    mockFrom.mockReturnValueOnce(chain);
+    mockFrom.mockReturnValue(chain);
     await SupabaseStorageService.deleteChallenge('ch1');
     expect(chain.delete).toHaveBeenCalled();
     expect(chain.eq).toHaveBeenCalledWith('id', 'ch1');

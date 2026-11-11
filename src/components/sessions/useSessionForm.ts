@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { usePersistedState } from '../../hooks/usePersistedState';
-import type { AmbassadorSession } from '../../types';
+import type { AmbassadorSession, SessionType } from '../../types';
 
 export const DEFAULT_SESSION_FORM: Partial<AmbassadorSession> = {
   title: '',
@@ -45,8 +45,8 @@ export function useSessionForm() {
       setFormData(DEFAULT_SESSION_FORM);
       setVideo(null);
     },
-    openCreate: () => {
-      setFormData(DEFAULT_SESSION_FORM);
+    openCreate: (type: SessionType = 'Sessão') => {
+      setFormData({ ...DEFAULT_SESSION_FORM, type });
       setVideo(null);
       setIsOpen(true);
     },

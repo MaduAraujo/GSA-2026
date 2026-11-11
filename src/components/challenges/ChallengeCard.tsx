@@ -1,4 +1,4 @@
-import { Calendar, ExternalLink, Loader2, MessageSquareText, Pencil, Share2, Star, Trash2 } from 'lucide-react';
+import { Calendar, ExternalLink, Loader2, MessageSquareText, Music, Pencil, Share2, Star, Trash2 } from 'lucide-react';
 import type { Challenge } from '../../types';
 import { formatDateBR } from '../../utils/date';
 import { isHttpUrl } from '../../utils/safeUrl';
@@ -33,6 +33,9 @@ export function ChallengeCard({
   const dates =
     challenge.dates && challenge.dates.length > 0 ? challenge.dates : challenge.deadline ? [challenge.deadline] : [];
   const extraDays = dates.length - 1;
+  const media = (challenge.media ?? []).filter((item) => item.url);
+  const visualMedia = media.filter((item) => item.kind !== 'audio');
+  const audioMedia = media.filter((item) => item.kind === 'audio');
 
   return (
     <div
@@ -74,21 +77,28 @@ export function ChallengeCard({
         </div>
       )}
 
-      {challenge.resultImage &&
-        (challenge.resultMediaType === 'video' ? (
-          <video
-            src={challenge.resultImage}
-            controls
-            className="w-full h-32 rounded-xl object-cover border border-gray-200"
-          />
-        ) : (
-          <img
-            src={challenge.resultImage}
-            alt="Resultado do desafio"
-            loading="lazy"
-            className="w-full h-32 rounded-xl object-cover border border-gray-200"
-          />
-        ))}
+      {visualMedia.length > 0 && (
+        <div className={visualMedia.length > 1 ? 'grid grid-cols-3 gap-1.5' : ''}>
+          {visualMedia.map((item) => {
+            const mediaClass = `w-full ${visualMedia.length > 1 ? 'h-20' : 'h-32'} rounded-xl object-cover border border-gray-200`;
+            return item.kind === 'video' ? (
+              <video key={item.id} src={item.url} controls className={mediaClass} />
+            ) : (
+              <img key={item.id} src={item.url} alt={item.name} loading="lazy" className={mediaClass} />
+            );
+          })}
+        </div>
+      )}
+
+      {audioMedia.map((item) => (
+        <div key={item.id} className="space-y-1">
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 max-w-full">
+            <Music className="w-3.5 h-3.5 text-[#1A73E8] shrink-0" />
+            <span className="truncate">{item.name}</span>
+          </p>
+          <audio src={item.url} controls preload="none" className="w-full h-9" />
+        </div>
+      ))}
 
       {socialLinksOf(challenge)
         .filter((social) => isHttpUrl(social.link))

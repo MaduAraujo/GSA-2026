@@ -107,6 +107,7 @@ export type Database = {
           link: string | null
           linked_post_id: string | null
           linked_post_ids: string[] | null
+          media: Json | null
           points: number | null
           result: string | null
           result_image: string | null
@@ -117,6 +118,7 @@ export type Database = {
           social_links: Json | null
           status: string
           title: string
+          type: string
           updated_at: string
           user_id: string
         }
@@ -131,6 +133,7 @@ export type Database = {
           link?: string | null
           linked_post_id?: string | null
           linked_post_ids?: string[] | null
+          media?: Json | null
           points?: number | null
           result?: string | null
           result_image?: string | null
@@ -141,6 +144,7 @@ export type Database = {
           social_links?: Json | null
           status?: string
           title: string
+          type?: string
           updated_at?: string
           user_id?: string
         }
@@ -155,6 +159,7 @@ export type Database = {
           link?: string | null
           linked_post_id?: string | null
           linked_post_ids?: string[] | null
+          media?: Json | null
           points?: number | null
           result?: string | null
           result_image?: string | null
@@ -165,6 +170,7 @@ export type Database = {
           social_links?: Json | null
           status?: string
           title?: string
+          type?: string
           updated_at?: string
           user_id?: string
         }
@@ -641,6 +647,7 @@ export type Database = {
           session_date: string
           title: string
           tool_learned: string
+          type: string
           updated_at: string
           user_id: string
         }
@@ -656,6 +663,7 @@ export type Database = {
           session_date: string
           title: string
           tool_learned?: string
+          type?: string
           updated_at?: string
           user_id?: string
         }
@@ -671,6 +679,7 @@ export type Database = {
           session_date?: string
           title?: string
           tool_learned?: string
+          type?: string
           updated_at?: string
           user_id?: string
         }

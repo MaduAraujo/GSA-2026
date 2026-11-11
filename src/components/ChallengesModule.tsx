@@ -1,15 +1,16 @@
 import { CheckCircle2, ChevronDown, Circle, Clock3, Flag, Plus, Search, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import type { Challenge, SocialPost } from '../types';
+import { usePersistedState } from '../hooks/usePersistedState';
+import type { Challenge, ChallengeType, SocialPost } from '../types';
 import { ChallengeCard } from './challenges/ChallengeCard';
 import { ChallengeFormModal } from './challenges/ChallengeFormModal';
-import { compareChallenges, nextStatus, STATUSES } from './challenges/challengeModel';
+import { CHALLENGE_TYPES, challengeTypeOf, compareChallenges, nextStatus, STATUSES } from './challenges/challengeModel';
 import { useChallengeForm } from './challenges/useChallengeForm';
 
 interface ChallengesModuleProps {
   challenges: Challenge[];
   posts: SocialPost[];
-  onSaveChallenge: (challenge: Challenge, resultVideoFile?: File) => Promise<void>;
+  onSaveChallenge: (challenge: Challenge, mediaFiles?: Record<string, File>) => Promise<void>;
   onDeleteChallenge: (id: string) => Promise<void>;
   onSavePost: (post: SocialPost) => Promise<void>;
   onDeletePost: (id: string) => Promise<void>;
@@ -54,6 +55,7 @@ export function ChallengesModule({
   onSavePost,
   onDeletePost,
 }: ChallengesModuleProps) {
+  const [activeType, setActiveType] = usePersistedState<ChallengeType>('gsa_challenge_tab', 'Desafio');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [selectedStatus, setSelectedStatus] = useState('Todos');
@@ -61,10 +63,17 @@ export function ChallengesModule({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const form = useChallengeForm();
 
-  const categories = getCategories(challenges);
+  const activeTab = CHALLENGE_TYPES.find((t) => t.type === activeType) ?? CHALLENGE_TYPES[0]!;
+  const tabChallenges = challenges.filter((c) => challengeTypeOf(c) === activeTab.type);
+  const categories = getCategories(tabChallenges);
   const query = searchQuery.toLowerCase();
 
-  const filteredChallenges = challenges
+  const selectTab = (type: ChallengeType) => {
+    setActiveType(type);
+    setSelectedCategory('Todos');
+  };
+
+  const filteredChallenges = tabChallenges
     .filter((c) => {
       const matchesSearch = c.title.toLowerCase().includes(query) || c.description.toLowerCase().includes(query);
       const matchesCategory =
@@ -74,7 +83,7 @@ export function ChallengesModule({
     })
     .sort(compareChallenges);
 
-  const countByStatus = (status: Challenge['status']) => challenges.filter((c) => c.status === status).length;
+  const countByStatus = (status: Challenge['status']) => tabChallenges.filter((c) => c.status === status).length;
 
   const handleDelete = async (challenge: Challenge) => {
     if (!confirm('Deseja realmente remover este desafio?')) return;
@@ -114,17 +123,48 @@ export function ChallengesModule({
 
         <button
           id="btn-new-challenge"
-          onClick={form.openCreate}
-          aria-label="Novo desafio"
-          title="Novo desafio"
+          onClick={() => form.openCreate(activeTab.type)}
+          aria-label={activeTab.newLabel}
+          title={activeTab.newLabel}
           className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo desafio</span>
+          <span className="hidden sm:inline">{activeTab.newLabel}</span>
         </button>
       </div>
 
-      {challenges.length > 0 && (
+      <div
+        role="tablist"
+        aria-label="Tipos de desafio"
+        className="flex gap-1 p-1 rounded-2xl bg-gray-100 overflow-x-auto scrollbar-none"
+      >
+        {CHALLENGE_TYPES.map(({ type, tab }) => {
+          const selected = type === activeTab.type;
+          const count = challenges.filter((c) => challengeTypeOf(c) === type).length;
+          return (
+            <button
+              key={type}
+              role="tab"
+              aria-selected={selected}
+              onClick={() => selectTab(type)}
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+                selected ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              <span>{tab}</span>
+              <span
+                className={`min-w-5 px-1.5 rounded-full text-[11px] font-bold ${
+                  selected ? 'bg-[#34A853]/10 text-[#1E8E3E]' : 'bg-gray-200 text-gray-500'
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {tabChallenges.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <StatusCount
             icon={<Circle className="w-4.5 h-4.5" />}
@@ -216,7 +256,7 @@ export function ChallengesModule({
             <Flag className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-gray-900">
-            {challenges.length === 0 ? 'Nenhum desafio encontrado' : 'Nada encontrado'}
+            {tabChallenges.length === 0 ? 'Nenhum item' : 'Nada encontrado'}
           </h3>
         </div>
       ) : (
