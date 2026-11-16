@@ -95,6 +95,7 @@ export function rowToCertificate(row: Tables<'certificates'>, signedUrls: Signed
     hours: row.hours ?? undefined,
     minutes: row.minutes ?? undefined,
     isFavorite: row.is_favorite ?? undefined,
+    showInPortfolio: row.show_in_portfolio ?? undefined,
     createdAt: row.created_at,
   };
 }
@@ -615,6 +616,7 @@ export function rowToEarnedBadge(row: Tables<'earned_badges'>, signedUrls: Signe
     fileName: row.file_name,
     filePath: row.file_path,
     url: signedUrls.get(row.file_path),
+    isFavorite: row.is_favorite,
     createdAt: row.created_at,
   };
 }

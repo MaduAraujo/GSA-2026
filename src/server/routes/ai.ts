@@ -5,6 +5,7 @@ import {
   analyzedCertificateSchema,
   chatRequestSchema,
   enhancePromptRequestSchema,
+  enhancedPromptSchema,
 } from '../../shared/aiSchemas';
 import { extractDocumentText, mimeTypeOfDataUrl } from '../documents';
 import { HttpError, parseBody, rateLimit, requireAuth } from '../http';
@@ -25,7 +26,14 @@ function getGroqClient(): Groq {
 
 const ENHANCE_SYSTEM_PROMPT = `Você é um engenheiro de prompts sênior especializado no ecossistema Google Gemini e Google AI Studio.
 Sua missão é aprimorar prompts de estudantes e embaixadores do Google, transformando ideias simples em prompts estruturados de nível profissional com Persona, Contexto, Tarefa Clara, Restrições, Formato de Saída e Exemplos quando pertinentes.
-Responda em Português do Brasil (pt-BR).`;
+Preserve as variáveis entre colchetes do prompt original (ex.: [TEMA]) e use o mesmo formato, em MAIÚSCULAS, para variáveis novas.
+Escreva em Português do Brasil (pt-BR).
+Responda sempre em JSON válido, e apenas em JSON, com a seguinte estrutura:
+{
+  "prompt": "o prompt aprimorado, pronto para colar, sem comentários sobre ele",
+  "improvements": ["cada melhoria feita e por quê, em uma frase"],
+  "tip": "uma dica curta de uso"
+}`;
 
 const CERTIFICATE_SYSTEM_PROMPT = `Você é um assistente de reconhecimento de conquistas para a Embaixadora Estudantil do Google 2026.
 Você analisa o CONTEÚDO REAL de certificados e badges (imagens ou documentos) de cursos, workshops e eventos de tecnologia.
@@ -58,26 +66,42 @@ aiRouter.post('/enhance-prompt', async (req, res) => {
   const { prompt, section, objective } = parseBody(req, enhancePromptRequestSchema);
   const groq = getGroqClient();
 
-  const promptText = `Aprimore este prompt voltado para a seção **${section}**:
-Objetivo: ${objective}
-Prompt original: "${prompt}"
-
-Por favor, forneça:
-1. **Prompt Aprimorado** (pronto para usar no Gemini, bem estruturado)
-2. **Explicação das Melhorias** (o que foi adicionado e por que)
-3. **Variáveis recomendadas** (ex: [TEMA], [NÍVEL], [DURAÇÃO])
-4. **Dica Pro de uso com Gemini 3.7 / Gemini Flash**`;
+  const promptText = `Aprimore este prompt${section.trim() ? ` da categoria "${section.trim()}"` : ''}.
+Objetivo do aprimoramento: ${objective}
+Prompt original:
+---
+${prompt}
+---`;
 
   const completion = await groq.chat.completions.create({
     model: GROQ_TEXT_MODEL,
     temperature: 0.4,
+    response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: ENHANCE_SYSTEM_PROMPT },
       { role: 'user', content: promptText },
     ],
   });
+  const rawContent = completion.choices[0]?.message?.content || '';
 
-  res.json({ success: true, enhanced: completion.choices[0]?.message?.content || '' });
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawContent);
+  } catch {
+    parsed = null;
+  }
+  const result = enhancedPromptSchema.safeParse(parsed);
+  if (result.success) {
+    res.json({
+      success: true,
+      enhanced: result.data.prompt,
+      improvements: result.data.improvements,
+      tip: result.data.tip,
+    });
+    return;
+  }
+  if (!rawContent.trim()) throw new HttpError(502, 'A IA não retornou um prompt aprimorado. Tente novamente.');
+  res.json({ success: true, enhanced: rawContent.trim(), improvements: [], tip: '' });
 });
 
 aiRouter.post('/analyze-certificate', async (req, res) => {

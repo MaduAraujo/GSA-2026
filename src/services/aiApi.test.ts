@@ -18,13 +18,18 @@ describe('AiApiService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('enhancePrompt posts the params with auth headers and returns the enhanced text', async () => {
-    const fetchMock = mockFetchOnce(200, { success: true, enhanced: 'Prompt melhorado' });
+  it('enhancePrompt posts the params with auth headers and returns the enhanced prompt and notes', async () => {
+    const fetchMock = mockFetchOnce(200, {
+      success: true,
+      enhanced: 'Prompt melhorado',
+      improvements: ['Persona definida'],
+      tip: 'Use exemplos',
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await AiApiService.enhancePrompt({ prompt: 'Ideia', section: 'Estudos' });
 
-    expect(result).toBe('Prompt melhorado');
+    expect(result).toEqual({ enhanced: 'Prompt melhorado', improvements: ['Persona definida'], tip: 'Use exemplos' });
     expect(fetchMock).toHaveBeenCalledWith('/api/ai/enhance-prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test-token' },

@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.17"
   }
@@ -46,6 +44,7 @@ export type Database = {
           hours: number | null
           id: string
           is_favorite: boolean
+          show_in_portfolio: boolean
           issue_date: string
           issuer: string
           minutes: number | null
@@ -66,6 +65,7 @@ export type Database = {
           hours?: number | null
           id?: string
           is_favorite?: boolean
+          show_in_portfolio?: boolean
           issue_date: string
           issuer: string
           minutes?: number | null
@@ -86,6 +86,7 @@ export type Database = {
           hours?: number | null
           id?: string
           is_favorite?: boolean
+          show_in_portfolio?: boolean
           issue_date?: string
           issuer?: string
           minutes?: number | null
@@ -589,6 +590,7 @@ export type Database = {
           file_name: string
           file_path: string
           id: string
+          is_favorite: boolean
           user_id: string
         }
         Insert: {
@@ -596,6 +598,7 @@ export type Database = {
           file_name: string
           file_path: string
           id?: string
+          is_favorite?: boolean
           user_id?: string
         }
         Update: {
@@ -603,6 +606,7 @@ export type Database = {
           file_name?: string
           file_path?: string
           id?: string
+          is_favorite?: boolean
           user_id?: string
         }
         Relationships: []

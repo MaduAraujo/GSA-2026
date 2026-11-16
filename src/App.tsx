@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, usePa
 import { AppShell } from './app/AppShell';
 import { AuthProvider, useAuth } from './app/AuthProvider';
 import { BadgeProvider } from './app/BadgeProvider';
+import { ToastProvider } from './app/ToastProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useDarkMode } from './hooks/useDarkMode';
 import { usePersistedState } from './hooks/usePersistedState';
@@ -117,11 +118,13 @@ export default function App() {
   return (
     <ErrorBoundary>
       <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </BrowserRouter>
+        </ToastProvider>
         <Suspense fallback={null}>
           <ReactQueryDevtools />
         </Suspense>

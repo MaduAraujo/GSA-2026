@@ -16,6 +16,7 @@ export interface Certificate {
   hours?: number;
   minutes?: number;
   isFavorite?: boolean;
+  showInPortfolio?: boolean;
   createdAt: string;
 }
 
@@ -110,7 +111,6 @@ export interface Challenge {
   points?: number;
   result?: string;
   media?: ChallengeMedia[];
-  /** Anexo único antigo; só aparece em backups e é convertido em `media` ao salvar. */
   resultImage?: string;
   resultMediaType?: 'image' | 'video';
   resultLink?: string;
@@ -225,6 +225,7 @@ export interface EarnedBadge {
   fileName: string;
   filePath: string;
   url?: string;
+  isFavorite: boolean;
   createdAt: string;
 }
 

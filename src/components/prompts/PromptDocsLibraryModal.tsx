@@ -1,5 +1,7 @@
 import { Download, FileText, Paperclip, Trash2, Upload, X } from 'lucide-react';
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useUndoableDelete } from '../../hooks/useUndoableDelete';
 import { SupabaseStorageService } from '../../services/supabaseStorage';
 import type { PromptDoc } from '../../types';
 import { errorMessage } from '../../utils/errors';
@@ -28,6 +30,8 @@ export function PromptDocsLibraryModal({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, onClose);
 
   const upload = async (file: File) => {
     setUploadError(null);
@@ -36,7 +40,7 @@ export function PromptDocsLibraryModal({
       return;
     }
     if (file.size > MAX_DOC_FILE_SIZE_BYTES) {
-      setUploadError(`Arquivo muito grande (${formatMegabytes(file.size)}MB). O limite é 1GB.`);
+      setUploadError(`Arquivo muito grande (${formatMegabytes(file.size)}MB). O limite é 50MB.`);
       return;
     }
 
@@ -72,17 +76,21 @@ export function PromptDocsLibraryModal({
     if (file) void upload(file);
   };
 
-  const handleDelete = async (doc: PromptDoc) => {
-    if (confirm(`Excluir "${doc.name}" da biblioteca de documentos?`)) {
+  const pendingDelete = useUndoableDelete<PromptDoc>({
+    commit: async (doc) => {
       await onDeletePromptDoc(doc.id);
       if (doc.filePath) {
         SupabaseStorageService.deletePromptDocFile(doc.filePath).catch(() => {});
       }
-    }
-  };
+    },
+    message: 'Documento excluído',
+    errorMessage: 'Não foi possível excluir o documento. Ele foi restaurado.',
+  });
+  const docs = promptDocs.filter((d) => !pendingDelete.pendingIds.has(d.id));
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Documentos para teste"
@@ -104,7 +112,7 @@ export function PromptDocsLibraryModal({
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
           >
             <X className="w-5 h-5" />
           </button>
@@ -150,11 +158,11 @@ export function PromptDocsLibraryModal({
             </p>
           )}
 
-          {promptDocs.length === 0 ? (
-            <p className="text-center text-xs text-gray-400 py-6">Nenhum documento enviado ainda.</p>
+          {docs.length === 0 ? (
+            <p className="text-center text-xs text-gray-500 py-6">Nenhum documento enviado ainda.</p>
           ) : (
             <div className="space-y-2">
-              {promptDocs.map((doc) => (
+              {docs.map((doc) => (
                 <div key={doc.id} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-200">
                   {doc.fileType.startsWith('image/') ? (
                     <img
@@ -182,7 +190,7 @@ export function PromptDocsLibraryModal({
                   </a>
                   <button
                     type="button"
-                    onClick={() => handleDelete(doc)}
+                    onClick={() => pendingDelete.remove(doc)}
                     aria-label={`Excluir ${doc.name}`}
                     title="Excluir"
                     className="p-1.5 rounded-lg text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 shrink-0"

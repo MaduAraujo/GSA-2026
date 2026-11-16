@@ -43,7 +43,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/app/AuthProvider.tsx', 'src/app/BadgeProvider.tsx'],
+    files: ['src/app/AuthProvider.tsx', 'src/app/BadgeProvider.tsx', 'src/app/ToastProvider.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {

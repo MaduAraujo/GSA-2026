@@ -1,5 +1,5 @@
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { QueryClient } from '@tanstack/react-query';
+import { defaultShouldDehydrateQuery, QueryClient, type Query } from '@tanstack/react-query';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -47,8 +47,15 @@ export const queryPersister = createAsyncStoragePersister({
   throttleTime: 1000,
 });
 
+export const NO_PERSIST_META = { persist: false } as const;
+
+export function shouldPersistQuery(query: Query): boolean {
+  return query.meta?.persist !== false && defaultShouldDehydrateQuery(query);
+}
+
 export const persistOptions = {
   persister: queryPersister,
   maxAge: ONE_DAY_MS,
   buster: QUERY_CACHE_BUSTER,
+  dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
 };

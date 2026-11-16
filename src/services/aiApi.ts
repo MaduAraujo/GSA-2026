@@ -8,10 +8,18 @@ import {
   type ChatAttachment,
   type ChatHistoryMessage,
   type EnhancePromptParams,
+  type EnhancedPrompt,
 } from '../shared/aiSchemas';
 import { getAuthHeaders } from './supabaseClient';
 
-export type { AnalyzeCertParams, AnalyzedCertificateResult, ChatAttachment, ChatHistoryMessage, EnhancePromptParams };
+export type {
+  AnalyzeCertParams,
+  AnalyzedCertificateResult,
+  ChatAttachment,
+  ChatHistoryMessage,
+  EnhancePromptParams,
+  EnhancedPrompt,
+};
 
 async function postJson<S extends z.ZodType>(
   url: string,
@@ -38,14 +46,14 @@ async function postJson<S extends z.ZodType>(
 }
 
 export const AiApiService = {
-  async enhancePrompt(params: EnhancePromptParams): Promise<string> {
-    const data = await postJson(
+  async enhancePrompt(params: EnhancePromptParams): Promise<EnhancedPrompt> {
+    const { enhanced, improvements, tip } = await postJson(
       '/api/ai/enhance-prompt',
       params,
       enhancePromptResponseSchema,
       'Falha ao aprimorar prompt.',
     );
-    return data.enhanced;
+    return { enhanced, improvements, tip };
   },
 
   async analyzeCertificate(params: AnalyzeCertParams): Promise<AnalyzedCertificateResult> {

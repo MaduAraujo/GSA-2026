@@ -154,23 +154,54 @@ describe('server/app', () => {
     expect(res.body.success).toBe(true);
   });
 
-  it('enhance-prompt returns the Groq completion when everything is configured', async () => {
+  it('enhance-prompt returns the improved prompt separately from the notes', async () => {
     process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
     process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
     process.env.SUPABASE_SERVICE_ROLE_KEY = '';
     process.env.GROQ_API_KEY = 'fake-groq-key';
     mockAuthedSupabase();
-    groqCreateMock.mockResolvedValue({ choices: [{ message: { content: 'Prompt aprimorado!' } }] });
+    groqCreateMock.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ prompt: 'Prompt aprimorado!', improvements: ['Persona'], tip: 'Dica' }),
+          },
+        },
+      ],
+    });
     const { app } = await import('./app');
 
     const res = await request(app)
       .post('/api/ai/enhance-prompt')
       .set('Authorization', 'Bearer good-token')
-      .send({ prompt: 'Crie um post', section: 'Estudos' });
+      .send({ prompt: 'Crie um post', section: 'Estudos', objective: 'Mais conciso' });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true, enhanced: 'Prompt aprimorado!' });
-    expect(groqCreateMock).toHaveBeenCalledWith(expect.objectContaining({ model: 'openai/gpt-oss-120b' }));
+    expect(res.body).toEqual({ success: true, enhanced: 'Prompt aprimorado!', improvements: ['Persona'], tip: 'Dica' });
+    expect(groqCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'openai/gpt-oss-120b', response_format: { type: 'json_object' } }),
+    );
+    const userMessage = groqCreateMock.mock.calls[0]![0].messages[1].content as string;
+    expect(userMessage).toContain('Mais conciso');
+    vi.doUnmock('@supabase/supabase-js');
+  });
+
+  it('enhance-prompt falls back to the raw text when the model ignores the JSON format', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+    process.env.GROQ_API_KEY = 'fake-groq-key';
+    mockAuthedSupabase();
+    groqCreateMock.mockResolvedValue({ choices: [{ message: { content: ' Prompt em texto puro ' } }] });
+    const { app } = await import('./app');
+
+    const res = await request(app)
+      .post('/api/ai/enhance-prompt')
+      .set('Authorization', 'Bearer good-token')
+      .send({ prompt: 'Crie um post' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, enhanced: 'Prompt em texto puro', improvements: [], tip: '' });
     vi.doUnmock('@supabase/supabase-js');
   });
 

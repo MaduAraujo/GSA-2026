@@ -1,9 +1,13 @@
 import confetti from 'canvas-confetti';
-import { ChevronDown, Link2, Pencil, Sparkles, X } from 'lucide-react';
-import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { ChevronDown, Link2, Pencil, Plus, Sparkles, X } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useToast } from '../../app/ToastProvider';
 import { useDismiss } from '../../hooks/useDismiss';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { MAX_PROMPT_CHARS } from '../../shared/aiSchemas';
 import type { PromptItem } from '../../types';
 import { SelectDropdown } from '../SelectDropdown';
+import { getPromptVariables } from './fillPromptVariables';
 import type { PromptFormState } from './usePromptForm';
 
 interface PromptFormModalProps {
@@ -21,38 +25,72 @@ function submitOnEnter(action: () => void) {
   };
 }
 
+const normalizeTag = (raw: string) => raw.trim();
+const normalizeVar = (raw: string) => raw.trim().toUpperCase();
+function normalizeDoc(raw: string) {
+  const value = raw.trim();
+  if (!value) return '';
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
+function withEntry(list: string[] | undefined, entry: string): string[] {
+  const current = list ?? [];
+  return entry && !current.includes(entry) ? [...current, entry] : current;
+}
+
 export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModalProps) {
   const { formData, setFormData, isEditMode, tagInput, setTagInput, varInput, setVarInput, docInput, setDocInput } =
     form;
+  const toast = useToast();
   const [isSectionSuggestOpen, setIsSectionSuggestOpen] = useState(false);
   const sectionSuggestRef = useRef<HTMLDivElement>(null);
   useDismiss(sectionSuggestRef, isSectionSuggestOpen, () => setIsSectionSuggestOpen(false));
+  const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmingDiscard, setIsConfirmingDiscard] = useState(false);
+  const [showDraftNotice, setShowDraftNotice] = useState(!isEditMode && form.hasCreateDraft);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
+  const requestClose = () => {
+    if (isEditMode && form.isDirty) setIsConfirmingDiscard(true);
+    else form.close();
+  };
+  useFocusTrap(dialogRef, requestClose);
+  useEffect(() => titleRef.current?.focus(), []);
+
+  const promptText = formData.promptText ?? '';
+  const declaredVars = formData.variables ?? [];
+  const detectedVars = getPromptVariables({ promptText, variables: [] }).filter(
+    (v) => !declaredVars.some((d) => d.toUpperCase() === v),
+  );
+  const hasVariables = declaredVars.length > 0 || detectedVars.length > 0;
+
+  const insertVariable = (name: string) => {
+    const token = `[${name}]`;
+    const el = textRef.current;
+    const start = el?.selectionStart ?? promptText.length;
+    const end = el?.selectionEnd ?? promptText.length;
+    setFormData({ ...formData, promptText: promptText.slice(0, start) + token + promptText.slice(end) });
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(start + token.length, start + token.length);
+    });
+  };
 
   const handleAddTag = () => {
-    const tag = tagInput.trim();
-    if (!tag) return;
-    if (!formData.tags?.includes(tag)) {
-      setFormData({ ...formData, tags: [...(formData.tags || []), tag] });
-    }
+    setFormData({ ...formData, tags: withEntry(formData.tags, normalizeTag(tagInput)) });
     setTagInput('');
   };
 
   const handleAddVar = () => {
-    const v = varInput.trim().toUpperCase();
-    if (!v) return;
-    if (!formData.variables?.includes(v)) {
-      setFormData({ ...formData, variables: [...(formData.variables || []), v] });
-    }
+    setFormData({ ...formData, variables: withEntry(formData.variables, normalizeVar(varInput)) });
     setVarInput('');
   };
 
   const handleAddDoc = () => {
-    const raw = docInput.trim();
-    if (!raw) return;
-    const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-    if (!formData.sharedDocs?.includes(url)) {
-      setFormData({ ...formData, sharedDocs: [...(formData.sharedDocs || []), url] });
-    }
+    setFormData({ ...formData, sharedDocs: withEntry(formData.sharedDocs, normalizeDoc(docInput)) });
     setDocInput('');
   };
 
@@ -65,9 +103,9 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
       title: formData.title || 'Novo Prompt',
       promptText: formData.promptText || '',
       section: (formData.section || '').trim(),
-      tags: formData.tags || [],
-      variables: formData.variables || [],
-      sharedDocs: formData.sharedDocs || [],
+      tags: withEntry(formData.tags, normalizeTag(tagInput)),
+      variables: withEntry(formData.variables, normalizeVar(varInput)),
+      sharedDocs: withEntry(formData.sharedDocs, normalizeDoc(docInput)),
       recommendedModel: formData.recommendedModel || 'gemini-3.7-flash',
       isFavorite: formData.isFavorite || false,
       usageCount: formData.usageCount || 0,
@@ -75,22 +113,37 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
       createdAt: formData.createdAt || new Date().toISOString(),
     };
 
-    await onSavePrompt(prompt);
-    form.close();
-    form.reset();
+    setIsSaving(true);
+    try {
+      await onSavePrompt(prompt);
+    } catch (err) {
+      console.error(err);
+      toast.show({ message: 'Não foi possível salvar o prompt. Tente novamente.', tone: 'error' });
+      return;
+    } finally {
+      setIsSaving(false);
+    }
+    form.finishSave();
 
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.7 },
-      colors: ['#FBBC04', '#1A73E8', '#34A853'],
-    });
+    if (isEditMode) {
+      toast.show({ message: 'Prompt atualizado', tone: 'success' });
+    } else {
+      toast.show({ message: 'Prompt criado', tone: 'success' });
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#FBBC04', '#1A73E8', '#34A853'],
+      });
+    }
   };
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="prompt-form-heading"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
     >
       <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
@@ -101,7 +154,7 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                 {isEditMode ? <Pencil className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
               </div>
               <div>
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                <h3 id="prompt-form-heading" className="text-lg sm:text-xl font-bold text-gray-900">
                   {isEditMode ? 'Editar Prompt' : 'Cadastrar Prompt'}
                 </h3>
                 <p className="text-xs text-gray-500">
@@ -110,13 +163,34 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
               </div>
             </div>
             <button
-              onClick={form.close}
+              type="button"
+              onClick={requestClose}
               aria-label="Fechar"
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {showDraftNotice && (
+            <div
+              role="status"
+              className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#1A73E8]/5 border border-[#1A73E8]/20 text-xs text-gray-700"
+            >
+              <span>Continuando o rascunho que você não salvou.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  form.reset();
+                  setShowDraftNotice(false);
+                  titleRef.current?.focus();
+                }}
+                className="shrink-0 font-semibold text-[#1A73E8] hover:underline"
+              >
+                Descartar rascunho
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -127,12 +201,14 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                 Título do Prompt *
               </label>
               <input
+                ref={titleRef}
                 id="prompt-form-title"
                 type="text"
                 required
+                placeholder="Ex.: Plano de estudos semanal"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8]"
               />
             </div>
 
@@ -148,9 +224,10 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                   <input
                     id="prompt-form-section"
                     type="text"
+                    placeholder="Ex.: Estudos"
                     value={formData.section}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40 ${sections.length > 0 ? 'pr-8' : ''}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] ${sections.length > 0 ? 'pr-8' : ''}`}
                   />
                   {sections.length > 0 && (
                     <button
@@ -193,19 +270,22 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
 
               <div>
                 <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Modelo Recomendado
+                  Modelo recomendado
                 </span>
                 <SelectDropdown
-                  value={formData.recommendedModel || ''}
+                  value={formData.recommendedModel || 'gemini-3.7-flash'}
                   onChange={(v) => setFormData({ ...formData, recommendedModel: v as PromptItem['recommendedModel'] })}
                   options={[
                     { value: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash (Rápido & Inteligente)' },
                     { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Raciocínio Profundo)' },
                     { value: 'gemini-3.1-flash-lite', label: 'Gemini Flash Lite (Super Leve)' },
                   ]}
-                  ariaLabel="Modelo Recomendado"
-                  align="center"
+                  ariaLabel="Modelo recomendado"
+                  align="left"
                 />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Onde este prompt funciona melhor. O teste aqui no Hub usa o modelo de IA do próprio Hub.
+                </p>
               </div>
             </div>
 
@@ -217,13 +297,31 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                 Texto do Prompt *
               </label>
               <textarea
+                ref={textRef}
                 id="prompt-form-text"
                 rows={6}
                 required
+                maxLength={MAX_PROMPT_CHARS}
+                aria-describedby="prompt-form-text-help"
+                placeholder="Ex.: Crie um plano de estudos de 7 dias sobre [TEMA] para quem está no nível [NÍVEL]."
                 value={formData.promptText}
                 onChange={(e) => setFormData({ ...formData, promptText: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm font-mono border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm font-mono border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30"
               />
+              <div
+                id="prompt-form-text-help"
+                className="mt-1 flex items-start justify-between gap-3 text-[11px] text-gray-500"
+              >
+                <span>
+                  Use <span className="font-mono">[NOME]</span> em maiúsculas para criar variáveis, preenchidas na hora
+                  de usar.
+                </span>
+                <span
+                  className={`shrink-0 tabular-nums ${promptText.length > MAX_PROMPT_CHARS * 0.9 ? 'text-[#D93025] font-semibold' : ''}`}
+                >
+                  {promptText.length.toLocaleString('pt-BR')}/{MAX_PROMPT_CHARS.toLocaleString('pt-BR')}
+                </span>
+              </div>
             </div>
 
             <div>
@@ -237,6 +335,7 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                 <input
                   id="prompt-form-var"
                   type="text"
+                  placeholder="Ex.: TEMA"
                   value={varInput}
                   onChange={(e) => setVarInput(e.target.value)}
                   onKeyDown={submitOnEnter(handleAddVar)}
@@ -252,14 +351,24 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                   +
                 </button>
               </div>
-              {formData.variables && formData.variables.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {formData.variables.map((v) => (
+              {hasVariables && (
+                <p className="mt-2 text-[11px] text-gray-500">Clique numa variável para inseri-la no texto.</p>
+              )}
+              {hasVariables && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {declaredVars.map((v) => (
                     <span
                       key={v}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#1A73E8]/10 text-[#1A73E8]"
+                      className="inline-flex items-center gap-1 pl-1 pr-2.5 py-0.5 rounded-lg text-xs font-bold bg-[#1A73E8]/10 text-[#1A73E8]"
                     >
-                      [{v}]
+                      <button
+                        type="button"
+                        onClick={() => insertVariable(v)}
+                        aria-label={`Inserir [${v}] no texto`}
+                        className="px-1.5 py-0.5 rounded-md hover:bg-[#1A73E8]/15"
+                      >
+                        [{v}]
+                      </button>
                       <button
                         type="button"
                         aria-label={`Remover variável ${v}`}
@@ -271,6 +380,18 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                         <X className="w-3 h-3" />
                       </button>
                     </span>
+                  ))}
+                  {detectedVars.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, variables: withEntry(formData.variables, v) })}
+                      aria-label={`Adicionar variável detectada ${v}`}
+                      title="Encontrada no texto. Clique para adicionar."
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border border-dashed border-[#1A73E8]/50 text-[#1A73E8] hover:bg-[#1A73E8]/5"
+                    >
+                      <Plus className="w-3 h-3" />[{v}]
+                    </button>
                   ))}
                 </div>
               )}
@@ -287,6 +408,7 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
                 <input
                   id="prompt-form-tag"
                   type="text"
+                  placeholder="Ex.: carreira"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={submitOnEnter(handleAddTag)}
@@ -337,7 +459,7 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
               <div className="flex gap-2">
                 <input
                   id="prompt-form-doc"
-                  type="url"
+                  type="text"
                   inputMode="url"
                   placeholder="https://docs.google.com/document/d/..."
                   value={docInput}
@@ -380,22 +502,48 @@ export function PromptFormModal({ form, sections, onSavePrompt }: PromptFormModa
               )}
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={form.close}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
+            {isConfirmingDiscard ? (
+              <div
+                role="alertdialog"
+                aria-label="Descartar alterações"
+                className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={!formData.title?.trim() || !formData.promptText?.trim()}
-                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#FBBC04] hover:bg-[#F59E0B] text-gray-950 shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#FBBC04]"
-              >
-                Salvar
-              </button>
-            </div>
+                <p className="text-sm font-semibold text-gray-800">Descartar as alterações não salvas?</p>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDiscard(false)}
+                    className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                  >
+                    Continuar editando
+                  </button>
+                  <button
+                    type="button"
+                    onClick={form.discard}
+                    className="px-4 py-2.5 rounded-xl text-sm font-bold bg-[#D93025] hover:bg-[#B3261E] text-white"
+                  >
+                    Descartar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={requestClose}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  {isEditMode ? 'Cancelar' : 'Fechar'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving || !formData.title?.trim() || !formData.promptText?.trim()}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-[#1A73E8] hover:bg-[#1557B0] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#1A73E8]"
+                >
+                  {isSaving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

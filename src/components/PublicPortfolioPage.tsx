@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import type React from 'react';
-import { Award, Clock, Calendar, ExternalLink, Loader2, ShieldAlert } from 'lucide-react';
-import { SupabaseStorageService } from '../services/supabaseStorage';
-import { formatDuration, formatTotalHoursDecimal, sumCertHours } from '../utils/duration';
+import { Award, BadgeCheck, Clock, Calendar, ExternalLink, FileText, Loader2, ShieldAlert } from 'lucide-react';
+import { NO_PERSIST_META } from '../lib/queryClient';
+import { getPublicPortfolio } from '../services/publicPortfolioApi';
+import { formatDuration } from '../utils/duration';
 import { isHttpUrl } from '../utils/safeUrl';
 import { formatDateBR } from '../utils/date';
+import { badgeDisplayName, isBadgeImage } from './certificates/badgeFiles';
 
 interface PublicPortfolioPageProps {
   slug: string;
@@ -13,13 +15,11 @@ interface PublicPortfolioPageProps {
 export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }) => {
   const { data, status } = useQuery({
     queryKey: ['public-portfolio', slug],
-    queryFn: async () => {
-      const found = await SupabaseStorageService.getPublicProfileBySlug(slug);
-      if (!found) return null;
-      const certificates = await SupabaseStorageService.getPublicCertificates(found.userId);
-      return { profile: found.profile, certificates };
-    },
+    queryFn: () => getPublicPortfolio(slug),
     retry: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    meta: NO_PERSIST_META,
   });
 
   if (status === 'pending') {
@@ -42,8 +42,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
     );
   }
 
-  const { profile, certificates } = data;
-  const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
+  const { profile, certificates, badges } = data;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,26 +69,57 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{profile.name}</h1>
             <p className="text-sm text-gray-600 mt-0.5">
-              {profile.role} • {profile.university}
+              {[profile.role, profile.university].filter(Boolean).join(' • ')}
             </p>
-            {profile.bio && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{profile.bio}</p>}
-
-            <div className="flex items-center justify-center sm:justify-start gap-4 mt-4">
-              <div className="text-center">
-                <p className="text-lg font-bold text-gray-900">{certificates.length}</p>
-                <p className="text-[11px] text-gray-500 uppercase font-semibold">Certificados</p>
-              </div>
-              <div className="w-px h-8 bg-gray-200" />
-              <div className="text-center">
-                <p className="text-lg font-bold text-gray-900">{totalHoursLabel}</p>
-                <p className="text-[11px] text-gray-500 uppercase font-semibold">Estudo</p>
-              </div>
-            </div>
           </div>
         </div>
 
+        {badges.length > 0 && (
+          <section aria-labelledby="public-badges-heading" className="space-y-3">
+            <h2
+              id="public-badges-heading"
+              className="flex items-center gap-1.5 text-sm font-bold text-gray-500 uppercase tracking-wider px-1"
+            >
+              <BadgeCheck className="w-4 h-4 text-[#1A73E8]" />
+              Badges em destaque
+            </h2>
+            <ul className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {badges.map((badge) => {
+                const name = badgeDisplayName(badge.fileName);
+                return (
+                  <li key={badge.id}>
+                    <a
+                      href={badge.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={name}
+                      className="group block bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden transition-all hover:shadow-md hover:border-gray-300"
+                    >
+                      <div className="aspect-square flex items-center justify-center p-5 bg-[#F8FAFD]">
+                        {badge.url && isBadgeImage(badge.fileName) ? (
+                          <img
+                            src={badge.url}
+                            alt={name}
+                            loading="lazy"
+                            className="max-h-full max-w-full object-contain drop-shadow-sm transition-transform duration-200 group-hover:scale-105"
+                          />
+                        ) : (
+                          <FileText aria-hidden="true" className="w-10 h-10 text-[#EA4335]" />
+                        )}
+                      </div>
+                      <p className="truncate border-t border-gray-100 px-3 py-2.5 text-xs font-semibold text-gray-800">
+                        {name}
+                      </p>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1">Certificados & Selos</h2>
+          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider px-1">Certificados</h2>
           {certificates.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-sm text-gray-400">
               Nenhum certificado publicado ainda.

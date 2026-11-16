@@ -1,6 +1,13 @@
 import { supabase } from '../supabaseClient';
 import type { EarnedBadge } from '../../types';
-import { getBatchSignedUrls, removeUserFiles, requireUserId, USER_FILES_BUCKET } from './files';
+import {
+  getBatchSignedUrls,
+  removeUserFiles,
+  requireUserId,
+  uploadFileWithProgress,
+  USER_FILES_BUCKET,
+  type UploadProgressOptions,
+} from './files';
 import { rowToEarnedBadge } from './mappers';
 
 export async function getEarnedBadges(): Promise<EarnedBadge[]> {
@@ -14,15 +21,24 @@ export async function getEarnedBadges(): Promise<EarnedBadge[]> {
   return rows.map((row) => rowToEarnedBadge(row, signedUrls));
 }
 
-export async function uploadEarnedBadge(file: File): Promise<void> {
+export async function setEarnedBadgeFavorite(badge: EarnedBadge, isFavorite: boolean): Promise<void> {
+  const { error } = await supabase.from('earned_badges').update({ is_favorite: isFavorite }).eq('id', badge.id);
+  if (error) throw error;
+}
+
+export async function uploadEarnedBadge(file: File, progress?: UploadProgressOptions): Promise<void> {
   const userId = await requireUserId();
   const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   const path = `${userId}/earned-badges/${Date.now()}-${safeName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(USER_FILES_BUCKET)
-    .upload(path, file, { contentType: file.type || undefined });
-  if (uploadError) throw uploadError;
+  if (progress) {
+    await uploadFileWithProgress(USER_FILES_BUCKET, path, file, progress);
+  } else {
+    const { error: uploadError } = await supabase.storage
+      .from(USER_FILES_BUCKET)
+      .upload(path, file, { contentType: file.type || undefined });
+    if (uploadError) throw uploadError;
+  }
 
   const { error } = await supabase
     .from('earned_badges')

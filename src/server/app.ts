@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { isProduction } from './config';
 import { errorHandler } from './http';
 import { aiRouter } from './routes/ai';
+import { portfolioRouter } from './routes/portfolio';
 import { cronRouter, pushRouter, runInactivityPushScan } from './routes/push';
 
 export { runInactivityPushScan };
@@ -28,6 +29,7 @@ app.use(
               'https://*.ingest.sentry.io',
               'https://*.ingest.us.sentry.io',
             ],
+            frameSrc: ["'self'", 'https://*.supabase.co'],
             workerSrc: ["'self'"],
             objectSrc: ["'none'"],
             frameAncestors: ["'self'"],
@@ -50,6 +52,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/ai', aiRouter);
+app.use('/api/portfolio', portfolioRouter);
 app.use('/api/push', pushRouter);
 app.use('/api/cron', cronRouter);
 

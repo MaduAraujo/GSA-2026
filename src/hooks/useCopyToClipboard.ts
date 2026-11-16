@@ -11,14 +11,16 @@ export function useCopyToClipboard(resetMs = 2000) {
     [],
   );
 
-  const copy = async (value: string) => {
+  const copy = async (value: string): Promise<boolean> => {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(value);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(null), resetMs);
+      return true;
     } catch {
       setCopied(null);
+      return false;
     }
   };
 

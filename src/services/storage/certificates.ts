@@ -34,6 +34,19 @@ export async function saveCertificate(cert: Certificate): Promise<void> {
   if (error) throw error;
 }
 
+export async function setCertificateFavorite(cert: Certificate, isFavorite: boolean): Promise<void> {
+  const { error } = await supabase.from('certificates').update({ is_favorite: isFavorite }).eq('id', cert.id);
+  if (error) throw error;
+}
+
+export async function setCertificatePortfolioVisibility(cert: Certificate, showInPortfolio: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('certificates')
+    .update({ show_in_portfolio: showInPortfolio })
+    .eq('id', cert.id);
+  if (error) throw error;
+}
+
 export async function deleteCertificate(id: string): Promise<void> {
   const userId = await requireUserId();
   const { error } = await supabase.from('certificates').delete().eq('id', id);

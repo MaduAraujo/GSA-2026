@@ -27,15 +27,15 @@ test.describe('signed in', () => {
   test('each tab has its own URL, and the back button returns to the previous tab', async ({ page }) => {
     await fakeSupabase(page, { profiles: [profileRow()] });
     await page.goto('/');
-    await expect(page.getByText('Nenhum certificado encontrado')).toBeVisible();
+    await expect(page.getByText('Adicione seu primeiro certificado')).toBeVisible();
 
     await openTab(page, 'Prompts');
     await expect(page).toHaveURL(/\/prompts$/);
-    await expect(page.getByText('Nenhum prompt encontrado')).toBeVisible();
+    await expect(page.getByText('Sua biblioteca de prompts está vazia')).toBeVisible();
 
     await page.goBack();
     await expect(page).toHaveURL(/\/certificados$/);
-    await expect(page.getByText('Nenhum certificado encontrado')).toBeVisible();
+    await expect(page.getByText('Adicione seu primeiro certificado')).toBeVisible();
   });
 
   test('a deep link opens that tab directly', async ({ page }) => {
@@ -50,7 +50,7 @@ test.describe('signed in', () => {
 
     await page.getByRole('button', { name: 'Novo certificado' }).click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Título do Certificado *').fill('Google Cloud Digital Leader');
+    await dialog.getByLabel('Título do certificado *').fill('Google Cloud Digital Leader');
     await dialog.getByLabel('Emissor / Organização').fill('Google Cloud');
     await dialog.getByRole('button', { name: 'Salvar' }).click();
 

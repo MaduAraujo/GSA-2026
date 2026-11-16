@@ -109,6 +109,9 @@
   color: #9aa0a6;
 }
 
+.dark .border-gray-300 {
+  border-color: #3c4456;
+}
 .dark .border-gray-200 {
   border-color: #2d3444;
 }

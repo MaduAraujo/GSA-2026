@@ -14,7 +14,7 @@ import {
 } from '../test/factories';
 
 const { mockAuth, mockFrom, mockStorageFrom } = vi.hoisted(() => ({
-  mockAuth: { getUser: vi.fn() },
+  mockAuth: { getUser: vi.fn(), getSession: vi.fn() },
   mockFrom: vi.fn(),
   mockStorageFrom: vi.fn(),
 }));
@@ -25,13 +25,45 @@ vi.mock('./supabaseClient', () => ({
     from: mockFrom,
     storage: { from: mockStorageFrom },
   },
+  supabaseUrl: 'https://proj.supabase.co',
+  supabaseAnonKey: 'anon-key',
 }));
+
+class FakeXhr {
+  static last: FakeXhr;
+  upload: { onprogress?: (e: { lengthComputable: boolean; loaded: number; total: number }) => void } = {};
+  headers: Record<string, string> = {};
+  method = '';
+  url = '';
+  status = 0;
+  responseText = '';
+  body: unknown;
+  onload?: () => void;
+  onerror?: () => void;
+  onabort?: () => void;
+  constructor() {
+    FakeXhr.last = this;
+  }
+  open(method: string, url: string) {
+    this.method = method;
+    this.url = url;
+  }
+  setRequestHeader(name: string, value: string) {
+    this.headers[name] = value;
+  }
+  send(body: unknown) {
+    this.body = body;
+  }
+  abort() {
+    this.onabort?.();
+  }
+}
 
 function makeChain(data: unknown, error: unknown = null) {
   const chain: any = {
     then: (resolve: any, reject?: any) => Promise.resolve({ data, error }).then(resolve, reject),
   };
-  ['select', 'insert', 'upsert', 'delete', 'eq', 'order'].forEach((method) => {
+  ['select', 'insert', 'upsert', 'update', 'delete', 'eq', 'order'].forEach((method) => {
     chain[method] = vi.fn(() => chain);
   });
   chain.maybeSingle = vi.fn(() => Promise.resolve({ data, error }));
@@ -106,17 +138,6 @@ describe('SupabaseStorageService — profile', () => {
     mockFrom.mockReturnValueOnce(makeChain(null, new Error('db down')));
     await expect(SupabaseStorageService.getProfile()).rejects.toThrow('db down');
   });
-
-  it('resolves a public profile by slug', async () => {
-    mockFrom.mockReturnValueOnce(makeChain({ id: 'owner-1', name: 'Ana', public_slug: 'ana-1234' }));
-    const found = await SupabaseStorageService.getPublicProfileBySlug('ana-1234');
-    expect(found).toEqual({ userId: 'owner-1', profile: expect.objectContaining({ name: 'Ana' }) });
-  });
-
-  it('returns null when the slug does not match any public profile', async () => {
-    mockFrom.mockReturnValueOnce(makeChain(null));
-    expect(await SupabaseStorageService.getPublicProfileBySlug('unknown')).toBeNull();
-  });
 });
 
 describe('SupabaseStorageService — certificates', () => {
@@ -188,6 +209,22 @@ describe('SupabaseStorageService — certificates', () => {
     expect(savedRow.file_data).toBeNull();
   });
 
+  it('never writes show_in_portfolio on save, so editing cannot reset the visibility', async () => {
+    mockStorageFrom.mockReturnValue(makeStorageBucket());
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.saveCertificate(makeCertificate({ fileData: undefined, showInPortfolio: false }));
+    expect(chain.upsert.mock.calls[0]![0]!).not.toHaveProperty('show_in_portfolio');
+  });
+
+  it('updates only the portfolio visibility column', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.setCertificatePortfolioVisibility(makeCertificate({ id: 'c1' }), false);
+    expect(chain.update).toHaveBeenCalledWith({ show_in_portfolio: false });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'c1');
+  });
+
   it('does not touch storage when the certificate has no file attached', async () => {
     const bucket = makeStorageBucket();
     mockStorageFrom.mockReturnValue(bucket);
@@ -249,6 +286,28 @@ describe('SupabaseStorageService — gallery photos', () => {
 
     expect(bucket.upload).toHaveBeenCalledWith('user-1/gallery/g1', expect.any(Blob), expect.anything());
     expect(chain.upsert.mock.calls[0]![0].image_path).toBe('user-1/gallery/g1');
+  });
+
+  it('keeps the stored file when only the metadata of an existing photo is edited', async () => {
+    const bucket = makeStorageBucket();
+    mockStorageFrom.mockReturnValue(bucket);
+    mockFrom.mockReturnValueOnce(makeChain({ image_path: 'user-1/gallery/g1', image_data: null }));
+    const upsertChain = makeChain(null);
+    mockFrom.mockReturnValueOnce(upsertChain);
+
+    await SupabaseStorageService.saveGalleryPhoto({
+      id: 'g1',
+      imageData: 'https://signed.example.com/file?token=abc',
+      caption: 'Nova legenda',
+      category: 'Eventos',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(bucket.upload).not.toHaveBeenCalled();
+    const row = upsertChain.upsert.mock.calls[0]![0];
+    expect(row.image_path).toBe('user-1/gallery/g1');
+    expect(row.image_data).toBeNull();
+    expect(row.caption).toBe('Nova legenda');
   });
 });
 
@@ -735,6 +794,7 @@ describe('SupabaseStorageService — earned badges', () => {
           user_id: 'user-1',
           file_path: 'user-1/earned-badges/1-badge.png',
           file_name: 'badge.png',
+          is_favorite: true,
           created_at: '2026-10-30T12:00:00Z',
         },
       ]),
@@ -747,6 +807,7 @@ describe('SupabaseStorageService — earned badges', () => {
         fileName: 'badge.png',
         filePath: 'user-1/earned-badges/1-badge.png',
         url: 'https://signed.example.com/file',
+        isFavorite: true,
         createdAt: '2026-10-30T12:00:00Z',
       },
     ]);
@@ -781,6 +842,70 @@ describe('SupabaseStorageService — earned badges', () => {
     expect(bucket.remove).toHaveBeenCalledWith([bucket.upload.mock.calls[0][0]]);
   });
 
+  it('updates the favorite flag', async () => {
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    await SupabaseStorageService.setEarnedBadgeFavorite(
+      { id: 'b1', fileName: 'b.png', filePath: 'p', isFavorite: false, createdAt: '' },
+      true,
+    );
+    expect(chain.update).toHaveBeenCalledWith({ is_favorite: true });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'b1');
+  });
+
+  it('reports upload progress through the Storage REST API when asked to', async () => {
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+    FakeXhr.last = undefined as unknown as FakeXhr;
+    mockAuth.getSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
+    const chain = makeChain(null);
+    mockFrom.mockReturnValueOnce(chain);
+    const onProgress = vi.fn();
+    const file = new File(['x'], 'big badge.png', { type: 'image/png' });
+
+    const pending = SupabaseStorageService.uploadEarnedBadge(file, { onProgress });
+    await vi.waitFor(() => expect(FakeXhr.last?.body).toBe(file));
+    const xhr = FakeXhr.last;
+    expect(xhr.method).toBe('POST');
+    expect(xhr.url).toMatch(
+      /^https:\/\/proj\.supabase\.co\/storage\/v1\/object\/user-files\/user-1\/earned-badges\/\d+-big_badge\.png$/,
+    );
+    expect(xhr.headers).toMatchObject({ Authorization: 'Bearer tok', apikey: 'anon-key', 'Content-Type': 'image/png' });
+
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 5, total: 10 });
+    expect(onProgress).toHaveBeenCalledWith(5, 10);
+    xhr.status = 200;
+    xhr.onload?.();
+    await pending;
+    expect(chain.insert).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects with the storage error message and skips the row when the XHR upload fails', async () => {
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+    FakeXhr.last = undefined as unknown as FakeXhr;
+    mockAuth.getSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
+    const pending = SupabaseStorageService.uploadEarnedBadge(new File(['x'], 'b.png'), { onProgress: vi.fn() });
+    await vi.waitFor(() => expect(FakeXhr.last?.body).toBeDefined());
+    FakeXhr.last.status = 413;
+    FakeXhr.last.responseText = JSON.stringify({ message: 'Payload too large' });
+    FakeXhr.last.onload?.();
+    await expect(pending).rejects.toThrow('Payload too large');
+    expect(mockFrom).not.toHaveBeenCalledWith('earned_badges');
+    vi.unstubAllGlobals();
+  });
+
+  it('aborts the XHR upload when the signal fires', async () => {
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+    FakeXhr.last = undefined as unknown as FakeXhr;
+    mockAuth.getSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
+    const controller = new AbortController();
+    const pending = SupabaseStorageService.uploadEarnedBadge(new File(['x'], 'b.png'), { signal: controller.signal });
+    await vi.waitFor(() => expect(FakeXhr.last?.body).toBeDefined());
+    controller.abort();
+    await expect(pending).rejects.toThrow('Envio cancelado.');
+    vi.unstubAllGlobals();
+  });
+
   it('deletes the row and its file', async () => {
     const bucket = makeStorageBucket();
     mockStorageFrom.mockReturnValue(bucket);
@@ -791,6 +916,7 @@ describe('SupabaseStorageService — earned badges', () => {
       id: 'b1',
       fileName: 'badge.png',
       filePath: 'user-1/earned-badges/1-badge.png',
+      isFavorite: false,
       createdAt: '2026-10-30T12:00:00Z',
     });
     expect(chain.eq).toHaveBeenCalledWith('id', 'b1');

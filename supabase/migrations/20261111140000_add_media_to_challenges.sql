@@ -1,6 +1,5 @@
 alter table public.challenges add column if not exists media jsonb;
 
--- Move o anexo único antigo (result_image) para a nova lista de anexos.
 update public.challenges
 set media = jsonb_build_array(
     jsonb_strip_nulls(jsonb_build_object(

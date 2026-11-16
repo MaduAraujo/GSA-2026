@@ -145,12 +145,12 @@ describe('App — dashboard tab switching', () => {
     render(<App />);
     await screen.findByText('Olá, Ana Souza');
 
-    expect(await screen.findByText('Nenhum certificado encontrado', {})).toBeInTheDocument();
+    expect(await screen.findByText('Adicione seu primeiro certificado', {})).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: 'Prompts' }));
-    expect(await screen.findByText('Nenhum prompt encontrado', {})).toBeInTheDocument();
+    expect(await screen.findByText('Sua biblioteca de prompts está vazia', {})).toBeInTheDocument();
     expect(window.location.pathname).toBe('/prompts');
-    expect(screen.getByText('Nenhum certificado encontrado').closest('[hidden]')).not.toBeNull();
+    expect(screen.getByText('Adicione seu primeiro certificado').closest('[hidden]')).not.toBeNull();
   });
 });
 
@@ -159,7 +159,7 @@ describe('App — routing', () => {
     mockLoggedIn();
     window.history.replaceState({}, '', '/prompts');
     render(<App />);
-    expect(await screen.findByText('Nenhum prompt encontrado', {})).toBeInTheDocument();
+    expect(await screen.findByText('Sua biblioteca de prompts está vazia', {})).toBeInTheDocument();
     expect(storage.getGalleryPhotos).not.toHaveBeenCalled();
   });
 
@@ -204,7 +204,7 @@ describe('App — badges', () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText('Olá, Ana Souza');
-    await screen.findByText('Nenhum certificado encontrado');
+    await screen.findByText('Adicione seu primeiro certificado');
 
     await user.click(screen.getByLabelText('Novo certificado'));
     screen.getByRole('dialog');

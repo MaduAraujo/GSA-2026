@@ -27,7 +27,6 @@ export function useChallengeForm() {
   const previewUrls = useRef(new Set<string>());
 
   useEffect(() => {
-    // Prévias blob: de um rascunho salvo não sobrevivem a um recarregamento da página.
     setFormData((prev) => ({ ...prev, media: (prev.media || []).filter((m) => !m.url.startsWith('blob:')) }));
     const urls = previewUrls.current;
     return () => urls.forEach((url) => URL.revokeObjectURL(url));

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const MAX_PROMPT_CHARS = 20_000;
+export const MAX_PROMPT_CHARS = 20_000;
 const MAX_HISTORY_MESSAGES = 50;
 
 export const attachmentSchema = z.object({
@@ -52,7 +52,17 @@ export const analyzedCertificateSchema = z.object({
   linkedinCaption: z.string().default(''),
 });
 
-export const enhancePromptResponseSchema = z.object({ enhanced: z.string() });
+export const enhancedPromptSchema = z.object({
+  prompt: z.string().trim().min(1),
+  improvements: z.array(z.string()).catch([]),
+  tip: z.string().catch(''),
+});
+
+export const enhancePromptResponseSchema = z.object({
+  enhanced: z.string(),
+  improvements: z.array(z.string()).default([]),
+  tip: z.string().default(''),
+});
 export const analyzeCertificateResponseSchema = z.object({ data: analyzedCertificateSchema });
 export const chatResponseSchema = z.object({ reply: z.string() });
 
@@ -69,5 +79,6 @@ export const pushTestRequestSchema = z.object({
 export type ChatAttachment = z.infer<typeof attachmentSchema>;
 export type ChatHistoryMessage = z.infer<typeof chatHistoryMessageSchema>;
 export type EnhancePromptParams = z.input<typeof enhancePromptRequestSchema>;
+export type EnhancedPrompt = z.infer<typeof enhancePromptResponseSchema>;
 export type AnalyzeCertParams = z.input<typeof analyzeCertificateRequestSchema>;
 export type AnalyzedCertificateResult = z.infer<typeof analyzedCertificateSchema>;

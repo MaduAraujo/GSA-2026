@@ -1,13 +1,75 @@
-import { Award, Calendar, Clock, Eye, FileText, Pencil, Sparkles, Star } from 'lucide-react';
+import {
+  Award,
+  BadgeCheck,
+  Calendar,
+  Clock,
+  EyeOff,
+  FileText,
+  Globe,
+  Pencil,
+  Share2,
+  Sparkles,
+  Star,
+  Trash2,
+} from 'lucide-react';
 import type { Certificate } from '../../types';
+import { ActionMenu, type ActionMenuItem } from '../ActionMenu';
 import { formatDateBR } from '../../utils/date';
 import { formatDuration } from '../../utils/duration';
+import { linkedInAddCertificationUrl } from '../../utils/linkedin';
+import { isHttpUrl } from '../../utils/safeUrl';
 
 interface CertificateActions {
   onOpen: (cert: Certificate) => void;
   onEdit: (cert: Certificate) => void;
   onToggleFavorite: (cert: Certificate) => void;
+  onTogglePortfolio: (cert: Certificate) => void;
   onCreatePost: (cert: Certificate) => void;
+  onDelete: (cert: Certificate) => void;
+}
+
+function certificateMenuItems(cert: Certificate, actions: CertificateActions): ActionMenuItem[] {
+  return [
+    { label: 'Editar', icon: Pencil, onSelect: () => actions.onEdit(cert) },
+    { label: 'Gerar post', icon: Sparkles, onSelect: () => actions.onCreatePost(cert) },
+    cert.showInPortfolio === false
+      ? { label: 'Mostrar no portfólio', icon: Globe, onSelect: () => actions.onTogglePortfolio(cert) }
+      : { label: 'Ocultar do portfólio', icon: EyeOff, onSelect: () => actions.onTogglePortfolio(cert) },
+    {
+      label: 'Adicionar ao LinkedIn',
+      icon: Share2,
+      onSelect: () => window.open(linkedInAddCertificationUrl(cert), '_blank', 'noopener,noreferrer'),
+    },
+    { label: 'Excluir', icon: Trash2, onSelect: () => actions.onDelete(cert), tone: 'danger' },
+  ];
+}
+
+export function HiddenFromPortfolioBadge({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      title="Este certificado não aparece no portfólio público"
+      className={`inline-flex items-center gap-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg border border-gray-200 shrink-0 ${
+        compact ? 'p-1' : 'px-2 py-1'
+      }`}
+    >
+      <EyeOff aria-hidden="true" className="w-3 h-3" />
+      <span className={compact ? 'sr-only' : undefined}>Oculto</span>
+    </span>
+  );
+}
+
+export function VerifiableBadge({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      title="Possui link de verificação"
+      className={`inline-flex items-center gap-1 text-xs font-semibold text-[#188038] bg-[#34A853]/10 rounded-lg border border-[#34A853]/20 shrink-0 ${
+        compact ? 'p-1' : 'px-2 py-1'
+      }`}
+    >
+      <BadgeCheck aria-hidden="true" className="w-3 h-3" />
+      <span className={compact ? 'sr-only' : undefined}>Verificável</span>
+    </span>
+  );
 }
 
 function CertificatePreview({
@@ -44,17 +106,21 @@ function CertificatePreview({
               <Award className={`w-8 h-8 ${isGoogleTheme ? 'text-[#1A73E8]' : 'text-[#34A853]'}`} />
             </div>
             <span className="text-xs font-bold text-gray-800 line-clamp-1">{cert.issuer}</span>
-            <span className="text-[11px] text-gray-500">Certificado Verificado</span>
           </div>
         )}
       </button>
 
       <button
+        type="button"
         onClick={() => onToggleFavorite(cert)}
-        className="absolute top-3 right-3 p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-400 hover:text-[#FBBC04] shadow-xs transition-all"
-        aria-label="Favoritar certificado"
+        className={`absolute top-3 right-3 p-1.5 rounded-full shadow-xs transition-all active:scale-90 ${
+          cert.isFavorite
+            ? 'bg-[#FEF7E0] text-[#F9AB00] ring-1 ring-[#FBBC04]/50'
+            : 'bg-white/90 hover:bg-white text-gray-400 hover:text-[#FBBC04]'
+        }`}
+        aria-label={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
         aria-pressed={!!cert.isFavorite}
-        title="Favoritar Certificado"
+        title={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
       >
         <Star className={`w-4 h-4 ${cert.isFavorite ? 'fill-[#FBBC04] text-[#FBBC04]' : ''}`} />
       </button>
@@ -110,8 +176,8 @@ export function CertificateGrid({ certificates, ...actions }: { certificates: Ce
               </div>
             )}
 
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
                 {cert.hours || cert.minutes ? (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
                     <Clock className="w-3 h-3 text-[#34A853]" />
@@ -119,30 +185,11 @@ export function CertificateGrid({ certificates, ...actions }: { certificates: Ce
                   </span>
                 ) : null}
 
-                {cert.credentialId && (
-                  <span className="text-[10px] text-gray-400 font-mono">ID: {cert.credentialId.slice(0, 10)}...</span>
-                )}
+                {isHttpUrl(cert.credentialUrl) && <VerifiableBadge />}
+                {cert.showInPortfolio === false && <HiddenFromPortfolioBadge />}
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => actions.onEdit(cert)}
-                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-[#1A73E8]/10 hover:text-[#1A73E8] text-gray-600 transition-all"
-                  aria-label="Editar certificado"
-                  title="Editar Certificado"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => actions.onOpen(cert)}
-                  className="p-1.5 rounded-xl bg-gray-100 hover:bg-[#1A73E8]/10 hover:text-[#1A73E8] text-gray-600 transition-all"
-                  aria-label="Visualizar Detalhes"
-                  title="Visualizar Detalhes"
-                >
-                  <Eye className="w-4 h-4" />
-                </button>
-              </div>
+              <ActionMenu label={`Mais ações para ${cert.title}`} items={certificateMenuItems(cert, actions)} />
             </div>
           </div>
         </div>
@@ -155,33 +202,43 @@ export function CertificateTable({ certificates, ...actions }: { certificates: C
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-center text-sm">
+        <table className="w-full text-left text-sm">
           <thead className="bg-[#F8FAFD] text-gray-600 text-xs font-semibold border-b border-gray-200">
             <tr>
               <th className="py-3.5 px-4">Certificado</th>
               <th className="py-3.5 px-4">Emissor</th>
               <th className="py-3.5 px-4">Categoria</th>
-              <th className="py-3.5 px-4">Data</th>
-              <th className="py-3.5 px-4">Carga</th>
-              <th className="py-3.5 px-4">Ações</th>
+              <th className="py-3.5 px-4 whitespace-nowrap">Data</th>
+              <th className="py-3.5 px-4 text-right">Carga</th>
+              <th className="py-3.5 px-4">
+                <span className="sr-only">Ações</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {certificates.map((cert) => (
               <tr key={cert.id} className="hover:bg-gray-50 transition-colors">
-                <td className="py-3.5 px-4 font-semibold text-gray-900">
-                  <div className="flex items-center justify-center gap-2.5">
-                    <Award className="w-4 h-4 text-[#1A73E8] shrink-0" />
+                <td className="py-3 px-4 font-semibold text-gray-900">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => actions.onToggleFavorite(cert)}
+                      aria-label={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
+                      aria-pressed={!!cert.isFavorite}
+                      title={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
+                      className="p-1 -m-1 rounded-lg text-gray-300 hover:text-[#FBBC04] transition-all active:scale-90 shrink-0"
+                    >
+                      <Star className={`w-4 h-4 ${cert.isFavorite ? 'fill-[#FBBC04] text-[#FBBC04]' : ''}`} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => actions.onOpen(cert)}
-                      className="hover:text-[#1A73E8] cursor-pointer"
+                      className="text-left hover:text-[#1A73E8] cursor-pointer min-w-40"
                     >
                       {cert.title}
                     </button>
-                    {cert.isFavorite && (
-                      <Star className="w-3.5 h-3.5 fill-[#FBBC04] text-[#FBBC04]" aria-label="Favorito" />
-                    )}
+                    {isHttpUrl(cert.credentialUrl) && <VerifiableBadge compact />}
+                    {cert.showInPortfolio === false && <HiddenFromPortfolioBadge compact />}
                   </div>
                 </td>
                 <td className="py-3.5 px-4 text-gray-600 text-xs">{cert.issuer}</td>
@@ -190,37 +247,14 @@ export function CertificateTable({ certificates, ...actions }: { certificates: C
                     {cert.category}
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-xs text-gray-500">{formatDateBR(cert.issueDate)}</td>
-                <td className="py-3.5 px-4 text-xs font-semibold text-gray-700">
+                <td className="py-3.5 px-4 text-xs text-gray-500 whitespace-nowrap tabular-nums">
+                  {formatDateBR(cert.issueDate)}
+                </td>
+                <td className="py-3.5 px-4 text-xs font-semibold text-gray-700 text-right whitespace-nowrap tabular-nums">
                   {formatDuration(cert.hours, cert.minutes)}
                 </td>
-                <td className="py-3.5 px-4">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      onClick={() => actions.onCreatePost(cert)}
-                      className="p-1.5 rounded-lg text-[#D93025] hover:bg-[#EA4335]/10"
-                      aria-label="Criar post no Gemini"
-                      title="Criar post no Gemini"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => actions.onEdit(cert)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
-                      aria-label="Editar certificado"
-                      title="Editar Certificado"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => actions.onOpen(cert)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
-                      aria-label="Visualizar detalhes"
-                      title="Visualizar Detalhes"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </div>
+                <td className="py-3 px-4 text-right">
+                  <ActionMenu label={`Mais ações para ${cert.title}`} items={certificateMenuItems(cert, actions)} />
                 </td>
               </tr>
             ))}

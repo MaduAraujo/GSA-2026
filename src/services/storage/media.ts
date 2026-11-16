@@ -95,6 +95,14 @@ export async function saveGalleryPhoto(photo: GalleryPhoto, videoFile?: File): P
   } else if (isDataUrl(photo.imageData)) {
     imagePath = `${userId}/gallery/${photo.id}`;
     await uploadUserFile(photo.imageData, imagePath);
+  } else {
+    const { data: previous } = await supabase
+      .from('gallery_photos')
+      .select('image_path, image_data')
+      .eq('id', photo.id)
+      .maybeSingle();
+    if (previous?.image_path) imagePath = previous.image_path;
+    else if (previous) photo = { ...photo, imageData: previous.image_data ?? '' };
   }
   const { error } = await supabase.from('gallery_photos').upsert(galleryPhotoToRow(photo, userId, imagePath));
   if (error) throw error;

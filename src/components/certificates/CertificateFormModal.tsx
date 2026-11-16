@@ -1,6 +1,7 @@
 import confetti from 'canvas-confetti';
 import { ChevronDown, FileText, Loader2, Pencil, Sparkles, Upload, X } from 'lucide-react';
 import { useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
+import { useToast } from '../../app/ToastProvider';
 import { useDismiss } from '../../hooks/useDismiss';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { AiApiService } from '../../services/aiApi';
@@ -27,6 +28,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categorySuggestRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   useFocusTrap(dialogRef, form.close);
   useDismiss(categorySuggestRef, isCategorySuggestOpen, () => setIsCategorySuggestOpen(false));
@@ -93,9 +95,10 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
       });
     } catch (err) {
       console.warn('Erro na IA:', err);
-      alert(
-        `Não foi possível preencher automaticamente com a IA: ${errorMessage(err, 'tente novamente em instantes.')}`,
-      );
+      toast.show({
+        message: `Não foi possível preencher automaticamente com a IA: ${errorMessage(err, 'tente novamente em instantes.')}`,
+        tone: 'error',
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -136,7 +139,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
       form.reset();
     } catch (err) {
       console.error(err);
-      alert('Não foi possível salvar o certificado. Tente novamente.');
+      toast.show({ message: 'Não foi possível salvar o certificado. Tente novamente.', tone: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -144,7 +147,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
 
   const inputClass =
     'w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]';
-  const labelClass = 'block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1';
+  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
 
   return (
     <div
@@ -165,10 +168,12 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
               </div>
               <div>
                 <h3 id="cert-form-heading" className="text-lg sm:text-xl font-bold text-gray-900">
-                  {isEditMode ? 'Editar Certificado' : 'Upload de Certificado'}
+                  {isEditMode ? 'Editar Certificado' : 'Novo Certificado'}
                 </h3>
                 <p className="text-xs text-gray-500">
-                  {isEditMode ? 'Atualize os dados do certificado' : 'Adicione certificados ou badges'}
+                  {isEditMode
+                    ? 'Atualize os dados do certificado'
+                    : 'Envie o arquivo e preencha os dados do certificado'}
                 </p>
               </div>
             </div>
@@ -198,7 +203,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
                 )}
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-800 truncate max-w-50">{fileName}</p>
-                  <p className="text-xs text-green-600 font-medium">Arquivo carregado com sucesso!</p>
+                  <p className="text-xs text-green-600 font-medium">Arquivo carregado · clique para trocar</p>
                 </div>
               </div>
             ) : (
@@ -207,6 +212,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
                   <Upload className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-semibold text-gray-800">Arraste ou clique para selecionar</p>
+                <p className="text-xs text-gray-500">PNG, JPG ou PDF até 4MB</p>
               </>
             )}
           </button>
@@ -227,37 +233,38 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
             </p>
           )}
 
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={handleAiAutoFill}
-              disabled={isAnalyzing || !filePreview}
-              title={!filePreview ? 'Envie o arquivo do certificado primeiro' : undefined}
-              className="px-4 py-2 rounded-full bg-linear-to-r from-[#1A73E8] to-[#34A853] hover:shadow-md text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100 disabled:cursor-not-allowed"
-            >
-              {isAnalyzing ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  <span>Lendo...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Auto Preencher</span>
-                </>
-              )}
-            </button>
-          </div>
+          {filePreview && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-[#1A73E8]/20 bg-[#1A73E8]/5 px-4 py-3">
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <Sparkles aria-hidden="true" className="w-4 h-4 mt-0.5 shrink-0 text-[#1A73E8]" />
+                <p className="text-sm text-gray-700">
+                  {isAnalyzing
+                    ? 'Lendo o certificado…'
+                    : 'A IA pode ler o arquivo e preencher título, emissor, categoria e habilidades.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAiAutoFill}
+                disabled={isAnalyzing}
+                className="self-end sm:self-auto px-4 py-2 rounded-full bg-[#1A73E8] hover:bg-[#1765CC] text-xs font-bold text-white shadow-sm flex items-center gap-1.5 shrink-0 transition-all active:scale-95 disabled:opacity-60 disabled:active:scale-100 disabled:cursor-wait"
+              >
+                {isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span>{isAnalyzing ? 'Lendo...' : 'Preencher com IA'}</span>
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="cert-form-title" className={labelClass}>
-                Título do Certificado *
+                Título do certificado *
               </label>
               <input
                 id="cert-form-title"
                 type="text"
                 required
+                placeholder="Ex.: Google Cloud Digital Leader"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className={inputClass}
@@ -272,6 +279,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
                 <input
                   id="cert-form-issuer"
                   type="text"
+                  placeholder="Ex.: Google Cloud Skills Boost"
                   value={formData.issuer}
                   onChange={(e) => setFormData({ ...formData, issuer: e.target.value })}
                   className={inputClass}
@@ -286,6 +294,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
                   <input
                     id="cert-form-category"
                     type="text"
+                    placeholder="Ex.: Google Cloud"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className={`${inputClass} ${categories.length > 0 ? 'pr-8' : ''}`}
@@ -332,7 +341,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
 
             <div>
               <label htmlFor="cert-form-date" className={labelClass}>
-                Data de Emissão
+                Data de emissão
               </label>
               <DatePicker
                 id="cert-form-date"
@@ -344,7 +353,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="cert-form-hours" className={labelClass}>
-                  Carga Horária (Horas)
+                  Carga horária (horas)
                 </label>
                 <NumberStepper
                   id="cert-form-hours"
@@ -356,7 +365,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
 
               <div>
                 <label htmlFor="cert-form-minutes" className={labelClass}>
-                  Carga Horária (Minutos)
+                  Carga horária (minutos)
                 </label>
                 <NumberStepper
                   id="cert-form-minutes"
@@ -370,12 +379,13 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
 
             <div>
               <label htmlFor="cert-form-skill" className={labelClass}>
-                Habilidades e Competências
+                Habilidades e competências
               </label>
               <div className="flex gap-2">
                 <input
                   id="cert-form-skill"
                   type="text"
+                  placeholder="Ex.: BigQuery — Enter para adicionar"
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -425,6 +435,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
               </label>
               <textarea
                 id="cert-form-description"
+                placeholder="O que você aprendeu ou construiu neste curso"
                 rows={2}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -435,11 +446,12 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="cert-form-credential-id" className={labelClass}>
-                  Código de Validação
+                  Código de validação
                 </label>
                 <input
                   id="cert-form-credential-id"
                   type="text"
+                  placeholder="Ex.: 8f3a-21c9"
                   value={formData.credentialId || ''}
                   onChange={(e) => setFormData({ ...formData, credentialId: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"
@@ -448,11 +460,12 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
 
               <div>
                 <label htmlFor="cert-form-credential-url" className={labelClass}>
-                  URL de Verificação
+                  URL de verificação
                 </label>
                 <input
                   id="cert-form-credential-url"
                   type="url"
+                  placeholder="https://"
                   value={formData.credentialUrl || ''}
                   onChange={(e) => setFormData({ ...formData, credentialUrl: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-[#F8FAFD]"

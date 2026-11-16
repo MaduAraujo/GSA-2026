@@ -8,11 +8,19 @@ import { exportPortfolioAsPdf } from '../../utils/portfolioExport';
 interface CertificateExportModalProps {
   certificates: Certificate[];
   profile: AmbassadorProfile;
+  preselectedIds?: string[];
   onClose: () => void;
 }
 
-export function CertificateExportModal({ certificates, profile, onClose }: CertificateExportModalProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(certificates.map((c) => c.id)));
+export function CertificateExportModal({
+  certificates,
+  profile,
+  preselectedIds,
+  onClose,
+}: CertificateExportModalProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(preselectedIds ?? certificates.map((c) => c.id)),
+  );
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, onClose);
   const allSelected = selectedIds.size === certificates.length;
@@ -52,7 +60,9 @@ export function CertificateExportModal({ certificates, profile, onClose }: Certi
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">Exportar</h3>
-              <p className="text-xs text-gray-500">Escolha o que deve ser exportado</p>
+              <p className="text-xs text-gray-500">
+                {preselectedIds ? 'Pré-selecionados conforme os filtros atuais' : 'Escolha o que deve ser exportado'}
+              </p>
             </div>
           </div>
           <button
