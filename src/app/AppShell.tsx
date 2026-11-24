@@ -10,6 +10,7 @@ import {
   type LazyExoticComponent,
 } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
+import { BottomNav } from '../components/BottomNav';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
 import { StatsBanner } from '../components/StatsBanner';
@@ -17,6 +18,7 @@ import { consolidateDuplicateChallengePosts } from '../data/consolidateChallenge
 import { queryKeys, useCollection, useCollectionData, useProfile, useSaveProfile } from '../data/queries';
 import { usePersistedState } from '../hooks/usePersistedState';
 import {
+  DEFAULT_TAB,
   pageFromPath,
   readLastTab,
   rememberLastTab,
@@ -49,6 +51,7 @@ const ProfileModal = lazy(() => import('../components/ProfileModal').then((m) =>
 const AmbassadorAreaModal = lazy(() =>
   import('../components/AmbassadorAreaModal').then((m) => ({ default: m.AmbassadorAreaModal })),
 );
+const CommandPalette = lazy(() => import('../components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
 const SettingsModal = lazy(() => import('../components/SettingsModal').then((m) => ({ default: m.SettingsModal })));
 
 const PAGE_COMPONENTS: Record<AppPage, LazyExoticComponent<ComponentType>> = {
@@ -134,6 +137,18 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((open) => !open);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useDataMaintenance();
 
@@ -145,10 +160,11 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
   const currentProfile = profileQuery.data ?? EMPTY_PROFILE;
 
   return (
-    <div className="min-h-screen md:h-dvh md:overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 flex flex-col font-sans selection:bg-blue-600/20 selection:text-blue-600 transition-colors">
+    <div className="min-h-screen md:h-dvh md:overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors">
       <Navbar
         isMobileNavOpen={isMobileNavOpen}
         onToggleMobileNav={() => setIsMobileNavOpen((v) => !v)}
+        onOpenSearch={() => setIsCommandPaletteOpen(true)}
         profile={currentProfile}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenAmbassadorArea={() => setIsAmbassadorAreaOpen(true)}
@@ -164,16 +180,22 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
           onMobileClose={closeMobileNav}
         />
 
-        <div id="app-scroll" className="relative flex-1 min-w-0 flex flex-col md:overflow-y-auto md:overscroll-contain">
-          <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div
+          id="app-scroll"
+          className="relative flex-1 min-w-0 flex flex-col pb-(--bottom-nav-offset) md:pb-0 md:overflow-y-auto md:overscroll-contain"
+        >
+          <main
+            id="main-content"
+            className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6"
+          >
             {isInitialLoad ? (
               <div className="space-y-6 animate-pulse" role="status" aria-label="Carregando seus dados">
-                <div className="h-40 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+                <div className="h-16 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
                 <div className="h-14 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
-                  <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
-                  <div className="h-64 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+                  <div className="h-64 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+                  <div className="h-64 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
+                  <div className="h-64 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800" />
                 </div>
               </div>
             ) : (
@@ -184,9 +206,8 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
                   </Suspense>
                 )}
 
-                {!activePage && (
+                {activeTab === DEFAULT_TAB && (
                   <StatsBanner
-                    certificates={certificates.data ?? []}
                     prompts={prompts}
                     posts={posts}
                     challenges={challenges}
@@ -221,7 +242,19 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
         </div>
       </div>
 
+      <BottomNav activeTab={activeTab} isMoreOpen={isMobileNavOpen} onOpenMore={() => setIsMobileNavOpen((v) => !v)} />
+
       <Suspense fallback={null}>
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onOpenProfile={() => setIsProfileModalOpen(true)}
+            onOpenAmbassadorArea={() => setIsAmbassadorAreaOpen(true)}
+            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onToggleDarkMode={onToggleDarkMode}
+            onSignOut={signOut}
+          />
+        )}
         <ProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}

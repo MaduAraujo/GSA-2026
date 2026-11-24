@@ -1,8 +1,9 @@
-import { Share2 } from 'lucide-react';
+import { ExternalLink, Share2 } from 'lucide-react';
 import { Fragment } from 'react';
 import type { SocialPost } from '../../types';
 import { isHttpUrl } from '../../utils/safeUrl';
-import { CHALLENGE_RESULT_TONE, getPostLinks, MANUAL_TONE } from './postModel';
+import { getPostLinks } from './postModel';
+import { formatLinkLabel, isLinkOnlyPost, PLATFORM_STYLES } from './postView';
 
 const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
 
@@ -17,7 +18,7 @@ function LinkedText({ content }: { content: string }) {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-[#1A73E8] font-bold hover:underline break-all"
+            className="relative z-10 inline-flex items-center gap-1 text-primary font-bold hover:underline break-all"
           >
             <Share2 className="w-3 h-3 shrink-0" />
             {part}
@@ -30,32 +31,39 @@ function LinkedText({ content }: { content: string }) {
   );
 }
 
-export function PostBody({ post }: { post: SocialPost }) {
-  if (post.tone !== CHALLENGE_RESULT_TONE && post.tone !== MANUAL_TONE) {
-    return <LinkedText content={post.content} />;
-  }
-
-  const links = getPostLinks(post);
+export function PostLinkList({ post }: { post: SocialPost }) {
+  const links = getPostLinks(post).filter((l) => isHttpUrl(l.link));
   if (links.length === 0) {
-    return <span className="text-gray-400">Nenhum link adicionado.</span>;
+    return <p className="text-xs text-gray-400">Nenhum link adicionado.</p>;
   }
   return (
-    <span className="flex flex-col gap-1.5">
-      {links
-        .filter((l) => isHttpUrl(l.link))
-        .map((l) => (
+    <ul className="space-y-1.5">
+      {links.map((l) => (
+        <li key={l.id}>
           <a
-            key={l.id}
             href={l.link}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1.5 text-[#1A73E8] font-bold hover:underline break-all"
+            aria-label={`Ver publicação no ${l.platform}`}
+            title={l.link}
+            className="relative z-10 group flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-muted border border-gray-200 hover:border-primary/40 hover:bg-primary/5 transition-colors"
           >
-            <Share2 className="w-3.5 h-3.5 shrink-0" />
-            Ver publicação no {l.platform}
+            <span className={`shrink-0 px-2 py-0.5 rounded-full text-2xs font-bold ${PLATFORM_STYLES[l.platform]}`}>
+              {l.platform}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-xs text-gray-600 group-hover:text-primary">
+              {formatLinkLabel(l.link)}
+            </span>
+            <ExternalLink aria-hidden="true" className="w-3.5 h-3.5 shrink-0 text-gray-400 group-hover:text-primary" />
           </a>
-        ))}
-    </span>
+        </li>
+      ))}
+    </ul>
   );
+}
+
+export function PostBody({ post }: { post: SocialPost }) {
+  if (isLinkOnlyPost(post)) return <PostLinkList post={post} />;
+  return <LinkedText content={post.content} />;
 }

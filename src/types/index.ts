@@ -156,6 +156,9 @@ export interface AmbassadorSession {
   proofImage?: string;
   proofMediaType?: 'image' | 'video';
   score?: number;
+  durationMinutes?: number;
+  notes?: string;
+  pastSessionId?: string;
   createdAt: string;
   updatedAt: string;
 }

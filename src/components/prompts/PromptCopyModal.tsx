@@ -1,6 +1,7 @@
-import { Copy, X } from 'lucide-react';
+import { Copy } from 'lucide-react';
+import { buttonClasses } from '../ui/buttonClasses';
+import { Modal, ModalHeader } from '../ui/Modal';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
 import type { PromptItem } from '../../types';
 import { fillPromptVariables, getPromptVariables } from './fillPromptVariables';
 
@@ -14,9 +15,7 @@ export function PromptCopyModal({ prompt, onClose, onCopy }: PromptCopyModalProp
   const variables = getPromptVariables(prompt);
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(variables.map((v) => [v, ''])));
   const preview = fillPromptVariables(prompt.promptText, values);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
-  useFocusTrap(dialogRef, onClose);
   useEffect(() => firstInputRef.current?.focus(), []);
 
   const handleSubmit = (e: FormEvent) => {
@@ -25,44 +24,21 @@ export function PromptCopyModal({ prompt, onClose, onCopy }: PromptCopyModalProp
   };
 
   return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="prompt-copy-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
-    >
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col"
-      >
+    <Modal onClose={onClose} labelledBy="prompt-copy-title" size="2xl">
+      <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+        <ModalHeader
+          titleId="prompt-copy-title"
+          title="Preencher e copiar"
+          subtitle={prompt.title}
+          icon={Copy}
+          iconClassName="bg-gray-900 text-white"
+          onClose={onClose}
+        />
         <div className="overflow-y-auto p-6 sm:p-8 space-y-5">
-          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center">
-                <Copy className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 id="prompt-copy-title" className="text-lg sm:text-xl font-bold text-gray-900">
-                  Preencher e copiar
-                </h3>
-                <p className="text-xs text-gray-500">{prompt.title}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Fechar"
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {variables.map((v, i) => (
               <div key={v}>
-                <label htmlFor={`copy-var-${v}`} className="block text-[11px] font-bold text-gray-600 mb-1">
+                <label htmlFor={`copy-var-${v}`} className="block text-2xs font-bold text-gray-600 mb-1">
                   [{v}]
                 </label>
                 <input
@@ -72,14 +48,14 @@ export function PromptCopyModal({ prompt, onClose, onCopy }: PromptCopyModalProp
                   placeholder={`Valor para ${v}...`}
                   value={values[v] ?? ''}
                   onChange={(e) => setValues({ ...values, [v]: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl text-sm border border-gray-300 bg-white focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8]"
+                  className="w-full px-3 py-2 rounded-xl text-sm border border-gray-300 bg-white focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary"
                 />
               </div>
             ))}
           </div>
 
           <div>
-            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Prévia</h4>
+            <h4 className="text-xs font-semibold text-gray-700 mb-2">Prévia</h4>
             <p
               aria-label="Prévia do prompt"
               className="max-h-56 overflow-y-auto bg-gray-50 rounded-2xl p-4 border border-gray-200 text-xs sm:text-sm text-gray-700 font-mono whitespace-pre-wrap leading-relaxed"
@@ -92,20 +68,17 @@ export function PromptCopyModal({ prompt, onClose, onCopy }: PromptCopyModalProp
             <button
               type="button"
               onClick={() => onCopy(prompt.promptText)}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              className={buttonClasses({ variant: 'ghost' })}
             >
               Copiar original
             </button>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-all active:scale-95"
-            >
+            <button type="submit" className={buttonClasses({ variant: 'primary' })}>
               <Copy className="w-4 h-4" />
               <span>Copiar preenchido</span>
             </button>
           </div>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

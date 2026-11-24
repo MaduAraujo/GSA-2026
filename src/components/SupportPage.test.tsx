@@ -5,7 +5,7 @@ import { SupportPage } from './SupportPage';
 describe('SupportPage', () => {
   it('shows the support message and a button to the Google Forms support form', () => {
     render(<SupportPage />);
-    expect(screen.getByRole('heading', { name: 'PRECISA DE AJUDA?' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Precisa de ajuda?' })).toBeInTheDocument();
     expect(screen.getByText('Fale com o time do Amplifica!')).toBeInTheDocument();
     expect(screen.getByText(/parceria para transformar ideias em impacto real/)).toBeInTheDocument();
 

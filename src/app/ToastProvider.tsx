@@ -44,13 +44,13 @@ function Toast({ toast, onClose }: { toast: ToastItem; onClose: (id: string, rea
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
-      className="badge-toast-enter pointer-events-auto flex items-center gap-3 rounded-xl bg-[#3C4043] dark:bg-[#E8EAED] pl-4 pr-2 py-2.5 shadow-2xl text-sm text-white dark:text-[#1F1F1F]"
+      className="badge-toast-enter pointer-events-auto flex items-center gap-3 rounded-xl bg-gray-800 dark:bg-gray-200 pl-4 pr-2 py-2.5 shadow-2xl text-sm text-white dark:text-gray-900"
     >
       {isError && (
-        <CircleAlert aria-hidden="true" className="w-4.5 h-4.5 shrink-0 text-[#F28B82] dark:text-[#C5221F]" />
+        <CircleAlert aria-hidden="true" className="w-4.5 h-4.5 shrink-0 text-danger-300 dark:text-danger-700" />
       )}
       {toast.tone === 'success' && (
-        <CircleCheck aria-hidden="true" className="w-4.5 h-4.5 shrink-0 text-[#81C995] dark:text-[#188038]" />
+        <CircleCheck aria-hidden="true" className="w-4.5 h-4.5 shrink-0 text-success-300 dark:text-success-800" />
       )}
       <p className="flex-1 min-w-0 py-1 leading-snug">{toast.message}</p>
       {toast.action && (
@@ -60,7 +60,7 @@ function Toast({ toast, onClose }: { toast: ToastItem; onClose: (id: string, rea
             toast.action!.onClick();
             onClose(toast.id, 'action');
           }}
-          className="shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#8AB4F8] dark:text-[#1A73E8] hover:bg-white/10 dark:hover:bg-black/5"
+          className="shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-primary-300 dark:text-primary hover:bg-white/10 dark:hover:bg-black/5"
         >
           {toast.action.label}
         </button>
@@ -69,7 +69,7 @@ function Toast({ toast, onClose }: { toast: ToastItem; onClose: (id: string, rea
         type="button"
         onClick={() => onClose(toast.id, 'dismiss')}
         aria-label="Fechar notificação"
-        className="shrink-0 rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 dark:text-[#1F1F1F]/60 dark:hover:text-[#1F1F1F] dark:hover:bg-black/5"
+        className="shrink-0 rounded-lg p-1.5 text-white/70 hover:text-white hover:bg-white/10 dark:text-gray-900/60 dark:hover:text-gray-900 dark:hover:bg-black/5"
       >
         <X className="w-4 h-4" />
       </button>
@@ -107,7 +107,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext value={api}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 left-1/2 -translate-x-1/2 z-100 flex w-[calc(100%-2rem)] max-w-md flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-[calc(1rem+var(--bottom-nav-offset,0px))] md:bottom-4 left-1/2 -translate-x-1/2 z-100 flex w-[calc(100%-2rem)] max-w-md flex-col gap-2">
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} onClose={dismissWith} />
         ))}

@@ -19,6 +19,7 @@ import {
 import { supabase } from '../services/supabaseClient';
 import { isPasswordLeaked } from '../utils/passwordSecurity';
 import { errorMessage } from '../utils/errors';
+import { BRAND } from '../theme/colors';
 
 interface AuthScreenProps {
   initialMode?: 'signIn' | 'signUp';
@@ -29,12 +30,12 @@ interface AuthScreenProps {
 
 const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 192 192" className={className}>
-    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke="#1A73E8" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke="#34A853" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke="#FBBC04" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke="#EA4335" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill="#1A73E8" />
-    <circle cx="96" cy="120" r="14" fill="#FBBC04" />
+    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke={BRAND.primary} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke={BRAND.success} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke={BRAND.warning} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke={BRAND.danger} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
+    <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
   </svg>
 );
 
@@ -108,10 +109,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 font-sans">
       <div className="h-1 w-full grid grid-cols-4">
-        <div className="bg-blue-600" />
-        <div className="bg-red-500" />
-        <div className="bg-yellow-500" />
-        <div className="bg-green-600" />
+        <div className="bg-primary" />
+        <div className="bg-danger" />
+        <div className="bg-warning" />
+        <div className="bg-success" />
       </div>
 
       <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -140,9 +141,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           transition={{ duration: 0.4, ease: 'easeOut' }}
           className="relative w-full max-w-sm"
         >
-          <div className="absolute inset-x-6 -top-6 h-24 rounded-full bg-blue-600/10 dark:bg-blue-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute inset-x-6 -top-6 h-24 rounded-full bg-primary/10 dark:bg-primary/10 blur-3xl pointer-events-none" />
 
-          <div className="relative bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8 space-y-6">
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8 space-y-6">
             {onBack && (
               <button
                 type="button"
@@ -161,7 +162,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 transition={{ duration: 0.3, ease: 'easeOut' }}
                 className="text-center space-y-5"
               >
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-green-600/10 text-green-600 flex items-center justify-center">
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-success/10 text-success flex items-center justify-center">
                   <MailCheck className="w-6 h-6" />
                 </div>
                 <div className="space-y-1.5">
@@ -174,7 +175,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 </div>
 
                 {error && (
-                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-2 text-left">
+                  <div className="p-3 rounded-xl bg-danger-50 dark:bg-danger/10 border border-danger/30 dark:border-danger/20 text-xs font-semibold text-danger-700 dark:text-danger-300 flex items-center gap-2 text-left">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
                   </div>
@@ -185,7 +186,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     type="button"
                     onClick={sendResetEmail}
                     disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     {isSubmitting ? 'Reenviando...' : 'Reenviar e-mail'}
@@ -202,7 +203,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             ) : (
               <>
                 <div className="text-center space-y-1">
-                  <div className="mx-auto w-11 h-11 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                  <div className="mx-auto w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                     {mode === 'signIn' && <LogIn className="w-5 h-5" />}
                     {mode === 'signUp' && <UserPlus className="w-5 h-5" />}
                     {mode === 'forgotPassword' && <KeyRound className="w-5 h-5" />}
@@ -248,14 +249,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 )}
 
                 {error && (
-                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                  <div className="p-3 rounded-xl bg-danger-50 dark:bg-danger/10 border border-danger/30 dark:border-danger/20 text-xs font-semibold text-danger-700 dark:text-danger-300 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
                   </div>
                 )}
 
                 {infoMessage && (
-                  <div className="p-3 rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20 text-xs font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
+                  <div className="p-3 rounded-xl bg-success/10 dark:bg-success/10 border border-success/20 dark:border-success/20 text-xs font-semibold text-success-700 dark:text-success-300 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>{infoMessage}</span>
                   </div>
@@ -265,12 +266,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   <div>
                     <label
                       htmlFor="auth-e-mail"
-                      className="block text-xs font-bold text-gray-800 dark:text-gray-300 uppercase tracking-wider mb-1"
+                      className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1"
                     >
                       E-mail
                     </label>
                     <div className="group relative">
-                      <Mail className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Mail className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         id="auth-e-mail"
                         type="email"
@@ -278,7 +279,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                         autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus:border-primary"
                       />
                     </div>
                   </div>
@@ -287,12 +288,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     <div>
                       <label
                         htmlFor="auth-senha"
-                        className="block text-xs font-bold text-gray-800 dark:text-gray-300 uppercase tracking-wider mb-1"
+                        className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1"
                       >
                         Senha
                       </label>
                       <div className="group relative">
-                        <Lock className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
+                        <Lock className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
                           id="auth-senha"
                           type={showPassword ? 'text' : 'password'}
@@ -301,7 +302,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                           autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                          className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus:border-primary"
                         />
                         <button
                           type="button"
@@ -316,7 +317,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                         <button
                           type="button"
                           onClick={() => switchMode('forgotPassword')}
-                          className="mt-1.5 text-xs font-semibold text-blue-600 hover:underline"
+                          className="mt-1.5 text-xs font-semibold text-primary hover:underline"
                         >
                           Esqueceu a senha?
                         </button>
@@ -327,7 +328,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     {isSubmitting
@@ -345,7 +346,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     <button
                       type="button"
                       onClick={() => switchMode('signIn')}
-                      className="font-semibold text-blue-600 hover:underline"
+                      className="font-semibold text-primary hover:underline"
                     >
                       Voltar para o login
                     </button>

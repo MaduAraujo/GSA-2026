@@ -643,7 +643,10 @@ export type Database = {
           challenge: string | null
           challenge_files: Json | null
           created_at: string
+          duration_minutes: number | null
           id: string
+          notes: string | null
+          past_session_id: string | null
           proof_image: string | null
           proof_image_path: string | null
           proof_media_type: string
@@ -659,7 +662,10 @@ export type Database = {
           challenge?: string | null
           challenge_files?: Json | null
           created_at?: string
+          duration_minutes?: number | null
           id?: string
+          notes?: string | null
+          past_session_id?: string | null
           proof_image?: string | null
           proof_image_path?: string | null
           proof_media_type?: string
@@ -675,7 +681,10 @@ export type Database = {
           challenge?: string | null
           challenge_files?: Json | null
           created_at?: string
+          duration_minutes?: number | null
           id?: string
+          notes?: string | null
+          past_session_id?: string | null
           proof_image?: string | null
           proof_image_path?: string | null
           proof_media_type?: string

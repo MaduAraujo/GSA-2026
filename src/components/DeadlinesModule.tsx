@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import {
-  CalendarClock,
-  Plus,
-  Trash2,
-  Pencil,
-  Loader2,
-  StickyNote,
-  CheckCircle2,
-  Circle,
-  AlertCircle,
-  Star,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { useUndoableDelete } from '../hooks/useUndoableDelete';
+import { useToast } from '../app/ToastProvider';
+import { ActionMenu } from './ActionMenu';
+import { EmptyState, NoResults } from './ui/EmptyState';
+import { SearchField } from './ui/SearchField';
+import { useUrlState } from '../hooks/useUrlState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
+import { CalendarClock, Plus, Trash2, Pencil, Loader2, CheckCircle2, Circle, ChevronDown } from 'lucide-react';
 import { type DeadlineCategory, type ProgramDeadline } from '../types';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { DeadlineFormModal } from './deadlines/DeadlineFormModal';
-import { formatDateBR, todayISO } from '../utils/date';
+import { formatDateBR, formatMonthYearBR, todayISO } from '../utils/date';
 
 interface DeadlinesModuleProps {
   deadlines: ProgramDeadline[];
@@ -24,11 +19,11 @@ interface DeadlinesModuleProps {
   onDeleteDeadline: (id: string) => Promise<void>;
 }
 
-const CATEGORY_STYLES: Record<DeadlineCategory, { bg: string; text: string }> = {
-  Desafio: { bg: 'bg-[#34A853]/10', text: 'text-[#1E8E3E]' },
-  Sessão: { bg: 'bg-[#1A73E8]/10', text: 'text-[#1A73E8]' },
-  Post: { bg: 'bg-[#EA4335]/10', text: 'text-[#D93025]' },
-  Outro: { bg: 'bg-gray-100', text: 'text-gray-600' },
+const CATEGORY_DOT: Record<DeadlineCategory, string> = {
+  Desafio: 'bg-success',
+  Sessão: 'bg-primary',
+  Post: 'bg-danger',
+  Outro: 'bg-gray-400',
 };
 
 const DEFAULT_FORM: Partial<ProgramDeadline> = {
@@ -46,9 +41,7 @@ function getMonthKey(isoDate: string): string {
 }
 
 function formatMonthLabel(monthKey: string): string {
-  const [year = 1970, month = 1] = monthKey.split('-').map(Number);
-  const label = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  return formatMonthYearBR(`${monthKey}-01`);
 }
 
 interface MonthGroupProps {
@@ -56,7 +49,6 @@ interface MonthGroupProps {
   deadlines: ProgramDeadline[];
   today: string;
   togglingId: string | null;
-  deletingId: string | null;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onToggleComplete: (deadline: ProgramDeadline) => void;
@@ -69,172 +61,150 @@ const MonthGroup: React.FC<MonthGroupProps> = ({
   deadlines,
   today,
   togglingId,
-  deletingId,
   isCollapsed,
   onToggleCollapse,
   onToggleComplete,
   onEdit,
   onDelete,
 }) => {
+  const monthLabel = formatMonthLabel(monthKey);
   const monthPoints = deadlines.reduce((sum, d) => sum + (d.points || 0), 0);
   const monthCompletedCount = deadlines.filter((d) => d.isCompleted).length;
   const monthProgressPercent = deadlines.length > 0 ? Math.round((monthCompletedCount / deadlines.length) * 100) : 0;
+  const plural = deadlines.length === 1 ? '' : 's';
 
   return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        onClick={onToggleCollapse}
-        aria-expanded={!isCollapsed}
-        aria-label={isCollapsed ? `Expandir ${formatMonthLabel(monthKey)}` : `Recolher ${formatMonthLabel(monthKey)}`}
-        className="w-full flex items-center justify-between gap-2 px-1 py-1 group"
-      >
-        <span className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider group-hover:text-gray-700">
-          {isCollapsed ? (
-            <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-          ) : (
-            <ChevronUp className="w-3.5 h-3.5 shrink-0" />
-          )}
-          {formatMonthLabel(monthKey)}
-          <span className="normal-case font-medium text-gray-400">({deadlines.length})</span>
-        </span>
-        {monthPoints > 0 && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#9E5D00]">
-            <Star className="w-3.5 h-3.5 fill-[#FBBC04] text-[#FBBC04]" />
-            {monthPoints} pts
-          </span>
-        )}
-      </button>
-
-      <div className="bg-white rounded-2xl border border-gray-200/70 px-4 py-3 space-y-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-gray-600">
-            {monthCompletedCount} de {deadlines.length} prazo{deadlines.length === 1 ? '' : 's'} cumprido
-            {deadlines.length === 1 ? '' : 's'}
-          </span>
-          <span className="font-bold text-[#1E8E3E]">{monthProgressPercent}%</span>
-        </div>
-        <div
-          role="progressbar"
-          aria-valuenow={monthProgressPercent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`Progresso de prazos cumpridos em ${formatMonthLabel(monthKey)}`}
-          className="h-2 rounded-full bg-gray-100 overflow-hidden"
+    <section className="space-y-2">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? `Expandir ${monthLabel}` : `Recolher ${monthLabel}`}
+          className="flex items-center gap-1.5 min-w-0 text-sm font-semibold text-gray-700 hover:text-gray-900"
         >
-          <div
-            className="h-full rounded-full bg-[#34A853] transition-all duration-300"
-            style={{ width: `${monthProgressPercent}%` }}
+          <ChevronDown
+            aria-hidden="true"
+            className={`w-4 h-4 shrink-0 text-gray-400 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
           />
+          <span className="truncate first-letter:uppercase">{monthLabel}</span>
+        </button>
+
+        <div className="flex items-center gap-2.5 shrink-0 text-xs text-gray-500">
+          {monthPoints > 0 && <span className="hidden sm:inline tabular-nums">{monthPoints} pts ·</span>}
+          <span className="tabular-nums">
+            {monthCompletedCount} de {deadlines.length} prazo{plural} cumprido{plural}
+          </span>
+          <div
+            role="progressbar"
+            aria-valuenow={monthProgressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Progresso de prazos cumpridos em ${monthLabel}`}
+            className="w-12 sm:w-20 h-1.5 rounded-full bg-gray-200 overflow-hidden"
+          >
+            <div
+              className="h-full rounded-full bg-success transition-all duration-300"
+              style={{ width: `${monthProgressPercent}%` }}
+            />
+          </div>
         </div>
       </div>
 
       {!isCollapsed && (
-        <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
+        <ul className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
           {deadlines.map((deadline) => {
             const isOverdue = !deadline.isCompleted && deadline.date < today;
-            const categoryStyle = CATEGORY_STYLES[deadline.category] || CATEGORY_STYLES.Outro;
+            const dotClass = CATEGORY_DOT[deadline.category] || CATEGORY_DOT.Outro;
             return (
-              <div key={deadline.id} id={`deadline-row-${deadline.id}`} className="flex items-center gap-4 p-5 group">
+              <li key={deadline.id} id={`deadline-row-${deadline.id}`} className="flex items-center gap-3 px-4 py-3">
                 <button
                   onClick={() => onToggleComplete(deadline)}
                   disabled={togglingId === deadline.id}
                   aria-label={deadline.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
                   title={deadline.isCompleted ? 'Marcar como pendente' : 'Marcar como concluído'}
-                  className="shrink-0 text-gray-300 hover:text-[#34A853] disabled:opacity-50"
+                  className="shrink-0 p-1 -m-1 rounded-full text-gray-300 hover:text-success disabled:opacity-50"
                 >
                   {togglingId === deadline.id ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                   ) : deadline.isCompleted ? (
-                    <CheckCircle2 className="w-6 h-6 text-[#34A853]" />
+                    <CheckCircle2 className="w-5 h-5 text-success" />
                   ) : (
-                    <Circle className="w-6 h-6" />
+                    <Circle className="w-5 h-5" />
                   )}
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <p
-                        title={deadline.title}
-                        className={`flex-1 sm:flex-initial min-w-0 truncate font-bold leading-snug ${deadline.isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}
-                      >
-                        {deadline.title}
-                      </p>
-                      <span
-                        className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${categoryStyle.bg} ${categoryStyle.text}`}
-                      >
-                        {deadline.category}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap shrink-0 empty:hidden">
-                      {typeof deadline.week === 'number' && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                          Semana {deadline.week}
-                        </span>
-                      )}
-                      {isOverdue && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#EA4335]/10 text-[#D93025] flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Atrasado
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    {typeof deadline.points === 'number' && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#9E5D00]">
-                        <Star className="w-3.5 h-3.5 fill-[#FBBC04] text-[#FBBC04]" />
-                        {deadline.points} pts
-                      </span>
+                  <p
+                    title={deadline.title}
+                    className={`truncate text-sm font-medium ${deadline.isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}
+                  >
+                    {deadline.title}
+                  </p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
+                    {isOverdue && (
+                      <>
+                        <span className="font-medium text-danger-600">Atrasado</span>
+                        <span aria-hidden="true">·</span>
+                      </>
                     )}
-                    <p className="text-xs text-gray-500">{formatDateBR(deadline.date)}</p>
-                  </div>
+                    <span className={isOverdue ? 'text-danger-600' : ''}>{formatDateBR(deadline.date)}</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span aria-hidden="true" className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+                      {deadline.category}
+                    </span>
+                    {typeof deadline.week === 'number' && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>Semana {deadline.week}</span>
+                      </>
+                    )}
+                    {typeof deadline.points === 'number' && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span className="tabular-nums">{deadline.points} pts</span>
+                      </>
+                    )}
+                  </p>
                   {deadline.notes && (
-                    <p className="text-xs text-gray-500 flex items-start gap-1.5 mt-1">
-                      <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{deadline.notes}</span>
+                    <p className="mt-0.5 text-xs text-gray-400 line-clamp-1" title={deadline.notes}>
+                      {deadline.notes}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => onEdit(deadline)}
-                    aria-label="Editar prazo"
-                    title="Editar"
-                    className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(deadline)}
-                    disabled={deletingId === deadline.id}
-                    aria-label="Excluir prazo"
-                    title="Excluir"
-                    className="p-2 rounded-xl text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 disabled:opacity-50"
-                  >
-                    {deletingId === deadline.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
+                <ActionMenu
+                  label={`Mais ações para ${deadline.title}`}
+                  items={[
+                    { label: 'Editar', icon: Pencil, onSelect: () => onEdit(deadline) },
+                    { label: 'Excluir', icon: Trash2, tone: 'danger', onSelect: () => onDelete(deadline) },
+                  ]}
+                />
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-    </div>
+    </section>
   );
 };
 
-export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onSaveDeadline, onDeleteDeadline }) => {
+export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({
+  deadlines: allDeadlines,
+  onSaveDeadline,
+  onDeleteDeadline,
+}) => {
+  const toast = useToast();
+  const pendingDelete = useUndoableDelete<ProgramDeadline>({
+    commit: (x) => onDeleteDeadline(x.id),
+    message: 'Prazo excluído.',
+    errorMessage: 'Não foi possível excluir o prazo. Tente novamente.',
+  });
+  const deadlines = allDeadlines.filter((x) => !pendingDelete.pendingIds.has(x.id));
   const [isFormOpen, setIsFormOpen] = usePersistedState('gsa_deadline_modal_open', false);
   const [formData, setFormData] = usePersistedState<Partial<ProgramDeadline>>('gsa_deadline_form_draft', DEFAULT_FORM);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = usePersistedState('gsa_deadline_show_history', false);
   const [collapsedMonths, setCollapsedMonths] = usePersistedState<string[]>('gsa_deadline_collapsed_months', []);
@@ -247,10 +217,17 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
 
   const today = todayISO();
   const sortedDeadlines = [...deadlines].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const [searchQuery, setSearchQuery] = useUrlState('q');
+  const query = searchQuery.trim().toLowerCase();
+  const matchedDeadlines = query
+    ? sortedDeadlines.filter((d) =>
+        [d.title, d.notes, d.category].some((field) => field?.toLowerCase().includes(query)),
+      )
+    : sortedDeadlines;
 
   const currentMonthKey = getMonthKey(today);
-  const visibleDeadlines = sortedDeadlines.filter((d) => !d.isCompleted || getMonthKey(d.date) >= currentMonthKey);
-  const historyDeadlines = sortedDeadlines.filter((d) => d.isCompleted && getMonthKey(d.date) < currentMonthKey);
+  const visibleDeadlines = matchedDeadlines.filter((d) => !d.isCompleted || getMonthKey(d.date) >= currentMonthKey);
+  const historyDeadlines = matchedDeadlines.filter((d) => d.isCompleted && getMonthKey(d.date) < currentMonthKey);
 
   const visibleMonthGroups = new Map<string, ProgramDeadline[]>();
   for (const deadline of visibleDeadlines) {
@@ -301,7 +278,7 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
       resetForm();
     } catch (err) {
       console.error(err);
-      alert('Não foi possível salvar o prazo. Tente novamente.');
+      toast.show({ message: 'Não foi possível salvar o prazo. Tente novamente.', tone: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -313,36 +290,18 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
       await onSaveDeadline({ ...deadline, isCompleted: !deadline.isCompleted, updatedAt: new Date().toISOString() });
     } catch (err) {
       console.error(err);
-      alert('Não foi possível atualizar o prazo. Tente novamente.');
+      toast.show({ message: 'Não foi possível atualizar o prazo. Tente novamente.', tone: 'error' });
     } finally {
       setTogglingId(null);
     }
   };
 
-  const handleDelete = async (deadline: ProgramDeadline) => {
-    if (!confirm('Deseja realmente remover este prazo?')) return;
-    setDeletingId(deadline.id);
-    try {
-      await onDeleteDeadline(deadline.id);
-    } catch (err) {
-      console.error(err);
-      alert('Não foi possível excluir o prazo. Tente novamente.');
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const handleDelete = (deadline: ProgramDeadline) => pendingDelete.remove(deadline);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <CalendarClock className="w-6 h-6 text-[#EA4335]" />
-            <span>Prazos</span>
-          </h2>
-        </div>
-
-        <button
+      <PageHeader icon={CalendarClock} iconClassName="text-primary" title="Prazos">
+        <Button
           id="btn-new-deadline"
           onClick={() => {
             resetForm();
@@ -350,20 +309,46 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
           }}
           aria-label="Novo prazo"
           title="Novo prazo"
-          className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 shrink-0"
+          variant="primary"
+          collapseLabel
+          icon={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo prazo</span>
-        </button>
-      </div>
+          Novo prazo
+        </Button>
+      </PageHeader>
+
+      {sortedDeadlines.length > 0 && (
+        <div>
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            label="Buscar prazos"
+            placeholder="Buscar por título, categoria ou anotação"
+          />
+        </div>
+      )}
 
       {sortedDeadlines.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#EA4335]/10 text-[#D93025] flex items-center justify-center mx-auto">
-            <CalendarClock className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900">Nenhum prazo registrado</h3>
-        </div>
+        <EmptyState
+          icon={CalendarClock}
+          iconClassName="bg-primary/10 text-primary"
+          title="Nenhum prazo registrado"
+          description="Anote entregas e datas importantes do programa para não perder nenhum prazo."
+          action={{
+            label: 'Novo prazo',
+            onClick: () => {
+              resetForm();
+              setIsFormOpen(true);
+            },
+            icon: <Plus className="w-4 h-4" />,
+          }}
+        />
+      ) : matchedDeadlines.length === 0 ? (
+        <NoResults
+          title="Nenhum prazo encontrado"
+          description="Nenhum prazo corresponde à busca."
+          onClear={() => setSearchQuery('')}
+        />
       ) : (
         <div className="space-y-6">
           {visibleMonthKeys.length === 0 ? (
@@ -376,7 +361,6 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                 deadlines={visibleMonthGroups.get(key)!}
                 today={today}
                 togglingId={togglingId}
-                deletingId={deletingId}
                 isCollapsed={collapsedMonths.includes(key)}
                 onToggleCollapse={() => toggleMonthCollapse(key)}
                 onToggleComplete={handleToggleComplete}
@@ -391,13 +375,17 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
               <button
                 type="button"
                 onClick={() => setShowHistory(!showHistory)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-gray-300 text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                aria-expanded={showHistory}
+                className="inline-flex items-center gap-1.5 px-1 text-sm font-medium text-gray-500 hover:text-gray-800"
               >
-                {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {showHistory ? 'Ocultar histórico' : 'Ver histórico'}
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`w-4 h-4 transition-transform ${showHistory ? '' : '-rotate-90'}`}
+                />
+                {showHistory ? 'Ocultar histórico' : `Ver histórico (${historyDeadlines.length})`}
               </button>
 
-              {showHistory && (
+              {(showHistory || query) && (
                 <div className="space-y-6">
                   {historyMonthKeys.map((key) => (
                     <MonthGroup
@@ -406,7 +394,6 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({ deadlines, onS
                       deadlines={historyMonthGroups.get(key)!}
                       today={today}
                       togglingId={togglingId}
-                      deletingId={deletingId}
                       isCollapsed={collapsedMonths.includes(key)}
                       onToggleCollapse={() => toggleMonthCollapse(key)}
                       onToggleComplete={handleToggleComplete}

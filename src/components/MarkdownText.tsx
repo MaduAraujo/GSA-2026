@@ -23,7 +23,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     if (link) {
       const [, label, href] = link;
       return isHttpUrl(href!) ? (
-        <a key={key} href={href} target="_blank" rel="noopener noreferrer" className="text-[#1A73E8] underline">
+        <a key={key} href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
           {label}
         </a>
       ) : (

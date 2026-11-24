@@ -1,9 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { CalendarDays, Eye, History, Loader2, Upload, UserRound, Users } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Eye, History, Loader2, PlusCircle, Upload, UserRound, Users } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { useCollection, useCollectionMutation } from '../data/queries';
+import { TAB_PATHS } from '../routes';
 import { SupabaseStorageService as Storage } from '../services/supabaseStorage';
 import type { SessionSummary } from '../types';
 import { PAST_SESSIONS, type PastSession } from './pastSessions';
+import { pastSessionType } from './sessions/sessionView';
+import { PageIntro } from './ui/PageIntro';
 
 const MAX_SUMMARY_SIZE_BYTES = 50 * 1024 * 1024;
 const SUMMARY_ACCEPT = '.pdf,.doc,.docx,.txt,.md,image/*';
@@ -20,7 +24,15 @@ const SummaryAction: React.FC<SummaryActionProps> = ({ session, summary, isLoadi
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <span
+        role="status"
+        aria-label="Carregando resumo"
+        className="block shrink-0 h-9 w-9 sm:w-32 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"
+      />
+    );
+  }
 
   if (summary) {
     return summary.url ? (
@@ -30,7 +42,7 @@ const SummaryAction: React.FC<SummaryActionProps> = ({ session, summary, isLoadi
         rel="noopener noreferrer"
         aria-label="Ver resumo"
         title="Ver resumo"
-        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#1A73E8] p-2.5 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1765CC] transition-colors"
+        className="inline-flex shrink-0 items-center gap-2 rounded-full bg-primary p-2.5 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
       >
         <Eye aria-hidden="true" className="h-4 w-4" />
         <span className="hidden sm:inline">Ver resumo</span>
@@ -75,7 +87,7 @@ const SummaryAction: React.FC<SummaryActionProps> = ({ session, summary, isLoadi
         disabled={isUploading}
         aria-label={isUploading ? 'Enviando...' : 'Enviar resumo'}
         title="Enviar resumo"
-        className="inline-flex items-center gap-2 rounded-full border border-[#1A73E8] p-2.5 sm:px-4 sm:py-2 text-sm font-semibold text-[#1A73E8] hover:bg-[#1A73E8]/5 disabled:opacity-60 disabled:cursor-wait transition-colors"
+        className="inline-flex items-center gap-2 rounded-full border border-primary p-2.5 sm:px-4 sm:py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60 disabled:cursor-wait transition-colors"
       >
         {isUploading ? (
           <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -85,7 +97,7 @@ const SummaryAction: React.FC<SummaryActionProps> = ({ session, summary, isLoadi
         <span className="hidden sm:inline">{isUploading ? 'Enviando...' : 'Enviar resumo'}</span>
       </button>
       {error && (
-        <p role="alert" className="mt-2 max-w-48 text-right text-xs text-[#EA4335]">
+        <p role="alert" className="mt-2 max-w-48 text-right text-xs text-danger">
           {error}
         </p>
       )}
@@ -97,33 +109,64 @@ interface PastSessionsListProps {
   summaries: SessionSummary[];
   isLoading: boolean;
   onUpload: (sessionId: string, file: File) => Promise<void>;
+  registeredRecords?: Map<string, string>;
+  onRegister?: (pastSessionId: string) => void;
+  onOpenRecord?: (recordId: string) => void;
 }
 
-export const PastSessionsList: React.FC<PastSessionsListProps> = ({ summaries, isLoading, onUpload }) => {
+const RecordAction: React.FC<{
+  session: PastSession;
+  recordId?: string;
+  onRegister?: (pastSessionId: string) => void;
+  onOpenRecord?: (recordId: string) => void;
+}> = ({ session, recordId, onRegister, onOpenRecord }) => {
+  if (recordId && onOpenRecord) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenRecord(recordId)}
+        className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-xs font-semibold text-success-700 hover:bg-success/15 transition-colors"
+      >
+        <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" />
+        Registrado · ver registro
+      </button>
+    );
+  }
+  if (!onRegister) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => onRegister(session.id)}
+      aria-label={`Registrar presença em ${session.title}`}
+      className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:border-success hover:text-success-700 transition-colors"
+    >
+      <PlusCircle aria-hidden="true" className="h-3.5 w-3.5" />
+      Registrar presença
+    </button>
+  );
+};
+
+export const PastSessionsList: React.FC<PastSessionsListProps> = ({
+  summaries,
+  isLoading,
+  onUpload,
+  registeredRecords,
+  onRegister,
+  onOpenRecord,
+}) => {
   const summaryBySession = new Map(summaries.map((s) => [s.sessionId, s]));
 
   return (
     <section
       aria-labelledby="past-sessions-heading"
-      className="max-w-4xl mx-auto rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 sm:p-12"
+      className="max-w-4xl mx-auto rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 sm:p-12"
     >
-      <div className="text-center">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#1A73E8]/10">
-          <History className="h-7 w-7 text-[#1A73E8]" />
-        </div>
-
-        <h1
-          id="past-sessions-heading"
-          className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100"
-        >
-          REVISITE OS MOMENTOS DA JORNADA
-        </h1>
-        <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-300">
-          Aqui ficam reunidos os encontros que já aconteceram ao longo do programa. Consulte a data, conheça os
-          facilitadores e guarde o seu resumo de cada encontro para retomar os principais aprendizados sempre que
-          quiser.
-        </p>
-      </div>
+      <PageIntro
+        icon={History}
+        headingId="past-sessions-heading"
+        title="Revisite os momentos da jornada"
+        description="Aqui ficam reunidos os encontros que já aconteceram ao longo do programa. Consulte a data, conheça os facilitadores e guarde o seu resumo de cada encontro para retomar os principais aprendizados sempre que quiser."
+      />
 
       <ol className="mt-10 space-y-3">
         {PAST_SESSIONS.map((session) => (
@@ -133,9 +176,7 @@ export const PastSessionsList: React.FC<PastSessionsListProps> = ({ summaries, i
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                {session.series && (
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#1A73E8]">{session.series}</p>
-                )}
+                {session.series && <p className="mb-1 text-xs font-semibold text-primary">{session.series}</p>}
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{session.title}</h2>
               </div>
 
@@ -168,6 +209,17 @@ export const PastSessionsList: React.FC<PastSessionsListProps> = ({ summaries, i
                 );
               })}
             </dl>
+
+            {(onRegister || onOpenRecord) && (
+              <div className="mt-4">
+                <RecordAction
+                  session={session}
+                  recordId={registeredRecords?.get(session.id)}
+                  onRegister={onRegister}
+                  onOpenRecord={onOpenRecord}
+                />
+              </div>
+            )}
           </li>
         ))}
       </ol>
@@ -178,6 +230,33 @@ export const PastSessionsList: React.FC<PastSessionsListProps> = ({ summaries, i
 export const PastSessionsPage: React.FC = () => {
   const summaries = useCollection('sessionSummaries');
   const uploadSummary = useCollectionMutation(['sessionSummaries'], Storage.uploadSessionSummary);
+  const records = useCollection('sessions');
+  const navigate = useNavigate();
 
-  return <PastSessionsList summaries={summaries.data ?? []} isLoading={summaries.isPending} onUpload={uploadSummary} />;
+  const registeredRecords = new Map<string, string>();
+  for (const record of records.data ?? []) {
+    if (record.pastSessionId) registeredRecords.set(record.pastSessionId, record.id);
+  }
+  const sessionsUrl = (params: Record<string, string>) => `${TAB_PATHS.sessions}?${new URLSearchParams(params)}`;
+
+  return (
+    <PastSessionsList
+      summaries={summaries.data ?? []}
+      isLoading={summaries.isPending}
+      onUpload={uploadSummary}
+      registeredRecords={registeredRecords}
+      onRegister={
+        records.isPending
+          ? undefined
+          : (id) => {
+              const past = PAST_SESSIONS.find((p) => p.id === id);
+              navigate(sessionsUrl({ tipo: past ? pastSessionType(past) : 'Sessão', registrar: id }));
+            }
+      }
+      onOpenRecord={(id) => {
+        const record = records.data?.find((r) => r.id === id);
+        navigate(sessionsUrl({ tipo: record?.type ?? 'Sessão', abrir: id }));
+      }}
+    />
+  );
 };

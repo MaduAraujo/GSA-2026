@@ -8,8 +8,8 @@ export const LEVELS = [
     title: 'Explorador(a)',
     minPoints: LEVEL_MIN_POINTS[0],
     icon: Compass,
-    color: 'text-[#1A73E8]',
-    bg: 'bg-[#1A73E8]/10',
+    color: 'text-primary',
+    bg: 'bg-primary/10',
     description:
       'É quem está descobrindo novas possibilidades com o Google Gemini, experimentando recursos, participando das atividades e construindo repertório para usar IA de forma cada vez mais intencional.',
   },
@@ -18,8 +18,8 @@ export const LEVELS = [
     title: 'Expert de Comunidade',
     minPoints: LEVEL_MIN_POINTS[1],
     icon: Users,
-    color: 'text-[#34A853]',
-    bg: 'bg-[#34A853]/10',
+    color: 'text-success',
+    bg: 'bg-success/10',
     description:
       'É quem já transforma aprendizado em troca: compartilha descobertas, contribui com outras pessoas e ajuda a movimentar a comunidade com participação e colaboração.',
   },
@@ -28,8 +28,8 @@ export const LEVELS = [
     title: 'Catalisador(a)',
     minPoints: LEVEL_MIN_POINTS[2],
     icon: Rocket,
-    color: 'text-[#F9AB00]',
-    bg: 'bg-[#F9AB00]/10',
+    color: 'text-warning-600',
+    bg: 'bg-warning-600/10',
     description:
       'É quem amplia o impacto da jornada, mobilizando pessoas, criando iniciativas e levando o uso responsável, crítico e aprofundado do Google Gemini para novos projetos, grupos e espaços da universidade.',
   },

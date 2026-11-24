@@ -27,7 +27,6 @@ describe('exportPortfolioAsPdf', () => {
       'open',
       vi.fn(() => fakeWindow as unknown as Window),
     );
-    vi.stubGlobal('alert', vi.fn());
   });
 
   afterEach(() => {
@@ -57,15 +56,11 @@ describe('exportPortfolioAsPdf', () => {
     expect(fakeWindow.print).toHaveBeenCalledTimes(1);
   });
 
-  it('alerts and exits gracefully when the popup is blocked', () => {
+  it('returns false when the popup is blocked', () => {
     vi.stubGlobal(
       'open',
       vi.fn(() => null),
     );
-    const alertSpy = vi.fn();
-    vi.stubGlobal('alert', alertSpy);
-
-    expect(() => exportPortfolioAsPdf(makeProfile(), [makeCertificate()])).not.toThrow();
-    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('bloqueador de pop-ups'));
+    expect(exportPortfolioAsPdf(makeProfile(), [makeCertificate()])).toBe(false);
   });
 });

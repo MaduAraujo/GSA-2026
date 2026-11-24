@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { ChevronsLeft, ChevronsRight, X } from 'lucide-react';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { PAGE_PATHS, TAB_PATHS, type AppPage, type AppTab } from '../routes';
-import { NAV_ITEMS, PAGE_ITEMS } from './navItems';
+import { groupColor, NAV_GROUPS, NAV_ITEMS, PAGE_GROUP_LABEL, PAGE_ITEMS } from './navItems';
 
 const COLLAPSED_KEY = 'gsa_sidebar_collapsed';
 const DESKTOP_QUERY = '(min-width: 768px)';
@@ -28,6 +28,24 @@ function useIsDesktop() {
   }, []);
 
   return isDesktop;
+}
+
+function SectionLabel({ id, label, collapsed }: { id: string; label: string; collapsed: boolean }) {
+  if (collapsed) {
+    return (
+      <>
+        <span id={id} className="sr-only">
+          {label}
+        </span>
+        <div aria-hidden="true" className="mx-3 my-2 border-t border-gray-200 dark:border-gray-800" />
+      </>
+    );
+  }
+  return (
+    <p id={id} className="px-3 pt-2 pb-1 text-2xs font-semibold text-gray-400">
+      {label}
+    </p>
+  );
 }
 
 interface SidebarProps {
@@ -71,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       isCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'
     } ${
       isActive
-        ? 'bg-[#1A73E8]/10 text-[#1A73E8] font-semibold'
+        ? 'bg-primary/10 text-primary font-semibold'
         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
     }`;
 
@@ -83,6 +101,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ref={asideRef}
         id="app-sidebar"
         aria-label="Navegação principal"
+        role={isDrawerOpen ? 'dialog' : undefined}
+        aria-modal={isDrawerOpen || undefined}
         inert={!isDesktop && !mobileOpen}
         className={`flex flex-col shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 fixed top-0 left-0 z-50 w-72 max-h-dvh overflow-y-auto overscroll-contain border-b rounded-br-2xl transition-transform duration-200 ${
           mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
@@ -115,29 +135,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        <nav className="sidebar-scroll shrink-0 md:shrink md:min-h-0 md:flex-1 px-2 py-2 md:py-0 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <Link
-                key={item.id}
-                id={`nav-tab-${item.id}`}
-                to={TAB_PATHS[item.id]}
-                onClick={onMobileClose}
-                aria-current={isActive ? 'page' : undefined}
-                aria-label={isCollapsed ? item.label : undefined}
-                title={isCollapsed ? item.label : undefined}
-                className={itemClass(isActive)}
-              >
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? item.color : 'text-gray-500'}`} />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            );
-          })}
+        <nav
+          aria-label="Seções do app"
+          className="sidebar-scroll shrink-0 md:shrink md:min-h-0 md:flex-1 px-2 py-2 md:py-0 space-y-3"
+        >
+          {NAV_GROUPS.map((group) => (
+            <div key={group.id} role="group" aria-labelledby={`nav-group-${group.id}`} className="space-y-1">
+              <SectionLabel id={`nav-group-${group.id}`} label={group.label} collapsed={isCollapsed} />
+              {NAV_ITEMS.filter((item) => item.group === group.id).map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    id={`nav-tab-${item.id}`}
+                    to={TAB_PATHS[item.id]}
+                    onClick={onMobileClose}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? item.label : undefined}
+                    className={itemClass(isActive)}
+                  >
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? groupColor(item.group) : 'text-gray-500'}`} />
+                    {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        <div className="p-2 space-y-1 border-t border-gray-200 dark:border-gray-800">
+        <div
+          role="group"
+          aria-labelledby="nav-group-pages"
+          className="p-2 space-y-1 border-t border-gray-200 dark:border-gray-800"
+        >
+          <SectionLabel id="nav-group-pages" label={PAGE_GROUP_LABEL} collapsed={isCollapsed} />
           {PAGE_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
@@ -152,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title={isCollapsed ? item.label : undefined}
                 className={itemClass(isActive)}
               >
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#1A73E8]' : 'text-gray-500'}`} />
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary' : 'text-gray-500'}`} />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );

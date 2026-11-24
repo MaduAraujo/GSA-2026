@@ -90,7 +90,7 @@ export function ActionMenu({ items, label, buttonClassName }: ActionMenuProps) {
         aria-controls={isOpen ? menuId : undefined}
         className={
           buttonClassName ??
-          'p-1.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all focus-visible:outline-2 focus-visible:outline-[#1A73E8]'
+          'p-1.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all focus-visible:outline-2 focus-visible:outline-primary'
         }
       >
         <MoreHorizontal className="w-4 h-4" />
@@ -119,7 +119,7 @@ export function ActionMenu({ items, label, buttonClassName }: ActionMenuProps) {
                 }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-left focus:outline-none ${
                   tone === 'danger'
-                    ? 'text-[#D93025] hover:bg-[#EA4335]/10 focus:bg-[#EA4335]/10'
+                    ? 'text-danger-600 hover:bg-danger/10 focus:bg-danger/10'
                     : 'text-gray-700 hover:bg-gray-50 focus:bg-gray-50'
                 }`}
               >

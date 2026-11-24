@@ -21,7 +21,7 @@ const renderList = (props: Partial<React.ComponentProps<typeof PastSessionsList>
 describe('PastSessionsList', () => {
   it('shows the heading, intro and each past session with date and team leaders', () => {
     renderList();
-    expect(screen.getByRole('heading', { name: 'REVISITE OS MOMENTOS DA JORNADA' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Revisite os momentos da jornada' })).toBeInTheDocument();
     expect(screen.getByText(/guarde o seu resumo de cada encontro/)).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem');
@@ -96,5 +96,24 @@ describe('PastSessionsList', () => {
   it('hides the actions while summaries are loading', () => {
     renderList({ isLoading: true });
     expect(screen.queryByRole('button', { name: 'Enviar resumo' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('status', { name: 'Carregando resumo' })).toHaveLength(13);
+  });
+
+  it('offers to register attendance, or to open the record when it already exists', async () => {
+    const user = userEvent.setup();
+    const onRegister = vi.fn();
+    const onOpenRecord = vi.fn();
+    renderList({
+      registeredRecords: new Map([['gemini-01-study-notebooks', 'record-1']]),
+      onRegister,
+      onOpenRecord,
+    });
+    expect(screen.getAllByRole('button', { name: /Registrar presença/ })).toHaveLength(12);
+
+    await user.click(screen.getByRole('button', { name: /Registrado/ }));
+    expect(onOpenRecord).toHaveBeenCalledWith('record-1');
+
+    await user.click(screen.getByRole('button', { name: 'Registrar presença em Gemini Live' }));
+    expect(onRegister).toHaveBeenCalledWith('gemini-04-gemini-live');
   });
 });

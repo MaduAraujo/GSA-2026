@@ -4,7 +4,7 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-export function exportPromptsAsPdf(prompts: PromptItem[]): void {
+export function exportPromptsAsPdf(prompts: PromptItem[]): boolean {
   const sorted = [...prompts].sort((a, b) => a.section.localeCompare(b.section) || a.title.localeCompare(b.title));
 
   const rows = sorted
@@ -54,11 +54,11 @@ export function exportPromptsAsPdf(prompts: PromptItem[]): void {
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Não foi possível abrir a janela de exportação. Verifique se o bloqueador de pop-ups está desativado.');
-    return;
+    return false;
   }
   printWindow.document.write(html);
   printWindow.document.close();
   printWindow.focus();
   setTimeout(() => printWindow.print(), 300);
+  return true;
 }

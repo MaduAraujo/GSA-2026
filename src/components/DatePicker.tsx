@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useEffectEvent } from 'react';
+import { formatDateBR, toISODate } from '../utils/date';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DatePickerProps {
@@ -36,17 +37,6 @@ function parseISODate(value: string): Date | null {
   const [year, month, day] = value.split('-').map(Number);
   if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
-}
-
-function toISODate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatDisplay(date: Date): string {
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function getBoundsRect(el: HTMLElement | null): { top: number; left: number; right: number; bottom: number } {
@@ -165,13 +155,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         onClick={() => setIsOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        className={`w-full flex items-center gap-2.5 pl-3.5 pr-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD] hover:border-gray-300 transition-colors ${
+        className={`w-full flex items-center gap-2.5 pl-3.5 pr-3 py-2.5 rounded-xl text-sm border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary bg-surface-muted hover:border-gray-300 transition-colors ${
           align === 'center' ? 'justify-center text-center' : 'text-left'
         }`}
       >
-        <Calendar className="w-4 h-4 text-[#1A73E8] shrink-0" />
+        <Calendar className="w-4 h-4 text-primary shrink-0" />
         <span className={selectedDate ? 'text-gray-900' : 'text-gray-400'}>
-          {selectedDate ? formatDisplay(selectedDate) : placeholder}
+          {selectedDate ? formatDateBR(selectedDate) : placeholder}
         </span>
       </button>
 
@@ -207,7 +197,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
           <div className="grid grid-cols-7 gap-1 mb-1">
             {WEEKDAY_LABELS.map((label, idx) => (
-              <div key={idx} className="text-center text-[11px] font-semibold text-gray-400 py-1">
+              <div key={idx} className="text-center text-2xs font-semibold text-gray-400 py-1">
                 {label}
               </div>
             ))}
@@ -224,9 +214,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   onClick={() => handleSelectDay(day)}
                   className={`aspect-square rounded-full text-xs font-medium flex items-center justify-center transition-colors ${
                     isSameDay(day)
-                      ? 'bg-[#1A73E8] text-white font-bold'
+                      ? 'bg-primary text-white font-bold'
                       : isToday(day)
-                        ? 'text-[#1A73E8] font-bold hover:bg-[#1A73E8]/10'
+                        ? 'text-primary font-bold hover:bg-primary/10'
                         : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >

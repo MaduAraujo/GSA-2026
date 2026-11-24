@@ -67,7 +67,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
   return (
     <article
       aria-label={current.title}
-      className="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden"
+      className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden"
     >
       <div className="flex items-start gap-3 p-5">
         <button
@@ -81,9 +81,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
             <h4 title={current.title} className="flex-1 sm:flex-initial min-w-0 truncate font-bold text-gray-900">
               {current.title}
             </h4>
-            <span
-              className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${status.className}`}
-            >
+            <span className={`shrink-0 text-2xs font-semibold px-2 py-0.5 rounded-full ${status.className}`}>
               {status.label}
             </span>
           </div>
@@ -110,9 +108,9 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
               aria-valuemax={100}
               className="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden"
             >
-              <div className="h-full rounded-full bg-[#1A73E8] transition-all" style={{ width: `${percent}%` }} />
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${percent}%` }} />
             </div>
-            <span className="text-[11px] font-semibold text-gray-500 shrink-0">
+            <span className="text-2xs font-semibold text-gray-500 shrink-0">
               {done}/{total}
             </span>
             {isOpen ? (
@@ -138,7 +136,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
             onClick={() => onDelete(current)}
             aria-label="Excluir evento"
             title="Excluir"
-            className="p-2 rounded-xl text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10"
+            className="p-2 rounded-xl text-gray-400 hover:text-danger hover:bg-danger/10"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -151,15 +149,15 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
           className="border-t border-gray-100 grid lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100"
         >
           <section aria-label="Checklist" className="p-5">
-            <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-              <ListChecks className="w-4 h-4 text-[#1A73E8]" />
+            <h5 className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+              <ListChecks className="w-4 h-4 text-primary" />
               Checklist
             </h5>
             <ul className="mt-3 space-y-2">
               {CHECKLIST_ITEMS.map((item) => {
                 const checked = current.checklistDone.includes(item.id);
                 return (
-                  <li key={item.id} className="rounded-2xl border border-gray-100 bg-[#F8FAFD] p-3">
+                  <li key={item.id} className="rounded-2xl border border-gray-100 bg-surface-muted p-3">
                     <button
                       type="button"
                       role="checkbox"
@@ -168,7 +166,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
                       className="w-full flex items-start gap-2.5 text-left text-sm"
                     >
                       {checked ? (
-                        <CheckCircle2 className="w-5 h-5 shrink-0 text-[#34A853]" />
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-success" />
                       ) : (
                         <Circle className="w-5 h-5 shrink-0 text-gray-300" />
                       )}
@@ -192,13 +190,13 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
           </section>
 
           <section aria-label="Validador de evidências" className="p-5">
-            <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#34A853]" />
+            <h5 className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-success" />
               Validador de evidências (pré check-out)
             </h5>
             <p className="mt-1 text-xs text-gray-500">Preencha logo após o evento, antes de enviar para o Amplifica.</p>
 
-            <div className="mt-3 rounded-2xl border border-gray-100 bg-[#F8FAFD] p-3">
+            <div className="mt-3 rounded-2xl border border-gray-100 bg-surface-muted p-3">
               <label
                 htmlFor={`event-${current.id}-participants`}
                 className="flex items-center gap-2 text-sm text-gray-800"
@@ -215,7 +213,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
                 />
               </div>
               <p
-                className={`mt-1.5 text-xs font-medium ${hasEnoughParticipants(current) ? 'text-[#1E8E3E]' : 'text-gray-500'}`}
+                className={`mt-1.5 text-xs font-medium ${hasEnoughParticipants(current) ? 'text-success-700' : 'text-gray-500'}`}
               >
                 {hasEnoughParticipants(current)
                   ? `Mínimo de ${MIN_PARTICIPANTS} atingido`
@@ -229,7 +227,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
                 return (
                   <li
                     key={question.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-[#F8FAFD] p-3"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-surface-muted p-3"
                   >
                     <span id={`event-${current.id}-${question.id}`} className="text-sm text-gray-800">
                       {question.label}
@@ -251,7 +249,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
                           className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                             yes === value
                               ? value
-                                ? 'bg-[#34A853] text-white'
+                                ? 'bg-success text-white'
                                 : 'bg-gray-200 text-gray-700'
                               : 'text-gray-500 hover:text-gray-800'
                           }`}
@@ -268,7 +266,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
             <p
               role="status"
               className={`mt-3 rounded-2xl px-3.5 py-3 text-sm font-semibold ${
-                isValidated(current) ? 'bg-[#34A853]/10 text-[#1E8E3E]' : 'bg-[#FBBC04]/15 text-[#9E5D00]'
+                isValidated(current) ? 'bg-success/10 text-success-700' : 'bg-warning/15 text-warning-800'
               }`}
             >
               {isValidated(current)
@@ -280,7 +278,7 @@ export function EventCard({ event, today, onSave, onEdit, onDelete }: EventCardP
       )}
 
       {saveError && (
-        <p role="alert" className="px-5 pb-4 text-sm text-[#D93025]">
+        <p role="alert" className="px-5 pb-4 text-sm text-danger-600">
           Não foi possível salvar a última alteração. Tente novamente.
         </p>
       )}

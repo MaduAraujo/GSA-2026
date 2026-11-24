@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Sidebar } from './Sidebar';
@@ -95,5 +95,16 @@ describe('Sidebar', () => {
       await user.click(screen.getByRole('button', { name: 'Fechar menu' }));
       expect(onMobileClose).toHaveBeenCalledTimes(3);
     });
+  });
+
+  it('groups the tabs into labelled sections', () => {
+    renderWithProviders(<Sidebar activeTab="posts" />);
+    const content = screen.getByRole('group', { name: 'Produção' });
+    expect(within(content).getByRole('link', { name: 'Posts' })).toBeInTheDocument();
+    expect(within(content).getByRole('link', { name: 'Galeria' })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('group', { name: 'Programa' })).getByRole('link', { name: 'Prazos' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Informações' })).toBeInTheDocument();
   });
 });

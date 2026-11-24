@@ -1,17 +1,21 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { ToastProvider } from '../app/ToastProvider';
 import { GalleryModule } from './GalleryModule';
 import { type GalleryPhoto } from '../types';
+import { renderModule } from '../test/render';
+
+const RealURL = globalThis.URL;
 
 beforeEach(() => {
   localStorage.clear();
-  vi.stubGlobal('URL', {
-    ...URL,
-    createObjectURL: vi.fn(() => 'blob:mock-preview-url'),
-    revokeObjectURL: vi.fn(),
-  });
+  vi.stubGlobal(
+    'URL',
+    class extends RealURL {
+      static override createObjectURL = vi.fn(() => 'blob:mock-preview-url');
+      static override revokeObjectURL = vi.fn();
+    },
+  );
 });
 
 function makePhoto(overrides: Partial<GalleryPhoto> = {}): GalleryPhoto {
@@ -30,9 +34,7 @@ function renderGallery({
   onSavePhoto = vi.fn().mockResolvedValue(undefined),
   onDeletePhoto = vi.fn().mockResolvedValue(undefined),
 }: { photos?: GalleryPhoto[]; onSavePhoto?: Mock; onDeletePhoto?: Mock } = {}) {
-  render(<GalleryModule photos={photos} onSavePhoto={onSavePhoto} onDeletePhoto={onDeletePhoto} />, {
-    wrapper: ToastProvider,
-  });
+  renderModule(<GalleryModule photos={photos} onSavePhoto={onSavePhoto} onDeletePhoto={onDeletePhoto} />, {});
   return { onSavePhoto, onDeletePhoto };
 }
 
@@ -45,13 +47,6 @@ describe('GalleryModule', () => {
     expect(screen.getByText('Sua galeria está vazia')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Adicionar primeiras fotos' }));
     expect(screen.getByRole('dialog', { name: 'Adicionar à galeria' })).toBeInTheDocument();
-  });
-
-  it('shows the total item count next to the title, like the Badges card', () => {
-    renderGallery({
-      photos: [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'v1', mediaType: 'video' })],
-    });
-    expect(screen.getByRole('heading', { level: 2, name: 'Galeria' }).nextElementSibling).toHaveTextContent('3');
   });
 
   it('filters photos by search query across caption and category', async () => {

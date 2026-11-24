@@ -7,6 +7,7 @@ import { getCollectionData, queryKeys } from '../data/queries';
 import { SupabaseStorageService as Storage } from '../services/supabaseStorage';
 import { evaluateNewlyEarnedBadges } from '../utils/badgeEngine';
 import { useAuth } from './AuthProvider';
+import { CONFETTI_COLORS } from '../theme/colors';
 
 type SyncBadges = (options: { silent: boolean }) => Promise<void>;
 
@@ -37,7 +38,7 @@ export function BadgeProvider({ children }: { children: ReactNode }) {
             particleCount: 120,
             spread: 80,
             origin: { y: 0.6 },
-            colors: ['#1A73E8', '#EA4335', '#FBBC04', '#34A853'],
+            colors: CONFETTI_COLORS,
           });
         }
       } catch (e) {

@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Plus, X, Trash2, Pencil, Loader2, StickyNote } from 'lucide-react';
+import { useUndoableDelete } from '../hooks/useUndoableDelete';
+import { useToast } from '../app/ToastProvider';
+import { ActionMenu } from './ActionMenu';
+import { buttonClasses } from './ui/buttonClasses';
+import { EmptyState } from './ui/EmptyState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
+import { Modal, ModalHeader } from './ui/Modal';
+import { Trophy, Plus, Trash2, Pencil, Loader2, StickyNote } from 'lucide-react';
 import { type WeeklyScore } from '../types';
 import { DatePicker } from './DatePicker';
 import { NumberStepper } from './NumberStepper';
@@ -26,14 +34,20 @@ function formatDateBR(isoDate?: string): string {
 }
 
 export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
-  weeklyScores,
+  weeklyScores: allWeeklyScores,
   onSaveWeeklyScore,
   onDeleteWeeklyScore,
 }) => {
+  const toast = useToast();
+  const pendingDelete = useUndoableDelete<WeeklyScore>({
+    commit: (x) => onDeleteWeeklyScore(x.id),
+    message: 'Pontuação excluída.',
+    errorMessage: 'Não foi possível excluir a pontuação. Tente novamente.',
+  });
+  const weeklyScores = allWeeklyScores.filter((x) => !pendingDelete.pendingIds.has(x.id));
   const [isFormOpen, setIsFormOpen] = usePersistedState('gsa_weekly_score_modal_open', false);
   const [formData, setFormData] = usePersistedState<Partial<WeeklyScore>>('gsa_weekly_score_form_draft', DEFAULT_FORM);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [openDateField, setOpenDateField] = useState<'start' | 'end' | null>(null);
 
@@ -75,24 +89,13 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
       resetForm();
     } catch (err) {
       console.error(err);
-      alert('Não foi possível salvar a pontuação. Tente novamente.');
+      toast.show({ message: 'Não foi possível salvar a pontuação. Tente novamente.', tone: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (weeklyScore: WeeklyScore) => {
-    if (!confirm('Deseja realmente remover esta pontuação semanal?')) return;
-    setDeletingId(weeklyScore.id);
-    try {
-      await onDeleteWeeklyScore(weeklyScore.id);
-    } catch (err) {
-      console.error(err);
-      alert('Não foi possível excluir a pontuação. Tente novamente.');
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const handleDelete = (weeklyScore: WeeklyScore) => pendingDelete.remove(weeklyScore);
 
   useEffect(() => {
     if (!isFormOpen) return;
@@ -105,15 +108,8 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Trophy className="w-6 h-6 text-[#FBBC04]" />
-            <span>Pontuação Semanal</span>
-          </h2>
-        </div>
-
-        <button
+      <PageHeader icon={Trophy} iconClassName="text-primary" title="Pontuação Semanal">
+        <Button
           id="btn-new-weekly-score"
           onClick={() => {
             resetForm();
@@ -121,29 +117,38 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
           }}
           aria-label="Nova pontuação semanal"
           title="Nova pontuação semanal"
-          className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 shrink-0"
+          variant="primary"
+          collapseLabel
+          icon={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Nova semana</span>
-        </button>
-      </div>
+          Nova semana
+        </Button>
+      </PageHeader>
 
       {sortedScores.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#FBBC04]/10 text-[#F9AB00] flex items-center justify-center mx-auto">
-            <Trophy className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900">Nenhuma pontuação registrada</h3>
-        </div>
+        <EmptyState
+          icon={Trophy}
+          iconClassName="bg-primary/10 text-primary"
+          title="Nenhuma pontuação registrada"
+          description="Registre os pontos de cada semana para acompanhar sua evolução no ranking."
+          action={{
+            label: 'Nova pontuação',
+            onClick: () => {
+              resetForm();
+              setIsFormOpen(true);
+            },
+            icon: <Plus className="w-4 h-4" />,
+          }}
+        />
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
+        <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
           {sortedScores.map((weeklyScore) => (
             <div
               key={weeklyScore.id}
               id={`weekly-score-row-${weeklyScore.id}`}
               className="flex items-center gap-4 p-5 group"
             >
-              <div className="w-11 h-11 rounded-2xl bg-[#FBBC04]/10 text-[#F9AB00] flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-warning/10 text-warning-600 flex items-center justify-center shrink-0">
                 <Trophy className="w-5 h-5" />
               </div>
 
@@ -159,155 +164,108 @@ export const WeeklyScoreModule: React.FC<WeeklyScoreModuleProps> = ({
                 )}
               </div>
 
-              <p className="text-lg font-bold text-[#F9AB00] shrink-0">{weeklyScore.points} pts</p>
+              <p className="text-lg font-bold text-warning-600 shrink-0">{weeklyScore.points} pts</p>
 
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => handleEdit(weeklyScore)}
-                  aria-label="Editar pontuação"
-                  title="Editar"
-                  className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(weeklyScore)}
-                  disabled={deletingId === weeklyScore.id}
-                  aria-label="Excluir pontuação"
-                  title="Excluir"
-                  className="p-2 rounded-xl text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 disabled:opacity-50"
-                >
-                  {deletingId === weeklyScore.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+              <ActionMenu
+                label={`Mais ações para a semana de ${formatDateBR(weeklyScore.weekStart)}`}
+                items={[
+                  { label: 'Editar', icon: Pencil, onSelect: () => handleEdit(weeklyScore) },
+                  { label: 'Excluir', icon: Trash2, tone: 'danger', onSelect: () => handleDelete(weeklyScore) },
+                ]}
+              />
             </div>
           ))}
         </div>
       )}
 
       {isFormOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
-        >
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
-            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#FBBC04]/10 text-[#F9AB00] flex items-center justify-center">
-                    <Trophy className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                      {formData.id ? 'Editar Pontuação' : 'Nova Pontuação Semanal'}
-                    </h3>
-                    <p className="text-xs text-gray-500">Registre quantos pontos você recebeu na semana</p>
-                  </div>
+        <Modal onClose={() => setIsFormOpen(false)} labelledBy="weekly-score-form-heading">
+          <ModalHeader
+            titleId="weekly-score-form-heading"
+            title={formData.id ? 'Editar Pontuação' : 'Nova Pontuação Semanal'}
+            subtitle="Registre quantos pontos você recebeu na semana"
+            icon={Trophy}
+            iconClassName="bg-primary/10 text-primary"
+            onClose={() => setIsFormOpen(false)}
+          />
+          <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="weekly-score-form-start" className="block text-sm font-medium text-gray-700 mb-1">
+                    Início da semana *
+                  </label>
+                  <DatePicker
+                    id="weekly-score-form-start"
+                    value={formData.weekStart || ''}
+                    onChange={(date) => setFormData({ ...formData, weekStart: date })}
+                    open={openDateField === 'start'}
+                    onOpenChange={(isOpen) => setOpenDateField(isOpen ? 'start' : null)}
+                  />
                 </div>
-                <button
-                  onClick={() => setIsFormOpen(false)}
-                  aria-label="Fechar"
-                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+
+                <div>
+                  <label htmlFor="weekly-score-form-end" className="block text-sm font-medium text-gray-700 mb-1">
+                    Fim da semana *
+                  </label>
+                  <DatePicker
+                    id="weekly-score-form-end"
+                    value={formData.weekEnd || ''}
+                    onChange={(date) => setFormData({ ...formData, weekEnd: date })}
+                    open={openDateField === 'end'}
+                    onOpenChange={(isOpen) => setOpenDateField(isOpen ? 'end' : null)}
+                  />
+                </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      htmlFor="weekly-score-form-start"
-                      className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                    >
-                      Início da semana *
-                    </label>
-                    <DatePicker
-                      id="weekly-score-form-start"
-                      value={formData.weekStart || ''}
-                      onChange={(date) => setFormData({ ...formData, weekStart: date })}
-                      open={openDateField === 'start'}
-                      onOpenChange={(isOpen) => setOpenDateField(isOpen ? 'start' : null)}
-                    />
-                  </div>
+              <div>
+                <label htmlFor="weekly-score-form-points" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pontuação *
+                </label>
+                <NumberStepper
+                  id="weekly-score-form-points"
+                  min={0}
+                  value={formData.points ?? 0}
+                  onChange={(points) => setFormData({ ...formData, points })}
+                />
+              </div>
 
-                  <div>
-                    <label
-                      htmlFor="weekly-score-form-end"
-                      className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                    >
-                      Fim da semana *
-                    </label>
-                    <DatePicker
-                      id="weekly-score-form-end"
-                      value={formData.weekEnd || ''}
-                      onChange={(date) => setFormData({ ...formData, weekEnd: date })}
-                      open={openDateField === 'end'}
-                      onOpenChange={(isOpen) => setOpenDateField(isOpen ? 'end' : null)}
-                    />
-                  </div>
-                </div>
+              <div>
+                <label htmlFor="weeklyscore-observacoes" className="block text-sm font-medium text-gray-700 mb-1">
+                  Observações
+                </label>
+                <textarea
+                  id="weeklyscore-observacoes"
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Ex: pontos por posts e presença nas sessões"
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus-visible:ring-2 focus-visible:ring-warning/40 resize-none"
+                />
+              </div>
 
-                <div>
-                  <label
-                    htmlFor="weekly-score-form-points"
-                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                  >
-                    Pontuação *
-                  </label>
-                  <NumberStepper
-                    id="weekly-score-form-points"
-                    min={0}
-                    value={formData.points ?? 0}
-                    onChange={(points) => setFormData({ ...formData, points })}
-                  />
-                </div>
+              {formError && (
+                <p
+                  role="alert"
+                  className="text-xs font-semibold text-danger-600 bg-danger/10 border border-danger/20 rounded-xl px-3.5 py-2.5"
+                >
+                  {formError}
+                </p>
+              )}
 
-                <div>
-                  <label
-                    htmlFor="weeklyscore-observacoes"
-                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                  >
-                    Observações
-                  </label>
-                  <textarea
-                    id="weeklyscore-observacoes"
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                    placeholder="Ex: pontos por posts e presença nas sessões"
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#FBBC04]/40 resize-none"
-                  />
-                </div>
-
-                {formError && (
-                  <p
-                    role="alert"
-                    className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5"
-                  >
-                    {formError}
-                  </p>
-                )}
-
-                <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="submit"
-                    disabled={isSaving || !formData.weekStart || !formData.weekEnd || formData.points === undefined}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#F9AB00] hover:bg-[#E8A000] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSaving ? 'Salvando...' : 'Salvar'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button
+                  type="submit"
+                  disabled={isSaving || !formData.weekStart || !formData.weekEnd || formData.points === undefined}
+                  className={buttonClasses({ variant: 'primary' })}
+                >
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

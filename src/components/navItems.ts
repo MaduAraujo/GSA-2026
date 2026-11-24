@@ -21,19 +21,33 @@ export const OFFICIAL_SITE_URL = 'https://amplifica.me/siteembaixadoresestudanti
 export const SUPPORT_FORM_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLSc3vcViCoOve7lPoFDnglUvktSU9Q5GGjQLr1G4pJAjb7JhKw/viewform';
 
-export const NAV_ITEMS: Array<{ id: AppTab; label: string; icon: typeof Award; color: string }> = [
-  { id: 'certificates', label: 'Certificados', icon: Award, color: 'text-[#1A73E8]' },
-  { id: 'prompts', label: 'Prompts', icon: Sparkles, color: 'text-[#F9AB00]' },
-  { id: 'posts', label: 'Posts', icon: FileText, color: 'text-[#EA4335]' },
-  { id: 'sessions', label: 'Sessões', icon: GraduationCap, color: 'text-[#34A853]' },
-  { id: 'challenges', label: 'Desafios', icon: Flag, color: 'text-[#34A853]' },
-  { id: 'gallery', label: 'Galeria', icon: Camera, color: 'text-[#EA4335]' },
-  { id: 'weeklyScore', label: 'Pontuação', icon: Trophy, color: 'text-[#F9AB00]' },
-  { id: 'referenceLinks', label: 'Referências', icon: Link2, color: 'text-[#1A73E8]' },
-  { id: 'deadlines', label: 'Prazos', icon: CalendarClock, color: 'text-[#EA4335]' },
-  { id: 'studyGuide', label: 'Grupo de Estudos', icon: BookOpen, color: 'text-[#34A853]' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-[#1A73E8]' },
+export type NavGroupId = 'achievements' | 'content' | 'program';
+
+export const NAV_GROUPS: Array<{ id: NavGroupId; label: string; color: string }> = [
+  { id: 'achievements', label: 'Conquistas', color: 'text-primary' },
+  { id: 'content', label: 'Produção', color: 'text-primary' },
+  { id: 'program', label: 'Programa', color: 'text-primary' },
 ];
+
+export const NAV_ITEMS: Array<{ id: AppTab; label: string; icon: typeof Award; group: NavGroupId }> = [
+  { id: 'certificates', label: 'Certificados', icon: Award, group: 'achievements' },
+  { id: 'weeklyScore', label: 'Pontuação', icon: Trophy, group: 'achievements' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, group: 'achievements' },
+  { id: 'posts', label: 'Posts', icon: FileText, group: 'content' },
+  { id: 'prompts', label: 'Prompts', icon: Sparkles, group: 'content' },
+  { id: 'gallery', label: 'Galeria', icon: Camera, group: 'content' },
+  { id: 'referenceLinks', label: 'Referências', icon: Link2, group: 'content' },
+  { id: 'sessions', label: 'Sessões', icon: GraduationCap, group: 'program' },
+  { id: 'challenges', label: 'Desafios', icon: Flag, group: 'program' },
+  { id: 'deadlines', label: 'Prazos', icon: CalendarClock, group: 'program' },
+  { id: 'studyGuide', label: 'Grupo de Estudos', icon: BookOpen, group: 'program' },
+];
+
+export const groupColor = (group: NavGroupId) => NAV_GROUPS.find((g) => g.id === group)?.color ?? 'text-primary';
+
+export const BOTTOM_NAV_TABS: AppTab[] = ['certificates', 'posts', 'challenges', 'sessions'];
+
+export const PAGE_GROUP_LABEL = 'Informações';
 
 export const PAGE_ITEMS: Array<{ id: AppPage; label: string; icon: typeof Award }> = [
   { id: 'agenda', label: 'Agenda', icon: CalendarDays },

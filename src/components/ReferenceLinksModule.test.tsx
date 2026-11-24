@@ -1,18 +1,21 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ReferenceLinksModule } from './ReferenceLinksModule';
 import { type ReferenceLink } from '../types';
 import { makeReferenceLink } from '../test/factories';
+import { renderModule } from '../test/render';
 
 describe('ReferenceLinksModule', () => {
   it('shows an empty state when there are no reference links', () => {
-    render(<ReferenceLinksModule referenceLinks={[]} onSaveReferenceLink={vi.fn()} onDeleteReferenceLink={vi.fn()} />);
+    renderModule(
+      <ReferenceLinksModule referenceLinks={[]} onSaveReferenceLink={vi.fn()} onDeleteReferenceLink={vi.fn()} />,
+    );
     expect(screen.getByText('Nenhum link registrado')).toBeInTheDocument();
   });
 
   it('renders each link as a clickable, safe external link', () => {
-    render(
+    renderModule(
       <ReferenceLinksModule
         referenceLinks={[makeReferenceLink({ id: 'r1', title: 'Portfólio da Ana', url: 'https://example.com/ana' })]}
         onSaveReferenceLink={vi.fn()}
@@ -26,7 +29,7 @@ describe('ReferenceLinksModule', () => {
   });
 
   it('does not render an unsafe url as a clickable link', () => {
-    render(
+    renderModule(
       <ReferenceLinksModule
         referenceLinks={[makeReferenceLink({ id: 'r1', title: 'Link suspeito', url: 'javascript:alert(1)' })]}
         onSaveReferenceLink={vi.fn()}
@@ -39,7 +42,9 @@ describe('ReferenceLinksModule', () => {
 
   it('keeps the submit button disabled until title and url are filled', async () => {
     const user = userEvent.setup();
-    render(<ReferenceLinksModule referenceLinks={[]} onSaveReferenceLink={vi.fn()} onDeleteReferenceLink={vi.fn()} />);
+    renderModule(
+      <ReferenceLinksModule referenceLinks={[]} onSaveReferenceLink={vi.fn()} onDeleteReferenceLink={vi.fn()} />,
+    );
     await user.click(screen.getByLabelText('Novo link de referência'));
 
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
@@ -55,7 +60,7 @@ describe('ReferenceLinksModule', () => {
   it('creates a reference link with the trimmed fields', async () => {
     const user = userEvent.setup();
     const onSaveReferenceLink = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderModule(
       <ReferenceLinksModule
         referenceLinks={[]}
         onSaveReferenceLink={onSaveReferenceLink}
@@ -80,7 +85,7 @@ describe('ReferenceLinksModule', () => {
   it('rejects a link that is not a valid http(s) url', async () => {
     const user = userEvent.setup();
     const onSaveReferenceLink = vi.fn();
-    render(
+    renderModule(
       <ReferenceLinksModule
         referenceLinks={[]}
         onSaveReferenceLink={onSaveReferenceLink}
@@ -100,23 +105,23 @@ describe('ReferenceLinksModule', () => {
 
   it('opens the edit form pre-filled when a link is edited', async () => {
     const user = userEvent.setup();
-    render(
+    renderModule(
       <ReferenceLinksModule
         referenceLinks={[makeReferenceLink({ id: 'r1', title: 'Portfólio da Ana' })]}
         onSaveReferenceLink={vi.fn()}
         onDeleteReferenceLink={vi.fn()}
       />,
     );
-    await user.click(screen.getByLabelText('Editar link'));
+    await user.click(screen.getByRole('button', { name: /Mais ações para/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
     expect(within(screen.getByRole('dialog')).getByText('Editar Link')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Portfólio da Ana')).toBeInTheDocument();
   });
 
-  it('asks for confirmation before deleting a reference link', async () => {
+  it('hides a deleted item right away and lets the user undo it', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const onDeleteReferenceLink = vi.fn();
-    render(
+    renderModule(
       <ReferenceLinksModule
         referenceLinks={[makeReferenceLink({ id: 'r1' })]}
         onSaveReferenceLink={vi.fn()}
@@ -124,10 +129,34 @@ describe('ReferenceLinksModule', () => {
       />,
     );
 
-    await user.click(screen.getByLabelText('Excluir link'));
+    await user.click(screen.getByRole('button', { name: /Mais ações para/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    expect(screen.queryByRole('button', { name: /Mais ações para/ })).not.toBeInTheDocument();
 
-    expect(confirmSpy).toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Desfazer' }));
+    expect(screen.getByRole('button', { name: /Mais ações para/ })).toBeInTheDocument();
     expect(onDeleteReferenceLink).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+  });
+
+  it('searches links and offers a way back when nothing matches', async () => {
+    const user = userEvent.setup();
+    renderModule(
+      <ReferenceLinksModule
+        referenceLinks={[
+          makeReferenceLink({ id: 'r1', title: 'Portfólio da Ana' }),
+          makeReferenceLink({ id: 'r2', title: 'Projeto Gemini', sharedBy: 'Bruno' }),
+        ]}
+        onSaveReferenceLink={vi.fn()}
+        onDeleteReferenceLink={vi.fn()}
+      />,
+    );
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar links' }), 'bruno');
+    expect(screen.getByText('Projeto Gemini')).toBeInTheDocument();
+    expect(screen.queryByText('Portfólio da Ana')).not.toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar links' }), 'xyz');
+    expect(screen.getByText('Nenhum link encontrado')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+    expect(screen.getByText('Portfólio da Ana')).toBeInTheDocument();
   });
 });

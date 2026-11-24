@@ -1,15 +1,16 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChallengesModule } from './ChallengesModule';
 import { type Challenge } from '../types';
 import { makeChallenge } from '../test/factories';
+import { renderModule } from '../test/render';
 
 describe('ChallengesModule', () => {
   beforeEach(() => sessionStorage.clear());
 
   it('shows an empty state when there are no challenges', () => {
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[]}
         posts={[]}
@@ -19,12 +20,12 @@ describe('ChallengesModule', () => {
         onDeletePost={vi.fn()}
       />,
     );
-    expect(screen.getByText('Nenhum item')).toBeInTheDocument();
+    expect(screen.getByText('Nenhum item em Desafios')).toBeInTheDocument();
   });
 
   it('filters by status', async () => {
     const user = userEvent.setup();
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[
           makeChallenge({ id: 'c1', title: 'Desafio pendente', status: 'Pendente' }),
@@ -37,14 +38,15 @@ describe('ChallengesModule', () => {
         onDeletePost={vi.fn()}
       />,
     );
-    await user.selectOptions(screen.getByLabelText('Filtrar por status'), 'Concluído');
+    await user.click(screen.getByLabelText('Filtrar por status'));
+    await user.click(screen.getByRole('option', { name: 'Concluído' }));
     expect(screen.getByText('Desafio feito')).toBeInTheDocument();
     expect(screen.queryByText('Desafio pendente')).not.toBeInTheDocument();
   });
 
   it('filters by category chip', async () => {
     const user = userEvent.setup();
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[
           makeChallenge({ id: 'c1', title: 'A', category: 'Comunidade' }),
@@ -63,7 +65,7 @@ describe('ChallengesModule', () => {
   });
 
   it('never renders a javascript: URI as the challenge link (XSS guard)', () => {
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[makeChallenge({ link: 'javascript:alert(1)' })]}
         posts={[]}
@@ -77,7 +79,7 @@ describe('ChallengesModule', () => {
   });
 
   it('renders an http(s) challenge link', () => {
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[makeChallenge({ link: 'https://example.com/desafio' })]}
         posts={[]}
@@ -93,7 +95,7 @@ describe('ChallengesModule', () => {
   it('cycles the status forward when the status badge is clicked', async () => {
     const user = userEvent.setup();
     const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[makeChallenge({ status: 'Pendente' })]}
         posts={[]}
@@ -108,11 +110,10 @@ describe('ChallengesModule', () => {
     expect(onSaveChallenge.mock.calls[0]![0].status).toBe('Em Andamento');
   });
 
-  it('asks for confirmation before deleting and aborts when declined', async () => {
+  it('hides a deleted item right away and lets the user undo it', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const onDeleteChallenge = vi.fn();
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[makeChallenge()]}
         posts={[]}
@@ -122,15 +123,18 @@ describe('ChallengesModule', () => {
         onDeletePost={vi.fn()}
       />,
     );
-    await user.click(screen.getByLabelText('Excluir desafio'));
-    expect(confirmSpy).toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: /Mais ações para/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    expect(screen.queryByRole('button', { name: /Mais ações para/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Desfazer' }));
+    expect(screen.getByRole('button', { name: /Mais ações para/ })).toBeInTheDocument();
     expect(onDeleteChallenge).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('keeps the submit button disabled until title and description are filled', async () => {
     const user = userEvent.setup();
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[]}
         posts={[]}
@@ -156,7 +160,7 @@ describe('ChallengesModule', () => {
     const user = userEvent.setup();
     const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
     const onSavePost = vi.fn();
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[]}
         posts={[]}
@@ -183,7 +187,7 @@ describe('ChallengesModule', () => {
 
   it('separates challenges by type into tabs with counts', async () => {
     const user = userEvent.setup();
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[
           makeChallenge({ id: 'c1', title: 'Desafio da semana', category: 'Gemini' }),
@@ -219,7 +223,7 @@ describe('ChallengesModule', () => {
   it('creates an item with the type of the open tab', async () => {
     const user = userEvent.setup();
     const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[]}
         posts={[]}
@@ -251,7 +255,7 @@ describe('ChallengesModule', () => {
     URL.revokeObjectURL = vi.fn();
     const user = userEvent.setup({ applyAccept: false });
     const onSaveChallenge = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderModule(
       <ChallengesModule
         challenges={[]}
         posts={[]}

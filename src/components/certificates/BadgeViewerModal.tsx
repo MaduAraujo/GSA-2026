@@ -10,8 +10,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { Modal } from '../ui/Modal';
 import React, { useEffect, useRef, useState } from 'react';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
 import type { EarnedBadge } from '../../types';
 import { badgeDisplayName, formatBadgeAddedAt, isBadgeImage } from './badgeFiles';
 
@@ -40,12 +40,10 @@ export function BadgeViewerModal({
   onDelete,
   onClose,
 }: BadgeViewerModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [isPanning, setIsPanning] = useState(false);
-  useFocusTrap(dialogRef, onClose);
 
   const badge = badges[index];
   const hasPrev = index > 0;
@@ -114,161 +112,145 @@ export function BadgeViewerModal({
     'p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors disabled:opacity-40 disabled:pointer-events-none';
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={name}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-xs animate-in fade-in"
-    >
-      <div
-        ref={dialogRef}
-        className="bg-white rounded-3xl w-full max-w-5xl h-[min(90vh,52rem)] overflow-hidden border border-gray-200 shadow-2xl flex flex-col"
-      >
-        <header className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-100">
-          <div className="min-w-0">
-            <h2 className="truncate text-sm sm:text-base font-bold text-gray-900">{name}</h2>
-            <p className="text-xs text-gray-500">
-              {addedAt && <>Adicionado em {addedAt}</>}
-              {badges.length > 1 && (
-                <span className="tabular-nums">
-                  {addedAt && ' · '}
-                  {index + 1} de {badges.length}
-                </span>
-              )}
-            </p>
-          </div>
+    <Modal onClose={onClose} label={name} size="5xl" variant="viewer" className="h-[min(90vh,52rem)]">
+      <header className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-100">
+        <div className="min-w-0">
+          <h2 className="truncate text-sm sm:text-base font-bold text-gray-900">{name}</h2>
+          <p className="text-xs text-gray-500">
+            {addedAt && <>Adicionado em {addedAt}</>}
+            {badges.length > 1 && (
+              <span className="tabular-nums">
+                {addedAt && ' · '}
+                {index + 1} de {badges.length}
+              </span>
+            )}
+          </p>
+        </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(badge)}
+            aria-pressed={favorite}
+            aria-label="Destacar no portfólio público"
+            title={favorite ? 'Remover do portfólio público' : 'Destacar no portfólio público'}
+            className={`${iconButton} ${favorite ? 'text-primary! bg-primary-50!' : ''}`}
+          >
+            <Globe className="w-4.5 h-4.5" />
+          </button>
+          <a href={badge.url} download={badge.fileName} aria-label="Baixar badge" title="Baixar" className={iconButton}>
+            <Download className="w-4.5 h-4.5" />
+          </a>
+          <a
+            href={badge.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir em nova aba"
+            title="Abrir em nova aba"
+            className={`${iconButton} hidden sm:inline-flex`}
+          >
+            <ExternalLink className="w-4.5 h-4.5" />
+          </a>
+          <button
+            type="button"
+            onClick={() => onDelete(badge)}
+            aria-label={`Remover badge ${badge.fileName}`}
+            title="Remover badge"
+            className={`${iconButton} hover:text-danger! hover:bg-danger/10!`}
+          >
+            <Trash2 className="w-4.5 h-4.5" />
+          </button>
+          <span aria-hidden="true" className="mx-1 h-5 w-px bg-gray-200" />
+          <button type="button" onClick={onClose} aria-label="Fechar" className={iconButton}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      <div className="relative flex-1 min-h-0 bg-gray-100">
+        {showsImage ? (
+          <div
+            ref={stageRef}
+            data-testid="badge-stage"
+            onPointerDown={startPan}
+            onPointerMove={movePan}
+            onPointerUp={endPan}
+            onPointerCancel={endPan}
+            onDoubleClick={() => setZoom((z) => (z > MIN_ZOOM ? MIN_ZOOM : 2))}
+            className={`absolute inset-0 flex overflow-auto p-6 select-none ${
+              isZoomed ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
+            }`}
+          >
+            <img
+              src={badge.url}
+              alt={name}
+              draggable={false}
+              style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}
+              className="m-auto shrink-0 object-contain drop-shadow-md transition-[width,height] duration-150"
+            />
+          </div>
+        ) : (
+          <iframe src={badge.url} title={name} className="absolute inset-0 w-full h-full bg-white" />
+        )}
+
+        {hasPrev && (
+          <button
+            type="button"
+            onClick={() => onNavigate(index - 1)}
+            aria-label="Badge anterior"
+            className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md hover:bg-white"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+        {hasNext && (
+          <button
+            type="button"
+            onClick={() => onNavigate(index + 1)}
+            aria-label="Próximo badge"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md hover:bg-white"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+
+        {showsImage && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-2xl bg-white/95 border border-gray-200 p-1 shadow-lg">
             <button
               type="button"
-              onClick={() => onToggleFavorite(badge)}
-              aria-pressed={favorite}
-              aria-label="Destacar no portfólio público"
-              title={favorite ? 'Remover do portfólio público' : 'Destacar no portfólio público'}
-              className={`${iconButton} ${favorite ? 'text-[#1A73E8]! bg-[#E8F0FE]!' : ''}`}
-            >
-              <Globe className="w-4.5 h-4.5" />
-            </button>
-            <a
-              href={badge.url}
-              download={badge.fileName}
-              aria-label="Baixar badge"
-              title="Baixar"
+              onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+              disabled={zoom <= MIN_ZOOM}
+              aria-label="Diminuir zoom"
               className={iconButton}
             >
-              <Download className="w-4.5 h-4.5" />
-            </a>
-            <a
-              href={badge.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Abrir em nova aba"
-              title="Abrir em nova aba"
-              className={`${iconButton} hidden sm:inline-flex`}
-            >
-              <ExternalLink className="w-4.5 h-4.5" />
-            </a>
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span aria-live="polite" className="w-12 text-center text-xs font-semibold text-gray-700 tabular-nums">
+              {Math.round(zoom * 100)}%
+            </span>
             <button
               type="button"
-              onClick={() => onDelete(badge)}
-              aria-label={`Remover badge ${badge.fileName}`}
-              title="Remover badge"
-              className={`${iconButton} hover:text-[#EA4335]! hover:bg-[#EA4335]/10!`}
+              onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+              disabled={zoom >= MAX_ZOOM}
+              aria-label="Aumentar zoom"
+              className={iconButton}
             >
-              <Trash2 className="w-4.5 h-4.5" />
+              <ZoomIn className="w-4 h-4" />
             </button>
-            <span aria-hidden="true" className="mx-1 h-5 w-px bg-gray-200" />
-            <button type="button" onClick={onClose} aria-label="Fechar" className={iconButton}>
-              <X className="w-5 h-5" />
+            <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-gray-200" />
+            <button
+              type="button"
+              onClick={() => setZoom(MIN_ZOOM)}
+              disabled={!isZoomed}
+              aria-label="Ajustar à tela"
+              title="Ajustar à tela"
+              className={iconButton}
+            >
+              <Maximize2 className="w-4 h-4" />
             </button>
           </div>
-        </header>
-
-        <div className="relative flex-1 min-h-0 bg-[#F1F3F4]">
-          {showsImage ? (
-            <div
-              ref={stageRef}
-              data-testid="badge-stage"
-              onPointerDown={startPan}
-              onPointerMove={movePan}
-              onPointerUp={endPan}
-              onPointerCancel={endPan}
-              onDoubleClick={() => setZoom((z) => (z > MIN_ZOOM ? MIN_ZOOM : 2))}
-              className={`absolute inset-0 flex overflow-auto p-6 select-none ${
-                isZoomed ? (isPanning ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in'
-              }`}
-            >
-              <img
-                src={badge.url}
-                alt={name}
-                draggable={false}
-                style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}
-                className="m-auto shrink-0 object-contain drop-shadow-md transition-[width,height] duration-150"
-              />
-            </div>
-          ) : (
-            <iframe src={badge.url} title={name} className="absolute inset-0 w-full h-full bg-white" />
-          )}
-
-          {hasPrev && (
-            <button
-              type="button"
-              onClick={() => onNavigate(index - 1)}
-              aria-label="Badge anterior"
-              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md hover:bg-white"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
-          {hasNext && (
-            <button
-              type="button"
-              onClick={() => onNavigate(index + 1)}
-              aria-label="Próximo badge"
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/95 border border-gray-200 text-gray-700 shadow-md hover:bg-white"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          )}
-
-          {showsImage && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-2xl bg-white/95 border border-gray-200 p-1 shadow-lg">
-              <button
-                type="button"
-                onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
-                disabled={zoom <= MIN_ZOOM}
-                aria-label="Diminuir zoom"
-                className={iconButton}
-              >
-                <ZoomOut className="w-4 h-4" />
-              </button>
-              <span aria-live="polite" className="w-12 text-center text-xs font-semibold text-gray-700 tabular-nums">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                type="button"
-                onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
-                disabled={zoom >= MAX_ZOOM}
-                aria-label="Aumentar zoom"
-                className={iconButton}
-              >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-              <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-gray-200" />
-              <button
-                type="button"
-                onClick={() => setZoom(MIN_ZOOM)}
-                disabled={!isZoomed}
-                aria-label="Ajustar à tela"
-                title="Ajustar à tela"
-                className={iconButton}
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }

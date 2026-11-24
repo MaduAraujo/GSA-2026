@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScrollText } from 'lucide-react';
+import { PageIntro } from './ui/PageIntro';
 
 interface ListBlock {
   title?: string;
@@ -142,11 +143,9 @@ function renderInline(text: string) {
 function ListBlockView({ block }: { block: ListBlock }) {
   return (
     <div className="mt-5">
-      {block.title && (
-        <h3 className="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-gray-100">{block.title}</h3>
-      )}
+      {block.title && <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{block.title}</h3>}
       {block.lead && <p className="mt-2 leading-relaxed text-gray-600 dark:text-gray-300">{block.lead}</p>}
-      <ul className="mt-3 space-y-2 list-disc pl-5 marker:text-[#1A73E8]">
+      <ul className="mt-3 space-y-2 list-disc pl-5 marker:text-primary">
         {block.items.map((item) => (
           <li key={item} className="text-gray-600 dark:text-gray-300 leading-relaxed">
             {renderInline(item)}
@@ -159,30 +158,22 @@ function ListBlockView({ block }: { block: ListBlock }) {
 
 export const GuidelinesPage: React.FC = () => (
   <article aria-labelledby="guidelines-heading" className="max-w-3xl mx-auto space-y-6">
-    <header className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 sm:p-10">
-      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#1A73E8]/10">
-        <ScrollText className="h-6 w-6 text-[#1A73E8]" />
-      </div>
-      <h1
-        id="guidelines-heading"
-        className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-gray-900 dark:text-gray-100"
-      >
-        Combinados que fazem a diferença para a nossa comunidade funcionar bem
-      </h1>
-      <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-300">
-        Para que a experiência do Programa de Embaixadores Estudantis Google seja segura, respeitosa e positiva para
-        todo mundo, alguns combinados precisam acompanhar a jornada do início ao fim. Vale conhecer, respeitar e ajudar
-        a fortalecer essas boas práticas:
-      </p>
+    <header className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 sm:p-12">
+      <PageIntro
+        icon={ScrollText}
+        headingId="guidelines-heading"
+        title="Combinados que fazem a diferença para a nossa comunidade funcionar bem"
+        description="Para que a experiência do Programa de Embaixadores Estudantis Google seja segura, respeitosa e positiva para todo mundo, alguns combinados precisam acompanhar a jornada do início ao fim. Vale conhecer, respeitar e ajudar a fortalecer essas boas práticas:"
+      />
     </header>
 
     {SECTIONS.map((section) => (
       <section
         key={section.title}
         aria-label={section.title}
-        className="rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8"
+        className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 sm:p-8"
       >
-        <h2 className="text-lg font-bold uppercase tracking-tight text-[#1A73E8]">{section.title}</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-primary">{section.title}</h2>
         {section.intro && <p className="mt-3 leading-relaxed text-gray-600 dark:text-gray-300">{section.intro}</p>}
         {section.lists.map((block, i) => (
           <ListBlockView key={block.title ?? i} block={block} />

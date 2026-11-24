@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
-import { User, Settings, Menu, X, LogOut, ChevronDown, Globe, ShieldCheck, Trophy } from 'lucide-react';
+import { User, Settings, Menu, X, LogOut, ChevronDown, Globe, ShieldCheck, Trophy, Search } from 'lucide-react';
 import type { AmbassadorProfile } from '../types';
 import { PAGE_PATHS, type AppTab } from '../routes';
 import { OFFICIAL_SITE_URL } from './navItems';
+import { BRAND } from '../theme/colors';
 
 export type { AppTab };
 
 interface NavbarProps {
   isMobileNavOpen: boolean;
   onToggleMobileNav: () => void;
+  onOpenSearch?: () => void;
   profile: AmbassadorProfile;
   onOpenProfile: () => void;
   onOpenAmbassadorArea: () => void;
@@ -20,6 +22,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   isMobileNavOpen,
   onToggleMobileNav,
+  onOpenSearch,
   profile,
   onOpenProfile,
   onOpenAmbassadorArea,
@@ -60,10 +63,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       }`}
     >
       <div className="h-0.75 w-full grid grid-cols-4">
-        <div className="bg-[#1A73E8]" />
-        <div className="bg-[#EA4335]" />
-        <div className="bg-[#FBBC04]" />
-        <div className="bg-[#34A853]" />
+        <div className="bg-primary" />
+        <div className="bg-danger" />
+        <div className="bg-warning" />
+        <div className="bg-success" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,39 +76,65 @@ export const Navbar: React.FC<NavbarProps> = ({
               <path
                 d="M 96,16 A 80,80 0 0,1 176,96"
                 fill="none"
-                stroke="#1A73E8"
+                stroke={BRAND.primary}
                 strokeWidth="14"
                 strokeLinecap="round"
               />
               <path
                 d="M 176,96 A 80,80 0 0,1 96,176"
                 fill="none"
-                stroke="#34A853"
+                stroke={BRAND.success}
                 strokeWidth="14"
                 strokeLinecap="round"
               />
               <path
                 d="M 96,176 A 80,80 0 0,1 16,96"
                 fill="none"
-                stroke="#FBBC04"
+                stroke={BRAND.warning}
                 strokeWidth="14"
                 strokeLinecap="round"
               />
               <path
                 d="M 16,96 A 80,80 0 0,1 96,16"
                 fill="none"
-                stroke="#EA4335"
+                stroke={BRAND.danger}
                 strokeWidth="14"
                 strokeLinecap="round"
               />
-              <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill="#1A73E8" />
-              <circle cx="96" cy="120" r="14" fill="#FBBC04" />
+              <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
+              <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
             </svg>
           </div>
 
+          {onOpenSearch && (
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              aria-label="Busca rápida"
+              aria-keyshortcuts="Control+K Meta+K"
+              className="hidden sm:flex items-center gap-2 flex-1 max-w-sm ml-4 px-3.5 py-2 rounded-full border border-gray-200 dark:border-gray-800 bg-gray-50 text-sm text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              <Search aria-hidden="true" className="w-4 h-4" />
+              <span className="flex-1 text-left">Buscar…</span>
+              <kbd className="px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-800 bg-white text-2xs font-semibold text-gray-500">
+                Ctrl K
+              </kbd>
+            </button>
+          )}
+
           <div className="flex items-center gap-0.5 ml-auto">
+            {onOpenSearch && (
+              <button
+                type="button"
+                onClick={onOpenSearch}
+                aria-label="Busca rápida"
+                className={`${iconBtnClass} sm:hidden`}
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            )}
             <Link to={PAGE_PATHS.levels} aria-label="Níveis" title="Níveis" className={iconBtnClass}>
-              <Trophy className="w-5 h-5 text-[#F9AB00]" />
+              <Trophy className="w-5 h-5 text-warning-600" />
             </Link>
 
             <div className="relative" ref={accountMenuRef}>
@@ -195,7 +224,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setAccountMenuOpen(false);
                       onSignOut();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-[#C5221F] hover:bg-[#FCE8E6] dark:hover:bg-[#C5221F]/10"
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-danger-700 hover:bg-danger-50 dark:hover:bg-danger-700/10"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Sair da conta</span>

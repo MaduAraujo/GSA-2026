@@ -16,6 +16,11 @@ import {
   Star,
   X,
 } from 'lucide-react';
+import { useUrlFlag, useUrlState } from '../hooks/useUrlState';
+import { EmptyState, NoResults } from './ui/EmptyState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
+import { buttonClasses } from './ui/buttonClasses';
 import { useRef, useState } from 'react';
 import { useToast } from '../app/ToastProvider';
 import { useDismiss } from '../hooks/useDismiss';
@@ -91,12 +96,12 @@ function StatCard({
       type="button"
       onClick={onClick}
       title={hint}
-      className="bg-white rounded-2xl border border-gray-200 shadow-xs p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 min-w-0 hover:border-[#1A73E8]/40 hover:shadow-sm transition-all active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-[#1A73E8]"
+      className="bg-white rounded-2xl border border-gray-200 shadow-xs p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 min-w-0 hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-primary"
     >
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>{icon}</div>
       <div className="min-w-0 max-w-full text-center">
         <p className="text-lg font-bold text-gray-900 leading-tight whitespace-nowrap tabular-nums">{value}</p>
-        <p className="text-[11px] text-gray-500 font-medium truncate">{label}</p>
+        <p className="text-2xs text-gray-500 font-medium truncate">{label}</p>
       </div>
     </button>
   );
@@ -128,9 +133,9 @@ export function CertificatesModule({
     .filter((c) => !pendingDelete.pendingIds.has(c.id))
     .map((c) => (c.id in favoriteOverrides ? { ...c, isFavorite: favoriteOverrides[c.id] } : c))
     .map((c) => (c.id in portfolioOverrides ? { ...c, showInPortfolio: portfolioOverrides[c.id] } : c));
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [searchQuery, setSearchQuery] = useUrlState('q');
+  const [selectedCategory, setSelectedCategory] = useUrlState('categoria', 'Todos');
+  const [onlyFavorites, setOnlyFavorites] = useUrlFlag('fav');
   const [storedViewMode, setViewMode] = usePersistedState<'grid' | 'list'>('gsa_cert_view_mode', 'grid');
   const [storedSortBy, setSortBy] = usePersistedState<SortOption>('gsa_cert_sort_by', 'date-desc');
   const viewMode = storedViewMode === 'list' ? 'list' : 'grid';
@@ -188,8 +193,12 @@ export function CertificatesModule({
         setIsExportMenuOpen(false);
       }, 1500);
     } catch {
-      window.prompt('Copie o link do portfólio:', portfolioUrl);
       setIsExportMenuOpen(false);
+      toast.show({
+        message: 'Não foi possível copiar o link. Abra o portfólio e copie pela barra de endereço.',
+        tone: 'error',
+        action: { label: 'Abrir', onClick: () => window.open(portfolioUrl, '_blank', 'noopener') },
+      });
     }
   };
 
@@ -244,14 +253,7 @@ export function CertificatesModule({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Award className="w-6 h-6 text-[#1A73E8]" />
-            <span>Certificados e Badges</span>
-          </h2>
-        </div>
-
+      <PageHeader icon={Award} iconClassName="text-primary" title="Certificados e Badges">
         <div className="flex items-center gap-2 shrink-0">
           <div className="relative" ref={exportMenuRef}>
             <button
@@ -259,7 +261,7 @@ export function CertificatesModule({
               aria-haspopup="menu"
               aria-expanded={isExportMenuOpen}
               aria-label="Exportar certificados"
-              className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95"
+              className={buttonClasses({ collapseLabel: true })}
               title="Exportar ou compartilhar o portfólio"
             >
               <FileDown className="w-4 h-4" />
@@ -283,7 +285,7 @@ export function CertificatesModule({
                   disabled={certificates.length === 0}
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <FileText className="w-4 h-4 text-[#EA4335]" />
+                  <FileText className="w-4 h-4 text-danger" />
                   <span>Baixar PDF</span>
                 </button>
                 <button
@@ -293,16 +295,16 @@ export function CertificatesModule({
                   className="w-full flex items-start gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed text-left"
                 >
                   {linkCopied ? (
-                    <Check className="w-4 h-4 text-[#34A853] mt-0.5 shrink-0" />
+                    <Check className="w-4 h-4 text-success mt-0.5 shrink-0" />
                   ) : (
-                    <Link2 className="w-4 h-4 text-[#1A73E8] mt-0.5 shrink-0" />
+                    <Link2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   )}
                   <span className="min-w-0">
                     <span className={portfolioUrl ? '' : 'opacity-50'}>
                       {linkCopied ? 'Link copiado!' : 'Link público'}
                     </span>
                     {!portfolioUrl && (
-                      <span className="block text-[11px] font-normal text-gray-500">
+                      <span className="block text-2xs font-normal text-gray-500">
                         Ative o portfólio público no seu perfil
                       </span>
                     )}
@@ -312,24 +314,25 @@ export function CertificatesModule({
             )}
           </div>
 
-          <button
+          <Button
             id="btn-upload-cert"
             onClick={form.openCreate}
             aria-label="Novo certificado"
             title="Novo certificado"
-            className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-[#1A73E8] hover:bg-[#1765CC] border border-[#1A73E8] text-white font-semibold text-sm shadow-sm transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A73E8]"
+            variant="primary"
+            collapseLabel
+            icon={<Plus className="w-4 h-4" />}
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Novo certificado</span>
-          </button>
+            Novo certificado
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {certificates.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <StatCard
             icon={<Layers className="w-4.5 h-4.5" />}
-            iconClass="bg-[#1A73E8]/10 text-[#1A73E8]"
+            iconClass="bg-primary/10 text-primary"
             value={certificates.length}
             label="Certificados"
             hint="Mostrar todos os certificados"
@@ -337,7 +340,7 @@ export function CertificatesModule({
           />
           <StatCard
             icon={<Clock className="w-4.5 h-4.5" />}
-            iconClass="bg-[#34A853]/10 text-[#34A853]"
+            iconClass="bg-success/10 text-success"
             value={formatTotalHoursDecimal(sumCertHours(certificates))}
             label="Horas de estudo"
             hint="Ordenar por maior carga horária"
@@ -345,7 +348,7 @@ export function CertificatesModule({
           />
           <StatCard
             icon={<BadgeCheck className="w-4.5 h-4.5" />}
-            iconClass="bg-[#FBBC04]/10 text-[#9E5D00]"
+            iconClass="bg-warning/10 text-warning-800"
             value={earnedBadges.length}
             label="Badges"
             hint="Ver os badges"
@@ -375,7 +378,7 @@ export function CertificatesModule({
               placeholder="Buscar por título, emissor ou habilidade…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-[#F8FAFD]"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary bg-surface-muted"
             />
             {searchQuery && (
               <button
@@ -395,13 +398,13 @@ export function CertificatesModule({
               aria-pressed={onlyFavorites}
               className={`inline-flex items-center justify-center gap-1.5 h-8.5 px-3 rounded-full text-xs font-semibold leading-none border transition-all ${
                 onlyFavorites
-                  ? 'bg-[#FBBC04]/15 border-[#FBBC04] text-[#9E5D00]'
+                  ? 'bg-warning/15 border-warning text-warning-800'
                   : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
               <Star
                 aria-hidden="true"
-                className={`block w-3.5 h-3.5 shrink-0 ${onlyFavorites ? 'fill-[#FBBC04] text-[#FBBC04]' : 'text-gray-400'}`}
+                className={`block w-3.5 h-3.5 shrink-0 ${onlyFavorites ? 'fill-warning text-warning' : 'text-gray-400'}`}
               />
               <span className="leading-none">Favoritos</span>
             </button>
@@ -415,7 +418,7 @@ export function CertificatesModule({
                   label: <span className="whitespace-nowrap">{SORT_LABELS[opt]}</span>,
                 }))}
                 ariaLabel="Ordenar certificados"
-                buttonClassName="w-full h-8.5 pl-7 pr-7 rounded-full text-xs font-semibold border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30"
+                buttonClassName="w-full h-8.5 pl-7 pr-7 rounded-full text-xs font-semibold border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               />
               <ArrowUpDown
                 aria-hidden="true"
@@ -459,7 +462,7 @@ export function CertificatesModule({
                 aria-pressed={selectedCategory === cat}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                   selectedCategory === cat
-                    ? 'bg-[#1A73E8] text-white shadow-xs'
+                    ? 'bg-primary text-white shadow-xs'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80 hover:text-gray-900'
                 }`}
               >
@@ -475,7 +478,7 @@ export function CertificatesModule({
               <span className="font-semibold text-gray-800">{filteredCertificates.length}</span> de{' '}
               {certificates.length} certificado{certificates.length === 1 ? '' : 's'}
             </p>
-            <button type="button" onClick={clearFilters} className="font-semibold text-[#1A73E8] hover:underline">
+            <button type="button" onClick={clearFilters} className="font-semibold text-primary hover:underline">
               Limpar filtros
             </button>
           </div>
@@ -483,43 +486,23 @@ export function CertificatesModule({
       </div>
 
       {certificates.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center mx-auto">
-            <Award className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900">Adicione seu primeiro certificado</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto">
-            Envie a imagem ou o PDF e a IA ajuda a preencher título, emissor e habilidades.
-          </p>
-          <button
-            type="button"
-            onClick={form.openCreate}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#1A73E8] hover:bg-[#1765CC] text-white font-semibold text-sm shadow-sm transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Adicionar certificado</span>
-          </button>
-        </div>
+        <EmptyState
+          icon={Award}
+          iconClassName="bg-primary/10 text-primary"
+          title="Adicione seu primeiro certificado"
+          description="Envie a imagem ou o PDF e a IA ajuda a preencher título, emissor e habilidades."
+          action={{ label: 'Adicionar certificado', onClick: form.openCreate, icon: <Plus className="w-4 h-4" /> }}
+        />
       ) : filteredCertificates.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
-            <Search className="w-7 h-7" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900">Nenhum certificado encontrado</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto">
-            {onlyFavorites && !query && selectedCategory === 'Todos'
+        <NoResults
+          title="Nenhum certificado encontrado"
+          description={
+            onlyFavorites && !query && selectedCategory === 'Todos'
               ? 'Você ainda não favoritou nenhum certificado. Toque na ⭐ de um card para destacá-lo.'
-              : 'Nenhum certificado corresponde à busca e aos filtros atuais.'}
-          </p>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 transition-all active:scale-95"
-          >
-            <X className="w-4 h-4" />
-            <span>Limpar filtros</span>
-          </button>
-        </div>
+              : 'Nenhum certificado corresponde à busca e aos filtros atuais.'
+          }
+          onClear={clearFilters}
+        />
       ) : viewMode === 'grid' ? (
         <CertificateGrid certificates={filteredCertificates} {...viewActions} />
       ) : (

@@ -62,7 +62,7 @@ export function VerifiableBadge({ compact = false }: { compact?: boolean }) {
   return (
     <span
       title="Possui link de verificação"
-      className={`inline-flex items-center gap-1 text-xs font-semibold text-[#188038] bg-[#34A853]/10 rounded-lg border border-[#34A853]/20 shrink-0 ${
+      className={`inline-flex items-center gap-1 text-xs font-semibold text-success-800 bg-success/10 rounded-lg border border-success/20 shrink-0 ${
         compact ? 'p-1' : 'px-2 py-1'
       }`}
     >
@@ -79,7 +79,7 @@ function CertificatePreview({
 }: { cert: Certificate } & Pick<CertificateActions, 'onOpen' | 'onToggleFavorite'>) {
   const isGoogleTheme = cert.category.includes('Google') || cert.category.includes('Gemini');
   return (
-    <div className="relative h-44 w-full bg-linear-to-br from-[#F1F5F9] via-[#E2E8F0] to-[#EEF2F6] overflow-hidden group-hover:opacity-95">
+    <div className="relative h-44 w-full bg-linear-to-br from-gray-100 via-gray-200 to-gray-100 overflow-hidden group-hover:opacity-95">
       <button
         type="button"
         onClick={() => onOpen(cert)}
@@ -89,7 +89,7 @@ function CertificatePreview({
         {cert.fileData ? (
           cert.fileType === 'pdf' ? (
             <div className="flex flex-col items-center gap-2 text-gray-600">
-              <FileText className="w-12 h-12 text-[#EA4335]" />
+              <FileText className="w-12 h-12 text-danger" />
               <span className="text-xs font-semibold bg-white/90 px-2 py-0.5 rounded-md shadow-xs">Documento PDF</span>
             </div>
           ) : (
@@ -103,7 +103,7 @@ function CertificatePreview({
         ) : (
           <div className="relative flex flex-col items-center justify-center text-center p-4">
             <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-200 flex items-center justify-center mb-2">
-              <Award className={`w-8 h-8 ${isGoogleTheme ? 'text-[#1A73E8]' : 'text-[#34A853]'}`} />
+              <Award className={`w-8 h-8 ${isGoogleTheme ? 'text-primary' : 'text-success'}`} />
             </div>
             <span className="text-xs font-bold text-gray-800 line-clamp-1">{cert.issuer}</span>
           </div>
@@ -115,14 +115,14 @@ function CertificatePreview({
         onClick={() => onToggleFavorite(cert)}
         className={`absolute top-3 right-3 p-1.5 rounded-full shadow-xs transition-all active:scale-90 ${
           cert.isFavorite
-            ? 'bg-[#FEF7E0] text-[#F9AB00] ring-1 ring-[#FBBC04]/50'
-            : 'bg-white/90 hover:bg-white text-gray-400 hover:text-[#FBBC04]'
+            ? 'bg-warning-50 text-warning-600 ring-1 ring-warning/50'
+            : 'bg-white/90 hover:bg-white text-gray-400 hover:text-warning'
         }`}
         aria-label={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
         aria-pressed={!!cert.isFavorite}
         title={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
       >
-        <Star className={`w-4 h-4 ${cert.isFavorite ? 'fill-[#FBBC04] text-[#FBBC04]' : ''}`} />
+        <Star className={`w-4 h-4 ${cert.isFavorite ? 'fill-warning text-warning' : ''}`} />
       </button>
     </div>
   );
@@ -135,7 +135,7 @@ export function CertificateGrid({ certificates, ...actions }: { certificates: Ce
         <div
           key={cert.id}
           id={`cert-card-${cert.id}`}
-          className="group relative flex flex-col bg-white rounded-3xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-[#1A73E8]/40 transition-all overflow-hidden"
+          className="group relative flex flex-col bg-white rounded-2xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-primary/40 transition-all overflow-hidden"
         >
           <CertificatePreview cert={cert} onOpen={actions.onOpen} onToggleFavorite={actions.onToggleFavorite} />
 
@@ -150,7 +150,7 @@ export function CertificateGrid({ certificates, ...actions }: { certificates: Ce
               </div>
 
               <h3 className="font-bold text-gray-900 text-base leading-snug line-clamp-2">
-                <button type="button" onClick={() => actions.onOpen(cert)} className="text-left hover:text-[#1A73E8]">
+                <button type="button" onClick={() => actions.onOpen(cert)} className="text-left hover:text-primary">
                   {cert.title}
                 </button>
               </h3>
@@ -165,13 +165,13 @@ export function CertificateGrid({ certificates, ...actions }: { certificates: Ce
                 {cert.skills.slice(0, 3).map((skill) => (
                   <span
                     key={skill}
-                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-700"
+                    className="inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-medium bg-gray-100 text-gray-700"
                   >
                     #{skill}
                   </span>
                 ))}
                 {cert.skills.length > 3 && (
-                  <span className="text-[11px] text-gray-400 self-center font-medium">+{cert.skills.length - 3}</span>
+                  <span className="text-2xs text-gray-400 self-center font-medium">+{cert.skills.length - 3}</span>
                 )}
               </div>
             )}
@@ -180,7 +180,7 @@ export function CertificateGrid({ certificates, ...actions }: { certificates: Ce
               <div className="flex flex-wrap items-center gap-2 min-w-0">
                 {cert.hours || cert.minutes ? (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
-                    <Clock className="w-3 h-3 text-[#34A853]" />
+                    <Clock className="w-3 h-3 text-success" />
                     <span>{formatDuration(cert.hours, cert.minutes)}</span>
                   </span>
                 ) : null}
@@ -203,7 +203,7 @@ export function CertificateTable({ certificates, ...actions }: { certificates: C
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-[#F8FAFD] text-gray-600 text-xs font-semibold border-b border-gray-200">
+          <thead className="bg-surface-muted text-gray-600 text-xs font-semibold border-b border-gray-200">
             <tr>
               <th className="py-3.5 px-4">Certificado</th>
               <th className="py-3.5 px-4">Emissor</th>
@@ -226,14 +226,14 @@ export function CertificateTable({ certificates, ...actions }: { certificates: C
                       aria-label={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
                       aria-pressed={!!cert.isFavorite}
                       title={cert.isFavorite ? 'Remover dos favoritos' : 'Favoritar certificado'}
-                      className="p-1 -m-1 rounded-lg text-gray-300 hover:text-[#FBBC04] transition-all active:scale-90 shrink-0"
+                      className="p-1 -m-1 rounded-lg text-gray-300 hover:text-warning transition-all active:scale-90 shrink-0"
                     >
-                      <Star className={`w-4 h-4 ${cert.isFavorite ? 'fill-[#FBBC04] text-[#FBBC04]' : ''}`} />
+                      <Star className={`w-4 h-4 ${cert.isFavorite ? 'fill-warning text-warning' : ''}`} />
                     </button>
                     <button
                       type="button"
                       onClick={() => actions.onOpen(cert)}
-                      className="text-left hover:text-[#1A73E8] cursor-pointer min-w-40"
+                      className="text-left hover:text-primary cursor-pointer min-w-40"
                     >
                       {cert.title}
                     </button>

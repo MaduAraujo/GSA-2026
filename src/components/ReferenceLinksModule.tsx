@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Link2, Plus, X, Trash2, Pencil, Loader2, StickyNote, ExternalLink, User } from 'lucide-react';
+import { useUndoableDelete } from '../hooks/useUndoableDelete';
+import { useToast } from '../app/ToastProvider';
+import { ActionMenu } from './ActionMenu';
+import { buttonClasses } from './ui/buttonClasses';
+import { EmptyState, NoResults } from './ui/EmptyState';
+import { SearchField } from './ui/SearchField';
+import { useUrlState } from '../hooks/useUrlState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
+import { Modal, ModalHeader } from './ui/Modal';
+import { Link2, Plus, Trash2, Pencil, Loader2, StickyNote, ExternalLink, User } from 'lucide-react';
 import { type ReferenceLink } from '../types';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { isHttpUrl } from '../utils/safeUrl';
@@ -18,20 +28,33 @@ const DEFAULT_FORM: Partial<ReferenceLink> = {
 };
 
 export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
-  referenceLinks,
+  referenceLinks: allReferenceLinks,
   onSaveReferenceLink,
   onDeleteReferenceLink,
 }) => {
+  const toast = useToast();
+  const pendingDelete = useUndoableDelete<ReferenceLink>({
+    commit: (x) => onDeleteReferenceLink(x.id),
+    message: 'Link excluído.',
+    errorMessage: 'Não foi possível excluir o link. Tente novamente.',
+  });
+  const referenceLinks = allReferenceLinks.filter((x) => !pendingDelete.pendingIds.has(x.id));
   const [isFormOpen, setIsFormOpen] = usePersistedState('gsa_reference_link_modal_open', false);
   const [formData, setFormData] = usePersistedState<Partial<ReferenceLink>>(
     'gsa_reference_link_form_draft',
     DEFAULT_FORM,
   );
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [searchQuery, setSearchQuery] = useUrlState('q');
+  const query = searchQuery.trim().toLowerCase();
   const sortedLinks = [...referenceLinks].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const filteredLinks = query
+    ? sortedLinks.filter((link) =>
+        [link.title, link.url, link.sharedBy, link.notes].some((field) => field?.toLowerCase().includes(query)),
+      )
+    : sortedLinks;
 
   const resetForm = () => {
     setFormData(DEFAULT_FORM);
@@ -69,24 +92,13 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
       resetForm();
     } catch (err) {
       console.error(err);
-      alert('Não foi possível salvar o link. Tente novamente.');
+      toast.show({ message: 'Não foi possível salvar o link. Tente novamente.', tone: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async (referenceLink: ReferenceLink) => {
-    if (!confirm('Deseja realmente remover este link de referência?')) return;
-    setDeletingId(referenceLink.id);
-    try {
-      await onDeleteReferenceLink(referenceLink.id);
-    } catch (err) {
-      console.error(err);
-      alert('Não foi possível excluir o link. Tente novamente.');
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const handleDelete = (referenceLink: ReferenceLink) => pendingDelete.remove(referenceLink);
 
   useEffect(() => {
     if (!isFormOpen) return;
@@ -99,15 +111,8 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Link2 className="w-6 h-6 text-[#1A73E8]" />
-            <span>Referências</span>
-          </h2>
-        </div>
-
-        <button
+      <PageHeader icon={Link2} iconClassName="text-primary" title="Referências">
+        <Button
           id="btn-new-reference-link"
           onClick={() => {
             resetForm();
@@ -115,29 +120,55 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
           }}
           aria-label="Novo link de referência"
           title="Novo link de referência"
-          className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 shrink-0"
+          variant="primary"
+          collapseLabel
+          icon={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Novo link</span>
-        </button>
-      </div>
+          Novo link
+        </Button>
+      </PageHeader>
+
+      {sortedLinks.length > 0 && (
+        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            label="Buscar links"
+            placeholder="Buscar por título, link, quem compartilhou ou anotação"
+          />
+        </div>
+      )}
 
       {sortedLinks.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center mx-auto">
-            <Link2 className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900">Nenhum link registrado</h3>
-        </div>
+        <EmptyState
+          icon={Link2}
+          iconClassName="bg-primary/10 text-primary"
+          title="Nenhum link registrado"
+          description="Guarde referências de projetos e materiais para consultar depois."
+          action={{
+            label: 'Novo link',
+            onClick: () => {
+              resetForm();
+              setIsFormOpen(true);
+            },
+            icon: <Plus className="w-4 h-4" />,
+          }}
+        />
+      ) : filteredLinks.length === 0 ? (
+        <NoResults
+          title="Nenhum link encontrado"
+          description="Nenhum link corresponde à busca."
+          onClear={() => setSearchQuery('')}
+        />
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
-          {sortedLinks.map((referenceLink) => (
+        <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs divide-y divide-gray-100">
+          {filteredLinks.map((referenceLink) => (
             <div
               key={referenceLink.id}
               id={`reference-link-row-${referenceLink.id}`}
               className="flex items-center gap-4 p-5 group"
             >
-              <div className="w-11 h-11 rounded-2xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Link2 className="w-5 h-5" />
               </div>
 
@@ -147,7 +178,7 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                     href={referenceLink.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="max-w-full font-bold text-gray-900 leading-snug hover:text-[#1A73E8] hover:underline flex items-center gap-1.5"
+                    className="max-w-full font-bold text-gray-900 leading-snug hover:text-primary hover:underline flex items-center gap-1.5"
                   >
                     <span className="truncate min-w-0 flex-1">{referenceLink.title}</span>
                     <ExternalLink className="w-3.5 h-3.5 shrink-0" />
@@ -171,154 +202,110 @@ export const ReferenceLinksModule: React.FC<ReferenceLinksModuleProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => handleEdit(referenceLink)}
-                  aria-label="Editar link"
-                  title="Editar"
-                  className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(referenceLink)}
-                  disabled={deletingId === referenceLink.id}
-                  aria-label="Excluir link"
-                  title="Excluir"
-                  className="p-2 rounded-xl text-gray-400 hover:text-[#EA4335] hover:bg-[#EA4335]/10 disabled:opacity-50"
-                >
-                  {deletingId === referenceLink.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+              <ActionMenu
+                label={`Mais ações para ${referenceLink.title}`}
+                items={[
+                  { label: 'Editar', icon: Pencil, onSelect: () => handleEdit(referenceLink) },
+                  { label: 'Excluir', icon: Trash2, tone: 'danger', onSelect: () => handleDelete(referenceLink) },
+                ]}
+              />
             </div>
           ))}
         </div>
       )}
 
       {isFormOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
-        >
-          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-gray-200 shadow-2xl flex flex-col">
-            <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
-                    <Link2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                      {formData.id ? 'Editar Link' : 'Novo Link de Referência'}
-                    </h3>
-                    <p className="text-xs text-gray-500">Guarde referencias de projetos para consultar depois</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsFormOpen(false)}
-                  aria-label="Fechar"
-                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+        <Modal onClose={() => setIsFormOpen(false)} labelledBy="reference-link-form-heading">
+          <ModalHeader
+            titleId="reference-link-form-heading"
+            title={formData.id ? 'Editar Link' : 'Novo Link de Referência'}
+            subtitle="Guarde referências de projetos para consultar depois"
+            icon={Link2}
+            iconClassName="bg-primary/10 text-primary"
+            onClose={() => setIsFormOpen(false)}
+          />
+          <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="referencelinks-titulo" className="block text-sm font-medium text-gray-700 mb-1">
+                  Título *
+                </label>
+                <input
+                  id="referencelinks-titulo"
+                  type="text"
+                  required
+                  value={formData.title || ''}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/30"
+                />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="referencelinks-titulo"
-                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                  >
-                    Título *
-                  </label>
-                  <input
-                    id="referencelinks-titulo"
-                    type="text"
-                    required
-                    value={formData.title || ''}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30"
-                  />
-                </div>
+              <div>
+                <label htmlFor="referencelinks-link" className="block text-sm font-medium text-gray-700 mb-1">
+                  Link *
+                </label>
+                <input
+                  id="referencelinks-link"
+                  type="url"
+                  required
+                  value={formData.url || ''}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/30"
+                />
+              </div>
 
-                <div>
-                  <label
-                    htmlFor="referencelinks-link"
-                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                  >
-                    Link *
-                  </label>
-                  <input
-                    id="referencelinks-link"
-                    type="url"
-                    required
-                    value={formData.url || ''}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30"
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="referencelinks-compartilhado-por"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Compartilhado por
+                </label>
+                <input
+                  id="referencelinks-compartilhado-por"
+                  type="text"
+                  value={formData.sharedBy || ''}
+                  onChange={(e) => setFormData({ ...formData, sharedBy: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/30"
+                />
+              </div>
 
-                <div>
-                  <label
-                    htmlFor="referencelinks-compartilhado-por"
-                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                  >
-                    Compartilhado por
-                  </label>
-                  <input
-                    id="referencelinks-compartilhado-por"
-                    type="text"
-                    value={formData.sharedBy || ''}
-                    onChange={(e) => setFormData({ ...formData, sharedBy: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30"
-                  />
-                </div>
+              <div>
+                <label htmlFor="referencelinks-observacoes" className="block text-sm font-medium text-gray-700 mb-1">
+                  Observações
+                </label>
+                <textarea
+                  id="referencelinks-observacoes"
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/30 resize-none"
+                />
+              </div>
 
-                <div>
-                  <label
-                    htmlFor="referencelinks-observacoes"
-                    className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1"
-                  >
-                    Observações
-                  </label>
-                  <textarea
-                    id="referencelinks-observacoes"
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-[#1A73E8]/30 resize-none"
-                  />
-                </div>
+              {formError && (
+                <p
+                  role="alert"
+                  className="text-xs font-semibold text-danger-600 bg-danger/10 border border-danger/20 rounded-xl px-3.5 py-2.5"
+                >
+                  {formError}
+                </p>
+              )}
 
-                {formError && (
-                  <p
-                    role="alert"
-                    className="text-xs font-semibold text-[#D93025] bg-[#EA4335]/10 border border-[#EA4335]/20 rounded-xl px-3.5 py-2.5"
-                  >
-                    {formError}
-                  </p>
-                )}
-
-                <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                  <button
-                    type="submit"
-                    disabled={isSaving || !formData.title?.trim() || !formData.url?.trim()}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold bg-[#1A73E8] hover:bg-[#1765CC] text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSaving ? 'Salvando...' : 'Salvar'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button
+                  type="submit"
+                  disabled={isSaving || !formData.title?.trim() || !formData.url?.trim()}
+                  className={buttonClasses({ variant: 'primary' })}
+                >
+                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isSaving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

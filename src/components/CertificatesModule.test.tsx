@@ -1,10 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { ToastProvider } from '../app/ToastProvider';
 import { CertificatesModule } from './CertificatesModule';
 import { type Certificate } from '../types';
 import { makeCertificate, makeProfile } from '../test/factories';
+import { renderModule as renderWithAppProviders } from '../test/render';
 
 vi.mock('canvas-confetti', () => ({ default: vi.fn() }));
 
@@ -24,7 +24,7 @@ function renderModule(overrides: Partial<React.ComponentProps<typeof Certificate
     onCreatePostFromCertificate: vi.fn(),
     ...overrides,
   };
-  const { unmount } = render(<CertificatesModule {...props} />, { wrapper: ToastProvider });
+  const { unmount } = renderWithAppProviders(<CertificatesModule {...props} />);
   return { ...props, unmount };
 }
 

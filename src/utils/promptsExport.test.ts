@@ -27,7 +27,6 @@ describe('exportPromptsAsPdf', () => {
       'open',
       vi.fn(() => fakeWindow as unknown as Window),
     );
-    vi.stubGlobal('alert', vi.fn());
   });
 
   afterEach(() => {
@@ -54,15 +53,11 @@ describe('exportPromptsAsPdf', () => {
     expect(writtenHtml).toContain('Nenhum prompt selecionado.');
   });
 
-  it('alerts and exits gracefully when the popup is blocked', () => {
+  it('returns false when the popup is blocked', () => {
     vi.stubGlobal(
       'open',
       vi.fn(() => null),
     );
-    const alertSpy = vi.fn();
-    vi.stubGlobal('alert', alertSpy);
-
-    expect(() => exportPromptsAsPdf([makePrompt()])).not.toThrow();
-    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('bloqueador de pop-ups'));
+    expect(exportPromptsAsPdf([makePrompt()])).toBe(false);
   });
 });

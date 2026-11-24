@@ -2,10 +2,12 @@ import React from 'react';
 import { Trophy } from 'lucide-react';
 import { useCollection } from '../data/queries';
 import { LEVELS, levelProgress } from './levels';
+import { BRAND } from '../theme/colors';
+import { PageIntro } from './ui/PageIntro';
 
 const POINTS_NOT_IN_WEEKLY_SCORES = 40;
 
-const PROGRESS_GRADIENT = 'linear-gradient(to right, #EA4335, #FBBC04, #34A853, #1A73E8)';
+const PROGRESS_GRADIENT = `linear-gradient(to right, ${BRAND.danger}, ${BRAND.warning}, ${BRAND.success}, ${BRAND.primary})`;
 
 const Pennant: React.FC = () => (
   <svg aria-hidden="true" viewBox="0 0 80 56" className="mx-auto mb-5 h-14 w-20">
@@ -53,11 +55,11 @@ const ProgressCard: React.FC<{ points: number }> = ({ points }) => {
         <h2 className="mx-auto max-w-xl text-xl sm:text-2xl font-bold leading-snug tracking-tight text-gray-900 dark:text-gray-100">
           {next ? (
             <>
-              VOCÊ ESTÁ A <span className="text-[#4285F4]">{pointsToNext} PONTOS</span> PARA DESBLOQUEAR O PRÓXIMO NÍVEL
-              NO PROGRAMA
+              Você está a <span className="text-primary-500">{pointsToNext} pontos</span> de desbloquear o próximo nível
+              no Programa
             </>
           ) : (
-            'VOCÊ ALCANÇOU O NÍVEL MÁXIMO DO PROGRAMA!'
+            'Você alcançou o nível máximo do Programa!'
           )}
         </h2>
       </div>
@@ -96,23 +98,15 @@ export const LevelsView: React.FC<{ points?: number }> = ({ points }) => {
   return (
     <section
       aria-labelledby="levels-heading"
-      className="max-w-4xl mx-auto rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 sm:p-12"
+      className="max-w-4xl mx-auto rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 sm:p-12"
     >
-      <div className="text-center">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#F9AB00]/10">
-          <Trophy className="h-7 w-7 text-[#F9AB00]" />
-        </div>
-
-        <h1
-          id="levels-heading"
-          className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100"
-        >
-          SUBINDO DE NÍVEL
-        </h1>
-        <p className="mt-4 text-base leading-relaxed text-gray-600 dark:text-gray-300">
-          À medida que a participação avança, novos níveis são desbloqueados. Veja quais são eles:
-        </p>
-      </div>
+      <PageIntro
+        icon={Trophy}
+        tone="warning"
+        headingId="levels-heading"
+        title="Subindo de nível"
+        description="À medida que a participação avança, novos níveis são desbloqueados. Veja quais são eles:"
+      />
 
       {points !== undefined && <ProgressCard points={points} />}
 
@@ -125,7 +119,7 @@ export const LevelsView: React.FC<{ points?: number }> = ({ points }) => {
               aria-current={isCurrent ? 'step' : undefined}
               className={`flex items-start gap-4 rounded-2xl border p-5 sm:p-6 ${
                 isCurrent
-                  ? 'border-[#1A73E8] bg-[#1A73E8]/5'
+                  ? 'border-primary bg-primary/5'
                   : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50'
               }`}
             >
@@ -134,9 +128,9 @@ export const LevelsView: React.FC<{ points?: number }> = ({ points }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className={`text-xs font-semibold uppercase tracking-wide ${color}`}>Nível {level}</p>
+                  <p className={`text-xs font-semibold ${color}`}>Nível {level}</p>
                   {isCurrent && (
-                    <span className="rounded-full bg-[#1A73E8] px-2.5 py-0.5 text-xs font-semibold text-white">
+                    <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-white">
                       Seu nível
                     </span>
                   )}

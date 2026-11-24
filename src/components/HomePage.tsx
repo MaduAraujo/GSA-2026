@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
+  ArrowRight,
   Award,
   FileText,
   Flag,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { PwaGuideModal } from './PwaGuideModal';
 import type { BeforeInstallPromptEvent } from '../hooks/usePwaInstall';
+import { BRAND } from '../theme/colors';
 
 interface HomePageProps {
   onLogin: () => void;
@@ -35,55 +37,55 @@ const FEATURES = [
     icon: Award,
     title: 'Certificados',
     description: 'Centralize e organize todos os seus certificados em um painel só.',
-    accent: '#1A73E8',
+    accent: BRAND.primary,
   },
   {
     icon: FileText,
     title: 'Cofre de Prompts',
     description: 'Salve, categorize e reutilize os prompts que mais funcionam para o seu dia a dia.',
-    accent: '#34A853',
+    accent: BRAND.success,
   },
   {
     icon: GraduationCap,
     title: 'Sessões',
     description:
       'Registre cada sessão de estudo: o dia, o desafio proposto, a ferramenta aprendida e a foto de comprovação.',
-    accent: '#EA4335',
+    accent: BRAND.danger,
   },
   {
     icon: Flag,
     title: 'Desafios',
     description: 'Acompanhe metas e desafios da jornada como Embaixador(a), do início ao fim.',
-    accent: '#FBBC04',
+    accent: BRAND.warning,
   },
   {
     icon: Camera,
     title: 'Galeria',
     description: 'Reúna fotos e registros dos eventos e atividades que você participou.',
-    accent: '#1A73E8',
+    accent: BRAND.primary,
   },
   {
     icon: BarChart3,
     title: 'Analytics',
     description: 'Visualize sua evolução com gráficos claros sobre certificados, posts e conquistas.',
-    accent: '#34A853',
+    accent: BRAND.success,
   },
 ];
 
 const HIGHLIGHTS = [
-  { icon: Smartphone, label: 'Instalável como app', accent: '#1A73E8' },
-  { icon: ShieldCheck, label: 'Seus dados seguros', accent: '#34A853' },
-  { icon: Zap, label: 'IA integrada', accent: '#FBBC04' },
+  { icon: Smartphone, label: 'Instalável como app', accent: BRAND.primary },
+  { icon: ShieldCheck, label: 'Seus dados seguros', accent: BRAND.success },
+  { icon: Zap, label: 'IA integrada', accent: BRAND.warning },
 ];
 
 const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 192 192" className={className}>
-    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke="#1A73E8" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke="#34A853" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke="#FBBC04" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke="#EA4335" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill="#1A73E8" />
-    <circle cx="96" cy="120" r="14" fill="#FBBC04" />
+    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke={BRAND.primary} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke={BRAND.success} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke={BRAND.warning} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke={BRAND.danger} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
+    <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
   </svg>
 );
 
@@ -99,19 +101,17 @@ const AchievementStack: React.FC = () => {
 
   return (
     <div className="relative w-full max-w-sm mx-auto h-88 sm:h-88">
-      <div className="absolute inset-0 rounded-full bg-blue-600/10 blur-3xl" />
-
       <motion.div
         className="absolute left-2 top-4 w-44 sm:w-48 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-md p-3.5 -rotate-6"
         {...float(-8, 5)}
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Award className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold text-gray-900 dark:text-gray-100 truncate">Data Analytics</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">40h certificadas</p>
+            <p className="text-2xs font-bold text-gray-900 dark:text-gray-100 truncate">Data Analytics</p>
+            <p className="text-2xs text-gray-500 dark:text-gray-400">40h certificadas</p>
           </div>
         </div>
       </motion.div>
@@ -121,16 +121,14 @@ const AchievementStack: React.FC = () => {
         {...float(7, 6)}
       >
         <div className="flex items-center gap-0 sm:gap-2">
-          <div className="w-7 h-7 rounded-lg bg-green-600/10 text-green-600 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0">
             <FileText className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-2">
-            Prompts
-          </span>
+          <span className="text-2xs font-semibold text-gray-500 dark:text-gray-400 ml-2">Prompts</span>
         </div>
         <div className="mt-1.5 flex items-baseline gap-1.5">
           <span className="text-xl font-bold text-gray-900 dark:text-gray-100">12</span>
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">salvos</span>
+          <span className="text-2xs text-gray-500 dark:text-gray-400 font-medium">salvos</span>
         </div>
       </motion.div>
 
@@ -138,14 +136,14 @@ const AchievementStack: React.FC = () => {
         className="absolute left-1/2 -translate-x-1/2 bottom-2 w-64 sm:w-72 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4 flex items-start gap-3 rotate-1"
         {...float(-6, 7)}
       >
-        <div className="w-11 h-11 rounded-xl bg-yellow-500/15 text-yellow-600 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-warning/15 text-warning-600 flex items-center justify-center shrink-0">
           <Trophy className="w-5.5 h-5.5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-blue-600">Badge desbloqueada!</p>
+          <p className="text-2xs font-semibold text-primary">Badge desbloqueada!</p>
           <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight mt-0.5">Voz da Comunidade</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug mt-0.5 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />3 posts publicados este mês
+          <p className="text-2xs text-gray-500 dark:text-gray-400 leading-snug mt-0.5 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-success shrink-0" />3 posts publicados este mês
           </p>
         </div>
       </motion.div>
@@ -177,10 +175,10 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 font-sans overflow-x-hidden">
       <div className="h-1 w-full grid grid-cols-4">
-        <div className="bg-blue-600" />
-        <div className="bg-red-500" />
-        <div className="bg-yellow-500" />
-        <div className="bg-green-600" />
+        <div className="bg-primary" />
+        <div className="bg-danger" />
+        <div className="bg-warning" />
+        <div className="bg-success" />
       </div>
 
       <header className="sticky top-0 z-30 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
@@ -220,7 +218,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               type="button"
               onClick={onLogin}
-              className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 whitespace-nowrap"
+              className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 whitespace-nowrap"
             >
               Entrar
             </button>
@@ -264,9 +262,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="text-center lg:text-left">
               <motion.h1
                 {...fadeUp(0)}
-                className="text-4xl sm:text-5xl xl:text-6xl font-black text-gray-900 dark:text-gray-50 tracking-tight leading-[1.05]"
+                className="text-4xl sm:text-5xl xl:text-6xl font-bold text-gray-900 dark:text-gray-50 tracking-tight leading-[1.05]"
               >
-                Toda a sua jornada de <span className="text-blue-600">Embaixador(a)</span>, organizada em um só lugar.
+                Toda a sua jornada de <span className="text-primary">Embaixador(a)</span>, organizada em um só lugar.
               </motion.h1>
 
               <motion.p
@@ -275,6 +273,26 @@ export const HomePage: React.FC<HomePageProps> = ({
               >
                 Simples, rápido e feito para acompanhar cada conquista da sua trajetória.
               </motion.p>
+
+              <motion.div
+                {...fadeUp(0.24)}
+                className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3"
+              >
+                <button
+                  type="button"
+                  onClick={onLogin}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-700 text-white text-sm font-semibold shadow-sm transition-colors"
+                >
+                  Começar agora
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </button>
+                <a
+                  href="/sobre"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-900 transition-colors"
+                >
+                  Saiba mais
+                </a>
+              </motion.div>
             </div>
 
             <motion.div
@@ -296,24 +314,21 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
 
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 pb-16 sm:pb-20">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" style={{ perspective: 900 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {HIGHLIGHTS.map(({ icon: Icon, label, accent }, i) => (
               <motion.div
                 key={label}
                 initial={reduceMotion ? undefined : { opacity: 0, y: 20 }}
                 whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
-                whileHover={reduceMotion ? undefined : { rotateX: -8, rotateY: 8, y: -6, scale: 1.04 }}
                 transition={{ duration: 0.4, delay: i * 0.08, ease: 'easeOut' }}
-                style={{ transformStyle: 'preserve-3d' }}
-                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-7 shadow-sm hover:shadow-xl transition-shadow cursor-default flex flex-col items-center text-center"
+                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-7 flex flex-col items-center text-center"
               >
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
                   style={{
                     backgroundColor: `${accent}1A`,
                     color: accent,
-                    boxShadow: `0 2px 0 0 ${accent}33 inset, 0 8px 16px -4px ${accent}55`,
                   }}
                 >
                   <Icon className="w-7 h-7" />
@@ -340,29 +355,22 @@ export const HomePage: React.FC<HomePageProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" style={{ perspective: 1000 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map(({ icon: Icon, title, description, accent }, i) => (
               <motion.div
                 key={title}
                 initial={reduceMotion ? undefined : { opacity: 0, y: 20 }}
                 whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
-                whileHover={reduceMotion ? undefined : { rotateX: -6, rotateY: 6, y: -6, scale: 1.02 }}
                 transition={{ duration: 0.4, delay: (i % 3) * 0.08, ease: 'easeOut' }}
-                style={{ transformStyle: 'preserve-3d' }}
-                className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 overflow-hidden shadow-sm transition-shadow duration-200 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-xl text-center"
+                className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 text-center"
               >
-                <span
-                  className="absolute inset-x-0 top-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ backgroundColor: accent }}
-                />
                 <div className="flex items-center justify-center gap-3 mb-3">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{
                       backgroundColor: `${accent}1A`,
                       color: accent,
-                      boxShadow: `0 2px 0 0 ${accent}33 inset, 0 6px 12px -4px ${accent}55`,
                     }}
                   >
                     <Icon className="w-5 h-5" />

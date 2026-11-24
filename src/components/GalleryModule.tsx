@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Camera, Download, ImagePlus, Pencil, Plus, Search, SearchX, Trash2, X } from 'lucide-react';
+import { useUrlState } from '../hooks/useUrlState';
+import { EmptyState, NoResults } from './ui/EmptyState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
+import { Camera, Download, ImagePlus, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { type GalleryPhoto } from '../types';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useUndoableDelete } from '../hooks/useUndoableDelete';
@@ -35,9 +39,10 @@ const MEDIA_FILTERS: { value: MediaFilter; label: string }[] = [
 
 export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhoto, onDeletePhoto }) => {
   const toast = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES);
-  const [mediaFilter, setMediaFilter] = useState<MediaFilter>('all');
+  const [searchQuery, setSearchQuery] = useUrlState('q');
+  const [selectedCategory, setSelectedCategory] = useUrlState('categoria', ALL_CATEGORIES);
+  const [mediaFilterParam, setMediaFilter] = useUrlState('midia', 'all');
+  const mediaFilter: MediaFilter = MEDIA_FILTERS.find((f) => f.value === mediaFilterParam)?.value ?? 'all';
   const [sortOrder, setSortOrder] = usePersistedState<SortOrder>('gsa_gallery_sort', 'recent');
   const [formTarget, setFormTarget] = useState<{ photo?: GalleryPhoto } | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -121,53 +126,28 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div className="min-w-0 flex items-center gap-2">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Camera className="w-6 h-6 text-[#EA4335]" />
-            <span>Galeria</span>
-          </h2>
-          {visiblePhotos.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-[11px] font-semibold text-gray-600 tabular-nums">
-              {visiblePhotos.length}
-            </span>
-          )}
-        </div>
-
-        <button
+      <PageHeader icon={Camera} iconClassName="text-primary" title="Galeria">
+        <Button
           id="btn-new-photo"
-          type="button"
           onClick={openCreate}
           aria-label="Adicionar fotos ou vídeos"
           title="Adicionar fotos ou vídeos"
-          className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-[#EA4335] hover:bg-[#D93025] text-white font-semibold text-sm shadow-sm transition-all active:scale-95 shrink-0"
+          variant="primary"
+          collapseLabel
+          icon={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Adicionar</span>
-        </button>
-      </div>
+          Adicionar
+        </Button>
+      </PageHeader>
 
       {visiblePhotos.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#EA4335]/10 text-[#EA4335] flex items-center justify-center mx-auto">
-            <ImagePlus className="w-8 h-8" />
-          </div>
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-lg font-bold text-gray-900">Sua galeria está vazia</h3>
-            <p className="text-sm text-gray-600">
-              Guarde fotos e vídeos de workshops, sessões e encontros do programa. Você pode enviar vários arquivos de
-              uma vez.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#EA4335] hover:bg-[#D93025] text-white text-sm font-semibold shadow-sm transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Adicionar primeiras fotos</span>
-          </button>
-        </div>
+        <EmptyState
+          icon={ImagePlus}
+          iconClassName="bg-primary/10 text-primary"
+          title="Sua galeria está vazia"
+          description="Guarde fotos e vídeos de workshops, sessões e encontros do programa. Você pode enviar vários arquivos de uma vez."
+          action={{ label: 'Adicionar primeiras fotos', onClick: openCreate, icon: <Plus className="w-4 h-4" /> }}
+        />
       ) : (
         <>
           <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
@@ -180,7 +160,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                 aria-label="Buscar na galeria"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#EA4335]/30 focus:border-[#EA4335] bg-gray-50"
+                className="w-full pl-10 pr-10 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger/30 focus:border-danger bg-gray-50"
               />
               {searchQuery && (
                 <button
@@ -210,7 +190,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
                       aria-pressed={isSelected}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                         isSelected
-                          ? 'bg-[#EA4335] text-white shadow-xs'
+                          ? 'bg-primary text-white shadow-xs'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80 hover:text-gray-900'
                       }`}
                     >
@@ -261,32 +241,20 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
           </div>
 
           {filteredPhotos.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-              <div className="w-16 h-16 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center mx-auto">
-                <SearchX className="w-8 h-8" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-lg font-bold text-gray-900">Nenhuma foto encontrada</h3>
-                <p className="text-sm text-gray-600">
-                  {query ? (
-                    <>
-                      Nenhum resultado para <span className="font-semibold">“{searchQuery.trim()}”</span> com os filtros
-                      atuais.
-                    </>
-                  ) : (
-                    'Nenhum item corresponde aos filtros selecionados.'
-                  )}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-sm font-semibold transition-all active:scale-95"
-              >
-                <X className="w-4 h-4" />
-                <span>Limpar filtros</span>
-              </button>
-            </div>
+            <NoResults
+              title="Nenhuma foto encontrada"
+              description={
+                query ? (
+                  <>
+                    Nenhum resultado para <span className="font-semibold">“{searchQuery.trim()}”</span> com os filtros
+                    atuais.
+                  </>
+                ) : (
+                  'Nenhum item corresponde aos filtros selecionados.'
+                )
+              }
+              onClear={clearFilters}
+            />
           ) : (
             <div className="space-y-6">
               {groups.map((group) => (

@@ -1,4 +1,5 @@
 import type { GalleryPhoto } from '../../types';
+import { toISODate } from '../../utils/date';
 
 export const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024;
 export const MAX_SOURCE_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
@@ -132,8 +133,7 @@ function readTiffDate(view: DataView, tiff: number): string | undefined {
   }
 }
 
-const isoDateOf = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const isoDateOf = toISODate;
 
 export async function detectCaptureDate(file: File): Promise<string | undefined> {
   if (file.type === 'image/jpeg') {

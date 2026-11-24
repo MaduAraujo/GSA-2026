@@ -1,6 +1,13 @@
-import { CheckCircle2, ChevronDown, Circle, Clock3, Flag, Plus, Search, X } from 'lucide-react';
+import { CheckCircle2, Circle, Clock3, Flag, Plus, Search, X } from 'lucide-react';
+import { useUrlState } from '../hooks/useUrlState';
+import { EmptyState, NoResults } from './ui/EmptyState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
 import { useState, type ReactNode } from 'react';
 import { usePersistedState } from '../hooks/usePersistedState';
+import { useUndoableDelete } from '../hooks/useUndoableDelete';
+import { useToast } from '../app/ToastProvider';
+import { SelectDropdown } from './SelectDropdown';
 import type { Challenge, ChallengeType, SocialPost } from '../types';
 import { ChallengeCard } from './challenges/ChallengeCard';
 import { ChallengeFormModal } from './challenges/ChallengeFormModal';
@@ -41,7 +48,7 @@ function StatusCount({
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>{icon}</div>
       <div className="text-center">
         <p className="text-lg font-bold text-gray-900 leading-tight">{count}</p>
-        <p className="text-[11px] text-gray-500 font-medium hidden sm:block">{label}</p>
+        <p className="text-2xs text-gray-500 font-medium hidden sm:block">{label}</p>
       </div>
     </div>
   );
@@ -55,21 +62,30 @@ export function ChallengesModule({
   onSavePost,
   onDeletePost,
 }: ChallengesModuleProps) {
-  const [activeType, setActiveType] = usePersistedState<ChallengeType>('gsa_challenge_tab', 'Desafio');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [selectedStatus, setSelectedStatus] = useState('Todos');
+  const [savedType, setSavedType] = usePersistedState<ChallengeType>('gsa_challenge_tab', 'Desafio');
+  const [typeParam, setTypeParam] = useUrlState('tipo');
+  const activeType = CHALLENGE_TYPES.find((t) => t.type === typeParam)?.type ?? savedType;
+  const [searchQuery, setSearchQuery] = useUrlState('q');
+  const [selectedCategory, setSelectedCategory] = useUrlState('categoria', 'Todos');
+  const [selectedStatus, setSelectedStatus] = useUrlState('status', 'Todos');
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const form = useChallengeForm();
+  const toast = useToast();
+  const pendingDelete = useUndoableDelete<Challenge>({
+    commit: (challenge) => onDeleteChallenge(challenge.id),
+    message: 'Item excluído.',
+    errorMessage: 'Não foi possível excluir o item. Tente novamente.',
+  });
 
   const activeTab = CHALLENGE_TYPES.find((t) => t.type === activeType) ?? CHALLENGE_TYPES[0]!;
-  const tabChallenges = challenges.filter((c) => challengeTypeOf(c) === activeTab.type);
+  const visibleChallenges = challenges.filter((c) => !pendingDelete.pendingIds.has(c.id));
+  const tabChallenges = visibleChallenges.filter((c) => challengeTypeOf(c) === activeTab.type);
   const categories = getCategories(tabChallenges);
   const query = searchQuery.toLowerCase();
 
   const selectTab = (type: ChallengeType) => {
-    setActiveType(type);
+    setSavedType(type);
+    setTypeParam('');
     setSelectedCategory('Todos');
   };
 
@@ -85,17 +101,10 @@ export function ChallengesModule({
 
   const countByStatus = (status: Challenge['status']) => tabChallenges.filter((c) => c.status === status).length;
 
-  const handleDelete = async (challenge: Challenge) => {
-    if (!confirm('Deseja realmente remover este desafio?')) return;
-    setDeletingId(challenge.id);
-    try {
-      await onDeleteChallenge(challenge.id);
-    } catch (err) {
-      console.error(err);
-      alert('Não foi possível excluir o desafio. Tente novamente.');
-    } finally {
-      setDeletingId(null);
-    }
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('Todos');
+    setSelectedStatus('Todos');
   };
 
   const handleCycleStatus = async (challenge: Challenge) => {
@@ -106,6 +115,9 @@ export function ChallengesModule({
         status: nextStatus(challenge.status),
         updatedAt: new Date().toISOString(),
       });
+    } catch (err) {
+      console.error(err);
+      toast.show({ message: 'Não foi possível atualizar o status. Tente novamente.', tone: 'error' });
     } finally {
       setUpdatingStatusId(null);
     }
@@ -113,25 +125,19 @@ export function ChallengesModule({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Flag className="w-6 h-6 text-[#34A853]" />
-            <span>Desafios</span>
-          </h2>
-        </div>
-
-        <button
+      <PageHeader icon={Flag} iconClassName="text-primary" title="Desafios">
+        <Button
           id="btn-new-challenge"
           onClick={() => form.openCreate(activeTab.type)}
           aria-label={activeTab.newLabel}
           title={activeTab.newLabel}
-          className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 shrink-0"
+          variant="primary"
+          collapseLabel
+          icon={<Plus className="w-4 h-4" />}
         >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">{activeTab.newLabel}</span>
-        </button>
-      </div>
+          {activeTab.newLabel}
+        </Button>
+      </PageHeader>
 
       <div
         role="tablist"
@@ -140,7 +146,7 @@ export function ChallengesModule({
       >
         {CHALLENGE_TYPES.map(({ type, tab }) => {
           const selected = type === activeTab.type;
-          const count = challenges.filter((c) => challengeTypeOf(c) === type).length;
+          const count = visibleChallenges.filter((c) => challengeTypeOf(c) === type).length;
           return (
             <button
               key={type}
@@ -153,8 +159,8 @@ export function ChallengesModule({
             >
               <span>{tab}</span>
               <span
-                className={`min-w-5 px-1.5 rounded-full text-[11px] font-bold ${
-                  selected ? 'bg-[#34A853]/10 text-[#1E8E3E]' : 'bg-gray-200 text-gray-500'
+                className={`min-w-5 px-1.5 rounded-full text-2xs font-bold ${
+                  selected ? 'bg-success/10 text-success-700' : 'bg-gray-200 text-gray-500'
                 }`}
               >
                 {count}
@@ -174,13 +180,13 @@ export function ChallengesModule({
           />
           <StatusCount
             icon={<Clock3 className="w-4.5 h-4.5" />}
-            iconClass="bg-[#1A73E8]/10 text-[#1A73E8]"
+            iconClass="bg-primary/10 text-primary"
             count={countByStatus('Em Andamento')}
             label="Em andamento"
           />
           <StatusCount
             icon={<CheckCircle2 className="w-4.5 h-4.5" />}
-            iconClass="bg-[#34A853]/10 text-[#1E8E3E]"
+            iconClass="bg-success/10 text-success-700"
             count={countByStatus('Concluído')}
             label="Concluídos"
           />
@@ -197,7 +203,7 @@ export function ChallengesModule({
               aria-label="Buscar desafios"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#34A853]/30 focus:border-[#34A853] bg-gray-50"
+              className="w-full pl-10 pr-4 py-2 rounded-xl text-sm border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-success/30 focus:border-success bg-gray-50"
             />
             {searchQuery && (
               <button
@@ -211,21 +217,17 @@ export function ChallengesModule({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                aria-label="Filtrar por status"
+            <div className="relative w-44">
+              <SelectDropdown
+                ariaLabel="Filtrar por status"
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="appearance-none pl-3.5 pr-8 py-2 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#34A853]/30"
-              >
-                <option value="Todos">Todos os Status</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                onChange={setSelectedStatus}
+                options={[
+                  { value: 'Todos', label: 'Todos os status' },
+                  ...STATUSES.map((s) => ({ value: s, label: s })),
+                ]}
+                buttonClassName="w-full px-3.5 py-2 pr-8 rounded-xl text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-success/30"
+              />
             </div>
           </div>
         </div>
@@ -239,7 +241,7 @@ export function ChallengesModule({
                 aria-pressed={selectedCategory === cat}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                   selectedCategory === cat
-                    ? 'bg-[#34A853] text-white shadow-xs'
+                    ? 'bg-primary text-white shadow-xs'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80 hover:text-gray-900'
                 }`}
               >
@@ -251,14 +253,21 @@ export function ChallengesModule({
       </div>
 
       {filteredChallenges.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#34A853]/10 text-[#1E8E3E] flex items-center justify-center mx-auto">
-            <Flag className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900">
-            {tabChallenges.length === 0 ? 'Nenhum item' : 'Nada encontrado'}
-          </h3>
-        </div>
+        tabChallenges.length === 0 ? (
+          <EmptyState
+            icon={Flag}
+            iconClassName="bg-primary/10 text-primary"
+            title={`Nenhum item em ${activeTab.tab}`}
+            description="Registre aqui o que você fez no programa para acompanhar sua evolução."
+            action={{
+              label: activeTab.newLabel,
+              onClick: () => form.openCreate(activeTab.type),
+              icon: <Plus className="w-4 h-4" />,
+            }}
+          />
+        ) : (
+          <NoResults onClear={clearFilters} />
+        )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredChallenges.map((challenge) => (
@@ -266,10 +275,9 @@ export function ChallengesModule({
               key={challenge.id}
               challenge={challenge}
               isUpdatingStatus={updatingStatusId === challenge.id}
-              isDeleting={deletingId === challenge.id}
               onCycleStatus={() => handleCycleStatus(challenge)}
               onEdit={() => form.openEdit(challenge)}
-              onDelete={() => handleDelete(challenge)}
+              onDelete={() => pendingDelete.remove(challenge)}
             />
           ))}
         </div>

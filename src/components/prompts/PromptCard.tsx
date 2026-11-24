@@ -9,10 +9,10 @@ const CLAMP_CHARS = 240;
 const CLAMP_LINES = 4;
 
 const SECTION_STYLES: Record<string, string> = {
-  Estudos: 'bg-[#1A73E8]/10 text-[#1A73E8] border border-[#1A73E8]/20',
-  'Workshops & Eventos': 'bg-[#34A853]/10 text-[#2E7D32] border border-[#34A853]/20',
-  'Criação de Conteúdo': 'bg-[#EA4335]/10 text-[#D93025] border border-[#EA4335]/20',
-  'Carreira Tech': 'bg-[#FBBC04]/20 text-[#8F5200] border border-[#FBBC04]/30',
+  Estudos: 'bg-primary/10 text-primary border border-primary/20',
+  'Workshops & Eventos': 'bg-success/10 text-success-800 border border-success/20',
+  'Criação de Conteúdo': 'bg-danger/10 text-danger-600 border border-danger/20',
+  'Carreira Tech': 'bg-warning/20 text-warning-900 border border-warning/30',
 };
 
 interface PromptCardProps {
@@ -55,7 +55,7 @@ export function PromptCard({
   return (
     <div
       id={`prompt-card-${prompt.id}`}
-      className="bg-white rounded-3xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-[#FBBC04]/60 transition-all p-6 flex flex-col justify-between space-y-4"
+      className="bg-white rounded-2xl border border-gray-200/90 shadow-xs hover:shadow-md hover:border-primary/40 transition-all p-6 flex flex-col justify-between space-y-4"
     >
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -70,14 +70,14 @@ export function PromptCard({
           )}
 
           <div className="flex items-center gap-1 ml-auto">
-            {usage && <span className="text-[11px] text-gray-600">{usage}</span>}
+            {usage && <span className="text-2xs text-gray-600">{usage}</span>}
             <button
               onClick={onToggleFavorite}
               aria-label={prompt.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
               aria-pressed={!!prompt.isFavorite}
-              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-[#B06000] transition-colors"
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-primary transition-colors"
             >
-              <Star className={`w-4 h-4 ${prompt.isFavorite ? 'fill-[#FBBC04] text-[#FBBC04]' : ''}`} />
+              <Star className={`w-4 h-4 ${prompt.isFavorite ? 'fill-warning text-warning' : ''}`} />
             </button>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function PromptCard({
               onClick={() => setIsExpanded((v) => !v)}
               aria-expanded={isExpanded}
               aria-controls={textId}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#1A73E8] hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
             >
               <span>{isExpanded ? 'Ver menos' : 'Ver mais'}</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -111,7 +111,7 @@ export function PromptCard({
           {prompt.tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600"
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-medium bg-gray-100 text-gray-600"
             >
               #{tag}
             </span>
@@ -120,14 +120,14 @@ export function PromptCard({
           {variables.map((v) => (
             <span
               key={v}
-              className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#1A73E8]/10 text-[#1A73E8]"
+              className="inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-semibold bg-primary/10 text-primary"
             >
               [{v}]
             </span>
           ))}
 
           {prompt.sharedDocs && prompt.sharedDocs.length > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#34A853]/10 text-[#2E7D32]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-semibold bg-success/10 text-success-800">
               <Link2 className="w-3 h-3" />
               {prompt.sharedDocs.length} doc{prompt.sharedDocs.length > 1 ? 's' : ''}
             </span>
@@ -138,11 +138,11 @@ export function PromptCard({
       <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
         <button
           onClick={onTest}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A73E8]/10 hover:bg-[#1A73E8]/20 text-[#1A73E8] text-xs font-bold transition-all active:scale-95"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-all active:scale-95"
           aria-label="Testar prompt com IA"
           title="Testar prompt com IA"
         >
-          <Play className="w-3.5 h-3.5 fill-[#1A73E8]" />
+          <Play className="w-3.5 h-3.5 fill-primary" />
           <span>Testar</span>
         </button>
 
@@ -155,14 +155,14 @@ export function PromptCard({
               { label: 'Duplicar', icon: CopyPlus, onSelect: onDuplicate },
               { label: 'Excluir', icon: Trash2, onSelect: onDelete, tone: 'danger' },
             ]}
-            buttonClassName="p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all focus-visible:outline-2 focus-visible:outline-[#1A73E8]"
+            buttonClassName="p-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all focus-visible:outline-2 focus-visible:outline-primary"
           />
 
           <button
             onClick={onCopy}
             title={variables.length ? 'Preencher variáveis e copiar' : 'Copiar prompt'}
             className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-              isCopied ? 'bg-[#34A853] text-white shadow-xs' : 'bg-gray-900 text-white hover:bg-gray-800'
+              isCopied ? 'bg-success text-white shadow-xs' : 'bg-gray-900 text-white hover:bg-gray-800'
             }`}
           >
             {isCopied ? (

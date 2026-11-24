@@ -1,9 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeadlinesModule } from './DeadlinesModule';
 import { type ProgramDeadline } from '../types';
 import { makeProgramDeadline } from '../test/factories';
+import { renderModule } from '../test/render';
 
 describe('DeadlinesModule', () => {
   beforeEach(() => {
@@ -15,13 +16,13 @@ describe('DeadlinesModule', () => {
   });
 
   it('shows an empty state when there are no deadlines', () => {
-    render(<DeadlinesModule deadlines={[]} onSaveDeadline={vi.fn()} onDeleteDeadline={vi.fn()} />);
+    renderModule(<DeadlinesModule deadlines={[]} onSaveDeadline={vi.fn()} onDeleteDeadline={vi.fn()} />);
     expect(screen.getByText('Nenhum prazo registrado')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
   it('shows an overall progress bar reflecting completed deadlines', () => {
-    render(
+    renderModule(
       <DeadlinesModule
         deadlines={[
           makeProgramDeadline({ id: 'd1', isCompleted: true }),
@@ -39,7 +40,7 @@ describe('DeadlinesModule', () => {
   });
 
   it('lists deadlines sorted from the soonest first', () => {
-    render(
+    renderModule(
       <DeadlinesModule
         deadlines={[
           makeProgramDeadline({ id: 'd1', title: 'Prazo distante', date: '2026-12-01' }),
@@ -55,7 +56,7 @@ describe('DeadlinesModule', () => {
   });
 
   it('flags a pending deadline in the past as overdue', () => {
-    render(
+    renderModule(
       <DeadlinesModule
         deadlines={[makeProgramDeadline({ id: 'd1', date: '2020-01-01', isCompleted: false })]}
         onSaveDeadline={vi.fn()}
@@ -66,7 +67,7 @@ describe('DeadlinesModule', () => {
   });
 
   it('does not flag a completed deadline as overdue even if its date has passed', () => {
-    render(
+    renderModule(
       <DeadlinesModule
         deadlines={[makeProgramDeadline({ id: 'd1', date: '2020-01-01', isCompleted: true })]}
         onSaveDeadline={vi.fn()}
@@ -78,7 +79,7 @@ describe('DeadlinesModule', () => {
 
   it('keeps the submit button disabled until title and date are filled', async () => {
     const user = userEvent.setup();
-    render(<DeadlinesModule deadlines={[]} onSaveDeadline={vi.fn()} onDeleteDeadline={vi.fn()} />);
+    renderModule(<DeadlinesModule deadlines={[]} onSaveDeadline={vi.fn()} onDeleteDeadline={vi.fn()} />);
     await user.click(screen.getByLabelText('Novo prazo'));
 
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
@@ -95,7 +96,7 @@ describe('DeadlinesModule', () => {
   it('creates a deadline with the selected date and category', async () => {
     const user = userEvent.setup();
     const onSaveDeadline = vi.fn().mockResolvedValue(undefined);
-    render(<DeadlinesModule deadlines={[]} onSaveDeadline={onSaveDeadline} onDeleteDeadline={vi.fn()} />);
+    renderModule(<DeadlinesModule deadlines={[]} onSaveDeadline={onSaveDeadline} onDeleteDeadline={vi.fn()} />);
     await user.click(screen.getByLabelText('Novo prazo'));
 
     const titleInput = within(screen.getByRole('dialog')).getAllByRole('textbox')[0]!;
@@ -115,7 +116,7 @@ describe('DeadlinesModule', () => {
   it('toggles completion when the status button is clicked', async () => {
     const user = userEvent.setup();
     const onSaveDeadline = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderModule(
       <DeadlinesModule
         deadlines={[makeProgramDeadline({ id: 'd1', isCompleted: false })]}
         onSaveDeadline={onSaveDeadline}
@@ -129,11 +130,10 @@ describe('DeadlinesModule', () => {
     expect(onSaveDeadline.mock.calls[0]![0].isCompleted).toBe(true);
   });
 
-  it('asks for confirmation before deleting a deadline', async () => {
+  it('hides a deleted item right away and lets the user undo it', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const onDeleteDeadline = vi.fn();
-    render(
+    renderModule(
       <DeadlinesModule
         deadlines={[makeProgramDeadline({ id: 'd1' })]}
         onSaveDeadline={vi.fn()}
@@ -141,17 +141,19 @@ describe('DeadlinesModule', () => {
       />,
     );
 
-    await user.click(screen.getByLabelText('Excluir prazo'));
+    await user.click(screen.getByRole('button', { name: /Mais ações para/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    expect(screen.queryByRole('button', { name: /Mais ações para/ })).not.toBeInTheDocument();
 
-    expect(confirmSpy).toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Desfazer' }));
+    expect(screen.getByRole('button', { name: /Mais ações para/ })).toBeInTheDocument();
     expect(onDeleteDeadline).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('fills the date from a shortcut, saves week, points and completion, and starts on the title', async () => {
     const user = userEvent.setup();
     const onSaveDeadline = vi.fn().mockResolvedValue(undefined);
-    render(<DeadlinesModule deadlines={[]} onSaveDeadline={onSaveDeadline} onDeleteDeadline={vi.fn()} />);
+    renderModule(<DeadlinesModule deadlines={[]} onSaveDeadline={onSaveDeadline} onDeleteDeadline={vi.fn()} />);
     await user.click(screen.getByLabelText('Novo prazo'));
 
     expect(document.getElementById('deadlines-titulo')).toHaveFocus();
@@ -182,7 +184,7 @@ describe('DeadlinesModule', () => {
   it('has no Cancelar button and stays open on an outside click, closing only with the X', async () => {
     const user = userEvent.setup();
     const onSaveDeadline = vi.fn();
-    render(<DeadlinesModule deadlines={[]} onSaveDeadline={onSaveDeadline} onDeleteDeadline={vi.fn()} />);
+    renderModule(<DeadlinesModule deadlines={[]} onSaveDeadline={onSaveDeadline} onDeleteDeadline={vi.fn()} />);
     await user.click(screen.getByLabelText('Novo prazo'));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
@@ -193,5 +195,25 @@ describe('DeadlinesModule', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Fechar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(onSaveDeadline).not.toHaveBeenCalled();
+  });
+
+  it('searches deadlines by title and shows a no-results state', async () => {
+    const user = userEvent.setup();
+    renderModule(
+      <DeadlinesModule
+        deadlines={[
+          makeProgramDeadline({ id: 'd1', title: 'Entrega do desafio' }),
+          makeProgramDeadline({ id: 'd2', title: 'Relatório mensal' }),
+        ]}
+        onSaveDeadline={vi.fn()}
+        onDeleteDeadline={vi.fn()}
+      />,
+    );
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar prazos' }), 'relatório');
+    expect(screen.getByText('Relatório mensal')).toBeInTheDocument();
+    expect(screen.queryByText('Entrega do desafio')).not.toBeInTheDocument();
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar prazos' }), 'xyz');
+    expect(screen.getByText('Nenhum prazo encontrado')).toBeInTheDocument();
   });
 });

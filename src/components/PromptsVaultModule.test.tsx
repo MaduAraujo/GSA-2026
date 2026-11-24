@@ -618,7 +618,7 @@ describe('PromptsVaultModule', () => {
       await user.click(screen.getByRole('button', { name: 'Estudos' }));
       await user.click(screen.getByRole('button', { name: 'Exportar prompts em PDF' }));
 
-      const dialog = screen.getByRole('dialog', { name: 'Selecionar prompts para exportar' });
+      const dialog = screen.getByRole('dialog', { name: 'Exportar em PDF' });
       expect(within(dialog).getByRole('checkbox', { name: /Prompt A/ })).toBeChecked();
       expect(within(dialog).getByRole('checkbox', { name: /Prompt B/ })).not.toBeChecked();
 
@@ -626,6 +626,22 @@ describe('PromptsVaultModule', () => {
       expect(within(dialog).queryByRole('checkbox', { name: /Prompt A/ })).not.toBeInTheDocument();
       await user.click(within(dialog).getByRole('button', { name: 'Selecionar resultados' }));
       expect(within(dialog).getByText('2 de 2 selecionados')).toBeInTheDocument();
+    });
+
+    it('keeps the export dialog open and shows a toast when the popup is blocked', async () => {
+      const user = userEvent.setup();
+      vi.stubGlobal(
+        'open',
+        vi.fn(() => null),
+      );
+      renderModule({ prompts: [makePrompt({ id: 'p1', title: 'Prompt A' })] });
+      await user.click(screen.getByRole('button', { name: 'Exportar prompts em PDF' }));
+      const dialog = screen.getByRole('dialog', { name: 'Exportar em PDF' });
+      await user.click(within(dialog).getByRole('button', { name: /^Exportar/ }));
+
+      expect(await screen.findByText(/bloqueador de pop-ups/)).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Exportar em PDF' })).toBeInTheDocument();
+      vi.unstubAllGlobals();
     });
 
     it('deletes a library document with an undo toast instead of a browser confirm', async () => {

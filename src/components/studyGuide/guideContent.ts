@@ -154,7 +154,7 @@ export function eventStatus(event: HostedEvent, today: string): EventStatus {
 
 export const STATUS_LABELS: Record<EventStatus, { label: string; className: string }> = {
   planning: { label: 'Planejando', className: 'bg-gray-100 text-gray-600' },
-  ready: { label: 'Pronto', className: 'bg-[#1A73E8]/10 text-[#1A73E8]' },
-  awaitingValidation: { label: 'Validar evidências', className: 'bg-[#FBBC04]/15 text-[#9E5D00]' },
-  validated: { label: 'Pronto p/ check-out', className: 'bg-[#34A853]/10 text-[#1E8E3E]' },
+  ready: { label: 'Pronto', className: 'bg-primary/10 text-primary' },
+  awaitingValidation: { label: 'Validar evidências', className: 'bg-warning/15 text-warning-800' },
+  validated: { label: 'Pronto p/ check-out', className: 'bg-success/10 text-success-700' },
 };

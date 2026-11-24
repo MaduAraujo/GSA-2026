@@ -1,4 +1,5 @@
 import type { ChallengeSocialLink, PostPlatform, SocialPost } from '../../types';
+import { formatDateBR, toISODate } from '../../utils/date';
 
 export const PLATFORMS: PostPlatform[] = ['LinkedIn', 'Instagram', 'Whatsapp'];
 
@@ -6,10 +7,7 @@ export const CHALLENGE_RESULT_TONE = 'Resultado de Desafio';
 export const MANUAL_TONE = 'Manual';
 
 export function toLocalDateInputValue(iso: string): string {
-  const d = new Date(iso);
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${month}-${day}`;
+  return toISODate(new Date(iso));
 }
 
 export function getPostDisplayDate(post: SocialPost): string {
@@ -17,7 +15,7 @@ export function getPostDisplayDate(post: SocialPost): string {
     const [firstLine] = post.content.split('\n');
     if (firstLine && /^\d{2}\/\d{2}\/\d{4}$/.test(firstLine)) return firstLine;
   }
-  return new Date(post.createdAt).toLocaleDateString('pt-BR');
+  return formatDateBR(post.createdAt);
 }
 
 export function getPostPlatforms(post: SocialPost): PostPlatform[] {
@@ -56,6 +54,7 @@ export function newManualPost(title = ''): Partial<SocialPost> {
     content: '',
     hashtags: [],
     socialLinks: [],
+    status: 'Publicado',
     likes: 0,
     comments: 0,
     createdAt: now,
@@ -63,9 +62,34 @@ export function newManualPost(title = ''): Partial<SocialPost> {
   };
 }
 
+export function normalizeHttpUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const candidate = /^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (!url.hostname.includes('.')) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+export function getMissingPostFields(post: Partial<SocialPost>): string[] {
+  const missing: string[] = [];
+  if (!post.title?.trim()) missing.push('título');
+  if (!post.status) missing.push('status');
+  if (post.tone === MANUAL_TONE) {
+    if ((post.socialLinks?.length ?? 0) === 0) missing.push('pelo menos 1 link');
+  } else if (!post.content?.trim()) {
+    missing.push('conteúdo');
+  }
+  return missing;
+}
+
 export function canSavePost(post: Partial<SocialPost>): boolean {
-  if (!post.title?.trim() || !post.status) return false;
-  return post.tone === MANUAL_TONE ? (post.socialLinks?.length ?? 0) > 0 : !!post.content?.trim();
+  return getMissingPostFields(post).length === 0;
 }
 
 export function finalizePost(draft: Partial<SocialPost> & Pick<SocialPost, 'title' | 'status'>): SocialPost {

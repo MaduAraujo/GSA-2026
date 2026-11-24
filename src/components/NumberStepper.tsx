@@ -3,14 +3,25 @@ import { Minus, Plus } from 'lucide-react';
 
 interface NumberStepperProps {
   id: string;
-  value: number;
+  value: number | undefined;
   onChange: (value: number) => void;
+  onClear?: () => void;
+  placeholder?: string;
   min?: number;
   max?: number;
   step?: number;
 }
 
-export const NumberStepper: React.FC<NumberStepperProps> = ({ id, value, onChange, min = 0, max, step = 1 }) => {
+export const NumberStepper: React.FC<NumberStepperProps> = ({
+  id,
+  value,
+  onChange,
+  onClear,
+  placeholder,
+  min = 0,
+  max,
+  step = 1,
+}) => {
   const clamp = (n: number) => {
     let v = n;
     if (Number.isFinite(min)) v = Math.max(min, v);
@@ -20,11 +31,12 @@ export const NumberStepper: React.FC<NumberStepperProps> = ({ id, value, onChang
   const emptyValue = clamp(0);
   const parse = (text: string) => (text === '' || text === '-' ? emptyValue : Number(text));
 
-  const [draft, setDraft] = useState(String(value));
+  const show = (v: number | undefined) => (v === undefined ? '' : String(v));
+  const [draft, setDraft] = useState(show(value));
   const [lastValue, setLastValue] = useState(value);
   if (value !== lastValue) {
     setLastValue(value);
-    if (parse(draft) !== value) setDraft(String(value));
+    if (value === undefined ? draft !== '' : parse(draft) !== value) setDraft(show(value));
   }
 
   const current = Number(value) || 0;
@@ -42,7 +54,8 @@ export const NumberStepper: React.FC<NumberStepperProps> = ({ id, value, onChang
     const parsed = parse(text);
     const next = max !== undefined ? Math.min(max, parsed) : parsed;
     setDraft(next === parsed ? text : String(next));
-    onChange(next);
+    if (text === '' && onClear) onClear();
+    else onChange(next);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -57,17 +70,18 @@ export const NumberStepper: React.FC<NumberStepperProps> = ({ id, value, onChang
   };
 
   const handleBlur = () => {
+    if (draft === '' && onClear) return;
     const committed = clamp(parse(draft));
     setDraft(String(committed));
     if (committed !== value) onChange(committed);
   };
 
   return (
-    <div className="flex items-center rounded-xl border border-gray-200 bg-[#F8FAFD] focus-within:ring-2 focus-within:ring-[#1A73E8]/30 focus-within:border-[#1A73E8] overflow-hidden">
+    <div className="flex items-center rounded-xl border border-gray-200 bg-surface-muted focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary overflow-hidden">
       <button
         type="button"
         onClick={() => stepBy(-step)}
-        className="w-9 h-10 flex items-center justify-center text-gray-500 hover:text-[#1A73E8] hover:bg-white active:scale-95 transition-all shrink-0"
+        className="w-9 h-10 flex items-center justify-center text-gray-500 hover:text-primary hover:bg-white active:scale-95 transition-all shrink-0"
         aria-label="Diminuir"
       >
         <Minus className="w-3.5 h-3.5" />
@@ -80,18 +94,19 @@ export const NumberStepper: React.FC<NumberStepperProps> = ({ id, value, onChang
         role="spinbutton"
         aria-valuemin={Number.isFinite(min) ? min : undefined}
         aria-valuemax={max}
-        aria-valuenow={current}
+        aria-valuenow={value === undefined ? undefined : current}
+        placeholder={placeholder}
         value={draft}
         onChange={(e) => handleInput(e.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={(e) => e.target.select()}
         onBlur={handleBlur}
-        className="w-full min-w-0 text-center text-sm font-semibold bg-transparent border-0 focus:outline-none focus:ring-0 py-2.5"
+        className="w-full min-w-0 text-center text-sm font-semibold bg-transparent border-0 placeholder:text-gray-400 placeholder:font-normal focus:outline-none focus-visible:ring-0 py-2.5"
       />
       <button
         type="button"
         onClick={() => stepBy(step)}
-        className="w-9 h-10 flex items-center justify-center text-gray-500 hover:text-[#1A73E8] hover:bg-white active:scale-95 transition-all shrink-0"
+        className="w-9 h-10 flex items-center justify-center text-gray-500 hover:text-primary hover:bg-white active:scale-95 transition-all shrink-0"
         aria-label="Aumentar"
       >
         <Plus className="w-3.5 h-3.5" />

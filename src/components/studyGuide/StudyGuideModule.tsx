@@ -1,4 +1,7 @@
 import { BookOpen, CalendarPlus, CalendarRange, Compass } from 'lucide-react';
+import { useUndoableDelete } from '../../hooks/useUndoableDelete';
+import { PageHeader } from '../ui/PageHeader';
+import { Button } from '../ui/Button';
 import { useState } from 'react';
 import { usePersistedState } from '../../hooks/usePersistedState';
 import type { HostedEvent } from '../../types';
@@ -16,7 +19,13 @@ interface StudyGuideModuleProps {
   onDeleteEvent: (id: string) => Promise<void>;
 }
 
-export function StudyGuideModule({ events, onSaveEvent, onDeleteEvent }: StudyGuideModuleProps) {
+export function StudyGuideModule({ events: allEvents, onSaveEvent, onDeleteEvent }: StudyGuideModuleProps) {
+  const pendingDelete = useUndoableDelete<HostedEvent>({
+    commit: (x) => onDeleteEvent(x.id),
+    message: 'Evento excluído.',
+    errorMessage: 'Não foi possível excluir o evento. Tente novamente.',
+  });
+  const events = allEvents.filter((x) => !pendingDelete.pendingIds.has(x.id));
   const [view, setView] = usePersistedState<View>('gsa_study_guide_view', 'guide');
   const [editing, setEditing] = useState<HostedEvent | 'new' | null>(null);
   const today = todayISO();
@@ -24,15 +33,7 @@ export function StudyGuideModule({ events, onSaveEvent, onDeleteEvent }: StudyGu
   const upcoming = events.filter((e) => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   const past = events.filter((e) => e.date < today).sort((a, b) => b.date.localeCompare(a.date));
 
-  const handleDelete = async (event: HostedEvent) => {
-    if (!confirm(`Deseja realmente excluir o evento "${event.title}"?`)) return;
-    try {
-      await onDeleteEvent(event.id);
-    } catch (err) {
-      console.error(err);
-      alert('Não foi possível excluir o evento. Tente novamente.');
-    }
-  };
+  const handleDelete = (event: HostedEvent) => pendingDelete.remove(event);
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full whitespace-nowrap text-sm font-semibold transition-colors ${
@@ -42,7 +43,7 @@ export function StudyGuideModule({ events, onSaveEvent, onDeleteEvent }: StudyGu
   const renderList = (title: string, list: HostedEvent[]) =>
     list.length > 0 && (
       <section aria-label={title} className="space-y-3">
-        <h3 className="px-1 text-xs font-bold text-gray-500 uppercase tracking-wider">
+        <h3 className="px-1 text-xs font-semibold text-gray-500">
           {title} <span className="normal-case font-medium text-gray-400">({list.length})</span>
         </h3>
         {list.map((event) => (
@@ -59,26 +60,21 @@ export function StudyGuideModule({ events, onSaveEvent, onDeleteEvent }: StudyGu
     );
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <BookOpen className="w-6 h-6 text-[#34A853]" />
-            <span>Grupo de Estudos</span>
-          </h2>
-        </div>
+      <PageHeader icon={BookOpen} iconClassName="text-primary" title="Grupo de Estudos">
         {view === 'events' && (
-          <button
+          <Button
             id="btn-new-event"
             onClick={() => setEditing('new')}
             aria-label="Novo evento"
             title="Novo evento"
-            className="inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 shrink-0"
+            variant="primary"
+            collapseLabel
+            icon={<CalendarPlus className="w-4 h-4" />}
           >
-            <CalendarPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">Novo evento</span>
-          </button>
+            Novo evento
+          </Button>
         )}
-      </div>
+      </PageHeader>
 
       <div className="flex items-center justify-between gap-2">
         <div role="tablist" aria-label="Seções do guia" className="flex gap-1 p-1 rounded-full bg-gray-100 shrink-0">
@@ -106,9 +102,7 @@ export function StudyGuideModule({ events, onSaveEvent, onDeleteEvent }: StudyGu
             <CalendarRange className="hidden sm:block w-4 h-4" />
             Meus eventos
             {events.length > 0 && (
-              <span className="text-[11px] font-bold px-1.5 rounded-full bg-[#1A73E8]/10 text-[#1A73E8]">
-                {events.length}
-              </span>
+              <span className="text-2xs font-bold px-1.5 rounded-full bg-primary/10 text-primary">{events.length}</span>
             )}
           </button>
         </div>
@@ -126,7 +120,7 @@ export function StudyGuideModule({ events, onSaveEvent, onDeleteEvent }: StudyGu
         {view === 'guide' ? (
           <GuideView />
         ) : events.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-dashed border-gray-300 p-10 text-center">
+          <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
             <CalendarRange className="w-10 h-10 mx-auto text-gray-300" />
             <p className="mt-3 font-semibold text-gray-700">Nenhum evento planejado</p>
           </div>

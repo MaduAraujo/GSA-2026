@@ -8,7 +8,7 @@ describe('AgendaPage', () => {
 
   it('shows the heading, intro and all twelve weeks in order', () => {
     render(<AgendaPage />);
-    expect(screen.getByRole('heading', { name: 'O QUE VEM POR AÍ' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'O que vem por aí' })).toBeInTheDocument();
     expect(screen.getByText(/novos encontros, novos conteúdos e novos momentos/)).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem');

@@ -176,7 +176,7 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`relative bg-white rounded-2xl border shadow-sm p-4 sm:p-5 transition-colors ${
-        isDragging ? 'border-[#1A73E8] ring-4 ring-[#1A73E8]/10' : 'border-gray-200'
+        isDragging ? 'border-primary ring-4 ring-primary/10' : 'border-gray-200'
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -186,22 +186,15 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
           aria-expanded={isExpanded}
           aria-controls="earned-badges-content"
           title={isExpanded ? 'Recolher badges' : 'Expandir badges'}
-          className="flex flex-1 items-center gap-3 min-w-0 text-left rounded-xl -m-1 p-1 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-[#1A73E8]"
+          className="flex flex-1 items-center gap-3 min-w-0 text-left rounded-xl -m-1 p-1 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-primary"
         >
-          <div className="w-10 h-10 rounded-xl bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <BadgeCheck className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 id="earned-badges-heading" className="text-base font-bold text-gray-900">
-                Badges
-              </h3>
-              {badges.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-gray-100 text-[11px] font-semibold text-gray-600 tabular-nums">
-                  {badges.length}
-                </span>
-              )}
-            </div>
+            <h3 id="earned-badges-heading" className="text-base font-bold text-gray-900">
+              Badges
+            </h3>
           </div>
           <ChevronDown
             aria-hidden="true"
@@ -234,13 +227,13 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 rounded-lg bg-[#EA4335]/5 px-3 py-2 text-xs font-medium text-[#C5221F]">
+        <p role="alert" className="mt-3 rounded-lg bg-danger/5 px-3 py-2 text-xs font-medium text-danger-700">
           {error}
         </p>
       )}
 
       {progress && (
-        <div className="mt-4 rounded-xl border border-[#1A73E8]/20 bg-[#1A73E8]/4 px-3.5 py-3">
+        <div className="mt-4 rounded-xl border border-primary/20 bg-primary/4 px-3.5 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold text-gray-800">
@@ -252,12 +245,12 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                   </span>
                 )}
               </p>
-              <p className="text-[11px] text-gray-500 tabular-nums">
+              <p className="text-2xs text-gray-500 tabular-nums">
                 {toMB(progress.loaded)} de {toMB(progress.total)} MB
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-sm font-bold text-[#1A73E8] tabular-nums">
+              <span className="text-sm font-bold text-primary tabular-nums">
                 {Math.round((progress.loaded / progress.total) * 100)}%
               </span>
               <button
@@ -277,15 +270,15 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round((progress.loaded / progress.total) * 100)}
-            className="mt-2 h-1.5 w-full rounded-full bg-[#1A73E8]/15 overflow-hidden"
+            className="mt-2 h-1.5 w-full rounded-full bg-primary/15 overflow-hidden"
           >
             <div
-              className="h-full rounded-full bg-[#1A73E8] transition-[width] duration-200"
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
               style={{ width: `${(progress.loaded / progress.total) * 100}%` }}
             />
           </div>
           {progress.hasLargeFile && (
-            <p className="mt-2 text-[11px] text-gray-500">
+            <p className="mt-2 text-2xs text-gray-500">
               Arquivo grande, perto do limite de 50MB. Mantenha esta aba aberta até o envio terminar.
             </p>
           )}
@@ -306,12 +299,12 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                     onClick={() => setViewingId(badge.id)}
                     aria-label={`Visualizar badge ${name}`}
                     title={name}
-                    className="w-12 h-12 rounded-xl border border-gray-200 bg-[#F8FAFD] p-1.5 flex items-center justify-center hover:border-[#1A73E8]/50 hover:shadow-sm transition-all cursor-zoom-in focus-visible:outline-2 focus-visible:outline-[#1A73E8]"
+                    className="w-12 h-12 rounded-xl border border-gray-200 bg-surface-muted p-1.5 flex items-center justify-center hover:border-primary/50 hover:shadow-sm transition-all cursor-zoom-in focus-visible:outline-2 focus-visible:outline-primary"
                   >
                     {badge.url && isBadgeImage(badge.fileName) ? (
                       <img src={badge.url} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
                     ) : (
-                      <FileText aria-hidden="true" className="w-5 h-5 text-[#EA4335]" />
+                      <FileText aria-hidden="true" className="w-5 h-5 text-danger" />
                     )}
                   </button>
                 </li>
@@ -355,11 +348,11 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
               disabled={isUploading}
               className={`mt-5 w-full flex flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors disabled:cursor-wait ${
                 isDragging
-                  ? 'border-[#1A73E8] bg-[#1A73E8]/5'
-                  : 'border-gray-200 hover:border-[#1A73E8]/50 hover:bg-[#F8FAFD]'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-200 hover:border-primary/50 hover:bg-surface-muted'
               }`}
             >
-              <span className="w-11 h-11 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] flex items-center justify-center">
+              <span className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                 {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
               </span>
               <span className="text-sm font-semibold text-gray-800">
@@ -381,9 +374,7 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                   <li
                     key={badge.id}
                     className={`group relative rounded-xl border bg-white overflow-hidden transition-all hover:shadow-md ${
-                      favorite
-                        ? 'border-[#1A73E8]/50 ring-1 ring-[#1A73E8]/20'
-                        : 'border-gray-200 hover:border-gray-300'
+                      favorite ? 'border-primary/50 ring-1 ring-primary/20' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <button
@@ -391,9 +382,9 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                       onClick={() => setViewingId(badge.id)}
                       aria-label={`Visualizar badge ${name}`}
                       title={badge.fileName}
-                      className="block w-full text-left cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#1A73E8] rounded-xl"
+                      className="block w-full text-left cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary rounded-xl"
                     >
-                      <div className="aspect-square flex items-center justify-center p-5 bg-[#F8FAFD]">
+                      <div className="aspect-square flex items-center justify-center p-5 bg-surface-muted">
                         {badge.url && isBadgeImage(badge.fileName) ? (
                           <img
                             src={badge.url}
@@ -403,14 +394,14 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                           />
                         ) : (
                           <div className="flex flex-col items-center gap-1.5">
-                            <FileText aria-hidden="true" className="w-10 h-10 text-[#EA4335]" />
-                            <span className="text-[10px] font-bold tracking-wider text-gray-400">PDF</span>
+                            <FileText aria-hidden="true" className="w-10 h-10 text-danger" />
+                            <span className="text-2xs font-bold tracking-wider text-gray-400">PDF</span>
                           </div>
                         )}
                       </div>
                       <div className="border-t border-gray-100 px-3 py-2.5">
                         <p className="truncate text-xs font-semibold text-gray-800">{name}</p>
-                        {addedAt && <p className="text-[11px] text-gray-500">{addedAt}</p>}
+                        {addedAt && <p className="text-2xs text-gray-500">{addedAt}</p>}
                       </div>
                     </button>
                     <button
@@ -421,8 +412,8 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                       title={favorite ? 'Remover do portfólio público' : 'Destacar no portfólio público'}
                       className={`absolute top-2 left-2 p-1.5 rounded-lg border shadow-xs transition-all ${
                         favorite
-                          ? 'bg-[#E8F0FE] border-[#1A73E8]/40 text-[#1A73E8]'
-                          : 'bg-white/95 border-gray-200 text-gray-400 hover:text-[#1A73E8] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100'
+                          ? 'bg-primary-50 border-primary/40 text-primary'
+                          : 'bg-white/95 border-gray-200 text-gray-400 hover:text-primary sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100'
                       }`}
                     >
                       <Globe className="w-3.5 h-3.5" />
@@ -432,7 +423,7 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
                       onClick={() => handleDelete(badge)}
                       aria-label={`Remover badge ${badge.fileName}`}
                       title="Remover badge"
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/95 border border-gray-200 text-gray-500 hover:text-[#EA4335] hover:border-[#EA4335]/30 shadow-xs transition-all sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/95 border border-gray-200 text-gray-500 hover:text-danger hover:border-danger/30 shadow-xs transition-all sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -445,8 +436,8 @@ export const EarnedBadgesSection: React.FC<EarnedBadgesSectionProps> = ({
       )}
 
       {isDragging && badges.length > 0 && (
-        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[#1A73E8]/5 flex items-center justify-center">
-          <span className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#1A73E8] shadow-md">
+        <div className="pointer-events-none absolute inset-0 rounded-2xl bg-primary/5 flex items-center justify-center">
+          <span className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-primary shadow-md">
             Solte para anexar
           </span>
         </div>

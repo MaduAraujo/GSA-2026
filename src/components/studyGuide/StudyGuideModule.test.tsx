@@ -1,10 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeHostedEvent } from '../../test/factories';
 import type { HostedEvent } from '../../types';
 import { eventStatus, GEMINI_TEST_URL, OFFICIAL_HASHTAG } from './guideContent';
 import { StudyGuideModule } from './StudyGuideModule';
+import { renderModule as renderWithAppProviders } from '../../test/render';
 
 const ALL_CHECKLIST = ['duration', 'slides', 'art', 'post', 'qrcode'];
 const ALL_VALIDATION = ['in_person', 'shows_presentation', 'raw_media'];
@@ -40,7 +41,7 @@ describe('StudyGuideModule', () => {
   afterEach(() => vi.useRealTimers());
 
   const renderModule = (events: HostedEvent[] = [], onSaveEvent = vi.fn().mockResolvedValue(undefined)) => {
-    render(<StudyGuideModule events={events} onSaveEvent={onSaveEvent} onDeleteEvent={vi.fn()} />);
+    renderWithAppProviders(<StudyGuideModule events={events} onSaveEvent={onSaveEvent} onDeleteEvent={vi.fn()} />);
     return { onSaveEvent };
   };
 

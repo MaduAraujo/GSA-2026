@@ -75,7 +75,6 @@ describe('EarnedBadgesSection', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
     expect(screen.getByRole('img', { name: 'Gemini nivel2' })).toHaveAttribute('src', 'https://signed.example/b1');
     expect(screen.getByRole('button', { name: 'Visualizar badge Certificado' })).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('turns file names into readable titles', () => {

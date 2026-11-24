@@ -6,7 +6,7 @@ import { LEVEL_MIN_POINTS, levelProgress } from './levels';
 describe('LevelsView', () => {
   it('lists the three levels in order with their descriptions', () => {
     render(<LevelsView />);
-    expect(screen.getByRole('heading', { name: 'SUBINDO DE NÍVEL' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Subindo de nível' })).toBeInTheDocument();
     expect(screen.getByText(/novos níveis são desbloqueados/)).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem');
@@ -31,7 +31,7 @@ describe('LevelsView', () => {
     render(<LevelsView points={points} />);
 
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
-      `VOCÊ ESTÁ A ${left} PONTOS PARA DESBLOQUEAR O PRÓXIMO NÍVEL NO PROGRAMA`,
+      `Você está a ${left} pontos de desbloquear o próximo nível no Programa`,
     );
     expect(screen.getByText('Nível Atual').nextSibling).toHaveTextContent('Expert de Comunidade');
     expect(screen.getByText('Próximo Marco!').nextSibling).toHaveTextContent('Catalisador(a)');
@@ -41,7 +41,7 @@ describe('LevelsView', () => {
 
   it('celebrates the top level with a full bar', () => {
     render(<LevelsView points={LEVEL_MIN_POINTS[2] + 50} />);
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('VOCÊ ALCANÇOU O NÍVEL MÁXIMO DO PROGRAMA!');
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Você alcançou o nível máximo do Programa!');
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
     expect(screen.getAllByRole('listitem')[2]).toHaveAttribute('aria-current', 'step');
   });

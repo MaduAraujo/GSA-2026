@@ -5,7 +5,7 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: Certificate[]): void {
+export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: Certificate[]): boolean {
   const totalHoursLabel = formatTotalHoursDecimal(sumCertHours(certificates));
   const sorted = [...certificates].sort((a, b) => (a.issueDate < b.issueDate ? 1 : -1));
 
@@ -67,11 +67,11 @@ export function exportPortfolioAsPdf(profile: AmbassadorProfile, certificates: C
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Não foi possível abrir a janela de exportação. Verifique se o bloqueador de pop-ups está desativado.');
-    return;
+    return false;
   }
   printWindow.document.write(html);
   printWindow.document.close();
   printWindow.focus();
   setTimeout(() => printWindow.print(), 300);
+  return true;
 }

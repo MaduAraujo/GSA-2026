@@ -15,6 +15,7 @@ import {
   Briefcase,
   Megaphone,
 } from 'lucide-react';
+import { BRAND } from '../theme/colors';
 
 const HOW_IT_WORKS = [
   {
@@ -80,12 +81,12 @@ const BENEFITS = [
 
 const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 192 192" className={className}>
-    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke="#1A73E8" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke="#34A853" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke="#FBBC04" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke="#EA4335" strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill="#1A73E8" />
-    <circle cx="96" cy="120" r="14" fill="#FBBC04" />
+    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke={BRAND.primary} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke={BRAND.success} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke={BRAND.warning} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke={BRAND.danger} strokeWidth="14" strokeLinecap="round" />
+    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
+    <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
   </svg>
 );
 
@@ -93,10 +94,10 @@ export const AboutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <div className="h-1 w-full grid grid-cols-4">
-        <div className="bg-blue-600" />
-        <div className="bg-red-500" />
-        <div className="bg-yellow-500" />
-        <div className="bg-green-600" />
+        <div className="bg-primary" />
+        <div className="bg-danger" />
+        <div className="bg-warning" />
+        <div className="bg-success" />
       </div>
 
       <header className="sticky top-0 z-30 bg-gray-50/90 backdrop-blur-sm border-b border-gray-200">
@@ -136,7 +137,7 @@ export const AboutPage: React.FC = () => {
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {COMPETENCIES.map(({ icon: Icon, title, text }) => (
             <div key={title} className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="w-11 h-11 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center mx-auto mb-4">
+              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                 <Icon className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-gray-900 text-sm mb-1.5">{title}</h3>
@@ -153,7 +154,7 @@ export const AboutPage: React.FC = () => {
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {HOW_IT_WORKS.map(({ icon: Icon, title, ...rest }) => (
               <div key={title} className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-                <div className="w-11 h-11 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-gray-900 text-sm mb-1.5">{title}</h3>
@@ -182,7 +183,7 @@ export const AboutPage: React.FC = () => {
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {BENEFITS.map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5">
-                <div className="w-8 h-8 rounded-lg bg-green-600/10 text-green-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0">
                   <Icon className="w-4 h-4" />
                 </div>
                 <p className="text-sm text-gray-800 leading-snug pt-1">{text}</p>

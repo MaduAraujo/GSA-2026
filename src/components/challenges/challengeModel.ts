@@ -21,8 +21,8 @@ export const RESULT_PLATFORMS: PostPlatform[] = ['LinkedIn', 'Instagram', 'Whats
 
 export const STATUS_STYLES: Record<ChallengeStatus, { bg: string; text: string; icon: typeof Circle }> = {
   Pendente: { bg: 'bg-gray-100', text: 'text-gray-600', icon: Circle },
-  'Em Andamento': { bg: 'bg-[#1A73E8]/10', text: 'text-[#1A73E8]', icon: Clock3 },
-  Concluído: { bg: 'bg-[#34A853]/10', text: 'text-[#1E8E3E]', icon: CheckCircle2 },
+  'Em Andamento': { bg: 'bg-primary/10', text: 'text-primary', icon: Clock3 },
+  Concluído: { bg: 'bg-success/10', text: 'text-success-700', icon: CheckCircle2 },
 };
 
 export function nextStatus(status: ChallengeStatus): ChallengeStatus {

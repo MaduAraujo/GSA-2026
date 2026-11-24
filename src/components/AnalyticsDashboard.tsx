@@ -2,6 +2,8 @@ import React, { useId, useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { type Certificate, type SocialPost, type AmbassadorSession, type Challenge } from '../types';
 import { certHoursDecimal, formatTotalHoursDecimal } from '../utils/duration';
+import { BRAND, CHART_ACCENT_PURPLE, NEUTRAL, SOCIAL_BRAND_COLORS } from '../theme/colors';
+import { PageHeader } from './ui/PageHeader';
 
 interface AnalyticsDashboardProps {
   certificates: Certificate[];
@@ -12,14 +14,14 @@ interface AnalyticsDashboardProps {
 
 const MONTH_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const PLATFORM_COLORS: Record<string, string> = {
-  LinkedIn: '#0077B5',
-  Instagram: '#E1306C',
-  Whatsapp: '#34A853',
+  LinkedIn: SOCIAL_BRAND_COLORS.linkedin,
+  Instagram: SOCIAL_BRAND_COLORS.instagram,
+  Whatsapp: BRAND.success,
 };
 const STATUS_COLORS: Record<string, string> = {
-  Publicado: '#34A853',
-  Agendado: '#1A73E8',
-  Rascunho: '#FBBC04',
+  Publicado: BRAND.success,
+  Agendado: BRAND.primary,
+  Rascunho: BRAND.warning,
 };
 
 function parseIssueYearMonth(iso: string): { year: number; month: number } | null {
@@ -56,9 +58,7 @@ const BarChart: React.FC<{
         {data.map((d, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full">
             <span
-              className={`text-[10px] font-bold transition-colors ${
-                d.value > 0 ? 'text-gray-700' : 'text-transparent'
-              }`}
+              className={`text-2xs font-bold transition-colors ${d.value > 0 ? 'text-gray-700' : 'text-transparent'}`}
             >
               {formatValue(d.value)}
             </span>
@@ -73,7 +73,7 @@ const BarChart: React.FC<{
                 title={`${d.label}: ${formatValue(d.value)}`}
               />
             </div>
-            <span className="text-[10px] font-semibold text-gray-400">{d.label}</span>
+            <span className="text-2xs font-semibold text-gray-400">{d.label}</span>
           </div>
         ))}
       </div>
@@ -114,7 +114,7 @@ const AreaLineChart: React.FC<{
       <div className="relative">
         {last && (
           <div
-            className="absolute -translate-y-full px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm whitespace-nowrap"
+            className="absolute -translate-y-full px-2 py-0.5 rounded-full text-2xs font-bold text-white shadow-sm whitespace-nowrap"
             style={{ right: 0, top: `${(last.y / height) * 100}%`, backgroundColor: color, marginTop: '-6px' }}
           >
             {formatValue(last.value)}
@@ -134,7 +134,7 @@ const AreaLineChart: React.FC<{
               x2={width}
               y1={height * f}
               y2={height * f}
-              stroke="#F1F3F4"
+              stroke={NEUTRAL.track}
               strokeWidth={0.5}
               vectorEffect="non-scaling-stroke"
             />
@@ -166,7 +166,7 @@ const AreaLineChart: React.FC<{
       </div>
       <div className="flex justify-between px-0.5">
         {data.map((d, i) => (
-          <span key={i} className="text-[10px] font-semibold text-gray-400">
+          <span key={i} className="text-2xs font-semibold text-gray-400">
             {d.label}
           </span>
         ))}
@@ -280,46 +280,41 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="pt-15">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-          <BarChart3 className="w-6 h-6 text-[#1A73E8]" />
-          <span>Analytics</span>
-        </h2>
-      </div>
+      <PageHeader icon={BarChart3} title="Analytics" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5">
           <h3 className="text-sm font-bold text-gray-900 mb-1">Certificados por mês</h3>
           <p className="text-xs text-gray-500 mb-2">Últimos 6 meses</p>
-          <BarChart data={certsByMonth} color="#1A73E8" />
+          <BarChart data={certsByMonth} color={BRAND.primary} />
         </div>
 
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5">
           <h3 className="text-sm font-bold text-gray-900 mb-1">Sessões por mês</h3>
           <p className="text-xs text-gray-500 mb-2">Últimos 6 meses</p>
-          <BarChart data={sessionsByMonth} color="#34A853" />
+          <BarChart data={sessionsByMonth} color={BRAND.success} />
         </div>
 
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5">
           <h3 className="text-sm font-bold text-gray-900 mb-1">Pontuação por mês</h3>
           <p className="text-xs text-gray-500 mb-2">Posts, desafios e sessões — últimos 6 meses</p>
-          <BarChart data={scoreByMonth} color="#9333EA" />
+          <BarChart data={scoreByMonth} color={CHART_ACCENT_PURPLE} />
         </div>
 
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5">
           <h3 className="text-sm font-bold text-gray-900 mb-1">Horas de estudo acumuladas</h3>
           <p className="text-xs text-gray-500 mb-2">Evolução ao longo do tempo</p>
-          <AreaLineChart data={cumulativeHours} color="#34A853" formatValue={formatTotalHoursDecimal} />
+          <AreaLineChart data={cumulativeHours} color={BRAND.success} formatValue={formatTotalHoursDecimal} />
         </div>
 
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5">
           <h3 className="text-sm font-bold text-gray-900 mb-3">Posts por plataforma</h3>
           {postsByPlatform.length === 0 ? (
             <p className="text-xs text-gray-400 py-6 text-center">Nenhum post criado ainda.</p>
           ) : (
             <div className="space-y-2.5">
               {postsByPlatform.map(([platform, count]) => {
-                const platformColor = PLATFORM_COLORS[platform] || '#9AA0A6';
+                const platformColor = PLATFORM_COLORS[platform] || NEUTRAL.muted;
                 return (
                   <div key={platform} className="flex items-center gap-3">
                     <span className="text-xs font-medium text-gray-600 w-32 truncate shrink-0">{platform}</span>
@@ -341,7 +336,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           )}
         </div>
 
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5">
           <h3 className="text-sm font-bold text-gray-900 mb-3">Posts por status</h3>
           <div className="w-full h-3 rounded-full bg-gray-100 overflow-hidden flex mb-3">
             {Object.entries(postsByStatus).map(([status, count]) =>

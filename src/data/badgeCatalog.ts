@@ -72,10 +72,10 @@ export interface BadgeDefinition {
 }
 
 const TIER_STYLES: Record<BadgeTier, { bg: string; text: string; ring: string }> = {
-  bronze: { bg: 'bg-[#CD7F32]/10', text: 'text-[#CD7F32]', ring: 'ring-[#CD7F32]/30' },
-  silver: { bg: 'bg-[#9AA0A6]/15', text: 'text-[#5F6368]', ring: 'ring-[#9AA0A6]/30' },
-  gold: { bg: 'bg-[#FBBC04]/15', text: 'text-[#9E5D00]', ring: 'ring-[#FBBC04]/40' },
-  special: { bg: 'bg-[#1A73E8]/10', text: 'text-[#1A73E8]', ring: 'ring-[#1A73E8]/30' },
+  bronze: { bg: 'bg-bronze/10', text: 'text-bronze', ring: 'ring-bronze/30' },
+  silver: { bg: 'bg-gray-500/15', text: 'text-gray-700', ring: 'ring-gray-500/30' },
+  gold: { bg: 'bg-warning/15', text: 'text-warning-800', ring: 'ring-warning/40' },
+  special: { bg: 'bg-primary/10', text: 'text-primary', ring: 'ring-primary/30' },
 };
 
 export function badgeTierStyle(tier: BadgeTier) {

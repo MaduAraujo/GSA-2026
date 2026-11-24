@@ -455,6 +455,9 @@ export function rowToSession(row: Tables<'sessions'>, signedUrls: SignedUrls): A
     proofImage,
     proofMediaType: mediaType(row.proof_media_type),
     score: row.score ?? undefined,
+    durationMinutes: row.duration_minutes ?? undefined,
+    notes: row.notes ?? undefined,
+    pastSessionId: row.past_session_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -479,6 +482,9 @@ export function sessionToRow(
     proof_image_path: proofImagePath,
     proof_media_type: session.proofMediaType || 'image',
     score: session.score ?? null,
+    duration_minutes: session.durationMinutes ?? null,
+    notes: session.notes || null,
+    past_session_id: session.pastSessionId || null,
     created_at: session.createdAt,
     updated_at: session.updatedAt,
   };

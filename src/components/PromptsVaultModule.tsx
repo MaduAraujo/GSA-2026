@@ -1,4 +1,8 @@
-import { ArrowUpDown, FileDown, Paperclip, Plus, Search, SearchX, Sparkles, Star, X } from 'lucide-react';
+import { ArrowUpDown, FileDown, Paperclip, Plus, Search, Sparkles, Star, X } from 'lucide-react';
+import { EmptyState, NoResults } from './ui/EmptyState';
+import { PageHeader } from './ui/PageHeader';
+import { Button } from './ui/Button';
+import { buttonClasses } from './ui/buttonClasses';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useToast } from '../app/ToastProvider';
@@ -187,19 +191,11 @@ export function PromptsVaultModule({
     }
   };
 
-  const secondaryButton =
-    'inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed';
+  const secondaryButton = buttonClasses({ collapseLabel: true });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 pt-15">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2.5">
-            <Sparkles className="w-6 h-6 text-[#FBBC04]" />
-            <span>Prompts</span>
-          </h2>
-        </div>
-
+      <PageHeader icon={Sparkles} iconClassName="text-primary" title="Prompts">
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
@@ -224,25 +220,26 @@ export function PromptsVaultModule({
             <Paperclip className="w-4 h-4" />
             <span className="hidden sm:inline">Docs</span>
             {promptDocs.length > 0 && (
-              <span className="inline-flex items-center justify-center min-w-4.5 h-4.5 px-1 rounded-full bg-[#34A853]/15 text-[#2E7D32] text-[10px] font-bold">
+              <span className="inline-flex items-center justify-center min-w-4.5 h-4.5 px-1 rounded-full bg-success/15 text-success-800 text-2xs font-bold">
                 {promptDocs.length}
               </span>
             )}
           </button>
 
-          <button
+          <Button
             id="btn-new-prompt"
-            type="button"
             onClick={form.openCreate}
             aria-label="Novo prompt"
             title={form.hasCreateDraft ? 'Continuar rascunho' : 'Novo prompt'}
-            className="relative inline-flex items-center justify-center gap-2 px-2.5 sm:px-4 py-2.5 rounded-2xl bg-[#1A73E8] hover:bg-[#1557B0] border border-[#1A73E8] text-white font-semibold text-sm shadow-sm transition-all active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A73E8]"
+            variant="primary"
+            collapseLabel
+            icon={<Plus className="w-4 h-4" />}
+            className="relative"
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">{form.hasCreateDraft ? 'Continuar rascunho' : 'Novo prompt'}</span>
-          </button>
+            {form.hasCreateDraft ? 'Continuar rascunho' : 'Novo prompt'}
+          </Button>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
@@ -257,7 +254,7 @@ export function PromptsVaultModule({
               placeholder="Buscar por título, texto, categoria ou #tag"
               value={searchQuery}
               onChange={(e) => filters.setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 rounded-xl text-sm border border-gray-200 focus:ring-2 focus:ring-[#1A73E8]/30 focus:border-[#1A73E8] bg-gray-50"
+              className="w-full pl-10 pr-10 py-2 rounded-xl text-sm border border-gray-200 focus-visible:ring-2 focus-visible:ring-primary/30 focus:border-primary bg-gray-50"
             />
             {searchQuery ? (
               <button
@@ -271,7 +268,7 @@ export function PromptsVaultModule({
             ) : (
               <kbd
                 aria-hidden="true"
-                className="hidden sm:inline-flex absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md border border-gray-200 bg-white text-[10px] font-mono text-gray-500"
+                className="hidden sm:inline-flex absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md border border-gray-200 bg-white text-2xs font-mono text-gray-500"
               >
                 /
               </kbd>
@@ -286,11 +283,11 @@ export function PromptsVaultModule({
               aria-pressed={onlyFavorites}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
                 onlyFavorites
-                  ? 'bg-[#FBBC04]/20 border-[#FBBC04] text-[#8F5200]'
+                  ? 'bg-warning/20 border-warning text-warning-900'
                   : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-[#FBBC04] text-[#FBBC04]' : 'text-gray-500'}`} />
+              <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-warning text-warning' : 'text-gray-500'}`} />
               <span>Favoritos</span>
             </button>
 
@@ -303,7 +300,7 @@ export function PromptsVaultModule({
                   label: <span className="whitespace-nowrap">{PROMPT_SORT_LABELS[opt]}</span>,
                 }))}
                 ariaLabel="Ordenar prompts"
-                buttonClassName="w-full h-8.5 pl-7 pr-7 rounded-xl text-xs font-semibold border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]/30"
+                buttonClassName="w-full h-8.5 pl-7 pr-7 rounded-xl text-xs font-semibold border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               />
               <ArrowUpDown
                 aria-hidden="true"
@@ -330,7 +327,7 @@ export function PromptsVaultModule({
                   aria-pressed={selectedSection === sec}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
                     selectedSection === sec
-                      ? 'bg-gray-900 text-white shadow-xs'
+                      ? 'bg-primary text-white shadow-xs'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200/80 hover:text-gray-900'
                   }`}
                 >
@@ -342,7 +339,7 @@ export function PromptsVaultModule({
               <div
                 aria-hidden="true"
                 data-testid="sections-fade"
-                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white dark:from-[#161b27] to-transparent"
+                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white dark:from-surface-muted to-transparent"
               />
             )}
           </div>
@@ -358,54 +355,36 @@ export function PromptsVaultModule({
       </div>
 
       {prompts.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#FBBC04]/15 text-[#B06000] flex items-center justify-center mx-auto">
-            <Sparkles className="w-8 h-8" />
-          </div>
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-lg font-bold text-gray-900">Sua biblioteca de prompts está vazia</h3>
-            <p className="text-sm text-gray-600">
+        <EmptyState
+          icon={Sparkles}
+          iconClassName="bg-primary/10 text-primary"
+          title="Sua biblioteca de prompts está vazia"
+          description={
+            <>
               Guarde os prompts que você mais usa, com variáveis como <span className="font-mono">[TEMA]</span> para
               reaproveitar, testar e aprimorar com IA.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={form.openCreate}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1A73E8] hover:bg-[#1557B0] text-white text-sm font-semibold shadow-sm transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{form.hasCreateDraft ? 'Continuar rascunho' : 'Criar primeiro prompt'}</span>
-          </button>
-        </div>
+            </>
+          }
+          action={{
+            label: form.hasCreateDraft ? 'Continuar rascunho' : 'Criar primeiro prompt',
+            onClick: form.openCreate,
+            icon: <Plus className="w-4 h-4" />,
+          }}
+        />
       ) : filteredPrompts.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-3xl border border-gray-200 p-8 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center mx-auto">
-            <SearchX className="w-8 h-8" />
-          </div>
-          <div className="space-y-1.5">
-            <h3 className="text-lg font-bold text-gray-900">Nenhum prompt encontrado</h3>
-            <p className="text-sm text-gray-600">
-              {searchQuery ? (
-                <>
-                  Nenhum resultado para <span className="font-semibold">“{searchQuery}”</span> com os filtros atuais.
-                </>
-              ) : (
-                'Nenhum prompt corresponde aos filtros selecionados.'
-              )}
-            </p>
-          </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={filters.clear}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-sm font-semibold transition-all active:scale-95"
-            >
-              <X className="w-4 h-4" />
-              <span>Limpar filtros</span>
-            </button>
-          )}
-        </div>
+        <NoResults
+          title="Nenhum prompt encontrado"
+          description={
+            searchQuery ? (
+              <>
+                Nenhum resultado para <span className="font-semibold">“{searchQuery}”</span> com os filtros atuais.
+              </>
+            ) : (
+              'Nenhum prompt corresponde aos filtros selecionados.'
+            )
+          }
+          onClear={hasActiveFilters ? filters.clear : undefined}
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filteredPrompts.map((prompt) => (

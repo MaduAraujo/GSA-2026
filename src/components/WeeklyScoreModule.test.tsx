@@ -1,18 +1,19 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WeeklyScoreModule } from './WeeklyScoreModule';
 import { type WeeklyScore } from '../types';
 import { makeWeeklyScore } from '../test/factories';
+import { renderModule } from '../test/render';
 
 describe('WeeklyScoreModule', () => {
   it('shows an empty state when there are no weekly scores', () => {
-    render(<WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={vi.fn()} onDeleteWeeklyScore={vi.fn()} />);
+    renderModule(<WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={vi.fn()} onDeleteWeeklyScore={vi.fn()} />);
     expect(screen.getByText('Nenhuma pontuação registrada')).toBeInTheDocument();
   });
 
   it('lists weeks sorted from the most recent first', () => {
-    render(
+    renderModule(
       <WeeklyScoreModule
         weeklyScores={[
           makeWeeklyScore({ id: 'w1', weekStart: '2026-08-24', weekEnd: '2026-08-31', points: 145 }),
@@ -29,7 +30,7 @@ describe('WeeklyScoreModule', () => {
 
   it('keeps the submit button disabled until both dates and points are filled', async () => {
     const user = userEvent.setup();
-    render(<WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={vi.fn()} onDeleteWeeklyScore={vi.fn()} />);
+    renderModule(<WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={vi.fn()} onDeleteWeeklyScore={vi.fn()} />);
     await user.click(screen.getByLabelText('Nova pontuação semanal'));
 
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
@@ -50,7 +51,9 @@ describe('WeeklyScoreModule', () => {
   it('creates a weekly score with the selected dates and points', async () => {
     const user = userEvent.setup();
     const onSaveWeeklyScore = vi.fn().mockResolvedValue(undefined);
-    render(<WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={onSaveWeeklyScore} onDeleteWeeklyScore={vi.fn()} />);
+    renderModule(
+      <WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={onSaveWeeklyScore} onDeleteWeeklyScore={vi.fn()} />,
+    );
     await user.click(screen.getByLabelText('Nova pontuação semanal'));
 
     await user.click(document.getElementById('weekly-score-form-start') as HTMLButtonElement);
@@ -71,7 +74,9 @@ describe('WeeklyScoreModule', () => {
   it('rejects an end date earlier than the start date', async () => {
     const user = userEvent.setup();
     const onSaveWeeklyScore = vi.fn();
-    render(<WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={onSaveWeeklyScore} onDeleteWeeklyScore={vi.fn()} />);
+    renderModule(
+      <WeeklyScoreModule weeklyScores={[]} onSaveWeeklyScore={onSaveWeeklyScore} onDeleteWeeklyScore={vi.fn()} />,
+    );
     await user.click(screen.getByLabelText('Nova pontuação semanal'));
 
     await user.click(document.getElementById('weekly-score-form-start') as HTMLButtonElement);
@@ -88,23 +93,23 @@ describe('WeeklyScoreModule', () => {
 
   it('opens the edit form pre-filled when a week is edited', async () => {
     const user = userEvent.setup();
-    render(
+    renderModule(
       <WeeklyScoreModule
         weeklyScores={[makeWeeklyScore({ id: 'w1', points: 145 })]}
         onSaveWeeklyScore={vi.fn()}
         onDeleteWeeklyScore={vi.fn()}
       />,
     );
-    await user.click(screen.getByLabelText('Editar pontuação'));
+    await user.click(screen.getByRole('button', { name: /Mais ações para/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Editar' }));
     expect(within(screen.getByRole('dialog')).getByText('Editar Pontuação')).toBeInTheDocument();
     expect(screen.getByDisplayValue('145')).toBeInTheDocument();
   });
 
-  it('asks for confirmation before deleting a weekly score', async () => {
+  it('hides a deleted item right away and lets the user undo it', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const onDeleteWeeklyScore = vi.fn();
-    render(
+    renderModule(
       <WeeklyScoreModule
         weeklyScores={[makeWeeklyScore({ id: 'w1' })]}
         onSaveWeeklyScore={vi.fn()}
@@ -112,10 +117,12 @@ describe('WeeklyScoreModule', () => {
       />,
     );
 
-    await user.click(screen.getByLabelText('Excluir pontuação'));
+    await user.click(screen.getByRole('button', { name: /Mais ações para/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Excluir' }));
+    expect(screen.queryByRole('button', { name: /Mais ações para/ })).not.toBeInTheDocument();
 
-    expect(confirmSpy).toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Desfazer' }));
+    expect(screen.getByRole('button', { name: /Mais ações para/ })).toBeInTheDocument();
     expect(onDeleteWeeklyScore).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 });

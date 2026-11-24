@@ -11,11 +11,11 @@ const pillClass =
 const VARIANTS: Record<PillVariant, { idle: string; copied: string }> = {
   light: {
     idle: 'border bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
-    copied: 'border bg-[#34A853]/10 border-[#34A853]/40 text-[#1E8E3E]',
+    copied: 'border bg-success/10 border-success/40 text-success-700',
   },
   glass: {
     idle: 'bg-white/40 dark:bg-white/5 text-gray-800 dark:text-gray-100 ring-1 ring-inset ring-gray-900/10 dark:ring-white/10 hover:bg-white/70 dark:hover:bg-white/10',
-    copied: 'bg-[#34A853]/15 text-[#1E8E3E] dark:text-[#81C995] ring-1 ring-inset ring-[#34A853]/40',
+    copied: 'bg-success/15 text-success-700 dark:text-success-300 ring-1 ring-inset ring-success/40',
   },
 };
 
