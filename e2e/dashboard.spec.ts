@@ -41,7 +41,7 @@ test.describe('signed in', () => {
   test('a deep link opens that tab directly', async ({ page }) => {
     await fakeSupabase(page, { profiles: [profileRow()] });
     await page.goto('/desafios');
-    await expect(page.getByRole('heading', { name: 'Desafios' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Desafios', exact: true })).toBeVisible();
   });
 
   test('a new certificate is saved and listed', async ({ page }) => {
