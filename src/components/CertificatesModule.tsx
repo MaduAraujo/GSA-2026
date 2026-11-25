@@ -454,7 +454,7 @@ export function CertificatesModule({
         </div>
 
         {categories.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-reveal">
             {['Todos', ...categories].map((cat) => (
               <button
                 key={cat}

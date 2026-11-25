@@ -41,7 +41,7 @@ export const RemindersService = {
 
     new Notification('Embaixadora Google 2026', {
       body: 'Já faz um tempo desde o seu último post! Que tal gerar um novo conteúdo com o Gemini hoje?',
-      icon: '/icons/icon-192.svg',
+      icon: '/icons/icon-192.png',
       tag: 'weekly-content-reminder',
     });
 

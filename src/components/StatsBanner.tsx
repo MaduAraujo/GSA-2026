@@ -39,7 +39,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({
   return (
     <section
       aria-label="Resumo"
-      className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6 border-b border-gray-200"
+      className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-7 sm:gap-4 pb-6 border-b border-gray-200"
     >
       <div className="min-w-0">
         <h1 className="text-2xl font-semibold text-gray-900 truncate">Olá, {profile.name}</h1>

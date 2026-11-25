@@ -317,7 +317,7 @@ export function PromptsVaultModule({
               onScroll={checkSectionsScroll}
               role="group"
               aria-label="Filtrar por categoria"
-              className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none"
+              className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-reveal"
             >
               {[ALL_SECTIONS, ...sections].map((sec) => (
                 <button

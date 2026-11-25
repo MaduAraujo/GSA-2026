@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Eye, EyeOff, KeyRound, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { isPasswordLeaked } from '../../utils/passwordSecurity';
-import { errorMessage } from '../../utils/errors';
+import { authErrorCode, friendlyAuthError } from '../../lib/authErrors';
 import { AuthAlert, AuthCard, AUTH_INPUT_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from './AuthCard';
 
 interface ResetPasswordScreenProps {
@@ -14,12 +14,10 @@ interface ResetPasswordScreenProps {
 const MIN_LENGTH = 6;
 
 function friendlyUpdateError(err: unknown): string {
-  const code = (err as { code?: string } | null)?.code;
-  if (code === 'same_password') return 'A nova senha precisa ser diferente da senha atual.';
-  if (code === 'weak_password') return 'Essa senha é fraca demais. Use uma combinação mais longa.';
+  const code = authErrorCode(err);
   if (code === 'session_not_found' || code === 'session_expired')
     return 'Sua sessão de recuperação expirou. Peça um novo link de redefinição.';
-  return errorMessage(err, 'Não foi possível salvar a nova senha. Tente novamente.');
+  return friendlyAuthError(err, 'Não foi possível salvar a nova senha. Tente novamente.');
 }
 
 export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onDone, onCancel }) => {

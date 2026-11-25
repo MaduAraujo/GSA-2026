@@ -162,9 +162,6 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
   return (
     <div className="min-h-screen md:h-dvh md:overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors">
       <Navbar
-        isMobileNavOpen={isMobileNavOpen}
-        onToggleMobileNav={() => setIsMobileNavOpen((v) => !v)}
-        onOpenSearch={() => setIsCommandPaletteOpen(true)}
         profile={currentProfile}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenAmbassadorArea={() => setIsAmbassadorAreaOpen(true)}

@@ -248,9 +248,45 @@ describe('server/app', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, data: analyzed });
-    expect(groqCreateMock).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'meta-llama/llama-4-scout-17b-16e-instruct' }),
-    );
+    expect(groqCreateMock).toHaveBeenCalledWith(expect.objectContaining({ model: 'qwen/qwen3.8-27b' }));
+    vi.doUnmock('@supabase/supabase-js');
+  });
+
+  it('analyze-certificate uses GROQ_VISION_MODEL when set and ignores reasoning before the JSON', async () => {
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = '';
+    process.env.GROQ_API_KEY = 'fake-groq-key';
+    process.env.GROQ_VISION_MODEL = 'some/other-vision-model';
+    mockAuthedSupabase();
+    const analyzed = {
+      suggestedTitle: 'Introdução à IA Generativa',
+      issuer: 'Google Cloud Skills Boost',
+      category: 'GenAI & Gemini',
+      skills: ['IA Generativa'],
+      summary: 'Curso introdutório.',
+      linkedinCaption: 'Concluí um curso!',
+    };
+    groqCreateMock.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: `<think>O título parece ser {algo}.</think>
+${JSON.stringify(analyzed)}`,
+          },
+        },
+      ],
+    });
+    const { app } = await import('./app');
+
+    const res = await request(app)
+      .post('/api/ai/analyze-certificate')
+      .set('Authorization', 'Bearer good-token')
+      .send({ imageBase64: 'data:image/png;base64,AAA' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, data: analyzed });
+    expect(groqCreateMock).toHaveBeenCalledWith(expect.objectContaining({ model: 'some/other-vision-model' }));
     vi.doUnmock('@supabase/supabase-js');
   });
 

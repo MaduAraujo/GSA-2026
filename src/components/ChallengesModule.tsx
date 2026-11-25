@@ -142,7 +142,7 @@ export function ChallengesModule({
       <div
         role="tablist"
         aria-label="Tipos de desafio"
-        className="flex gap-1 p-1 rounded-2xl bg-gray-100 overflow-x-auto scrollbar-none"
+        className="flex gap-1 p-1 rounded-2xl bg-gray-100 overflow-x-auto scrollbar-reveal"
       >
         {CHALLENGE_TYPES.map(({ type, tab }) => {
           const selected = type === activeTab.type;
@@ -233,7 +233,7 @@ export function ChallengesModule({
         </div>
 
         {categories.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-reveal">
             {['Todos', ...categories].map((cat) => (
               <button
                 key={cat}

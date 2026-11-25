@@ -36,5 +36,5 @@ export function consumeLinkError(): string | null {
   if (!pendingLinkError) return null;
   pendingLinkError = false;
   clearAuthParamsFromUrl();
-  return 'Este link expirou ou já foi usado. Se precisar redefinir sua senha, peça um novo link em "Esqueceu a senha?".';
+  return 'Este link expirou ou já foi usado. Para redefinir a senha, peça um novo link em "Esqueceu a senha?". Para confirmar o cadastro, tente entrar e reenvie o e-mail de confirmação.';
 }

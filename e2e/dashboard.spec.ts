@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { fakeSupabase, profileRow, signInBeforeLoad, TEST_USER } from './fakeSupabase';
 
 async function openTab(page: Page, name: string) {
-  const menuButton = page.getByRole('button', { name: 'Abrir menu', exact: true });
+  const menuButton = page.getByRole('button', { name: 'Mais', exact: true });
   if (await menuButton.isVisible()) await menuButton.click();
   await page.getByRole('link', { name, exact: true }).first().click();
 }
@@ -129,5 +129,28 @@ test.describe('Grupo de Estudos', () => {
     });
     expect(overflow).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+});
+
+test.describe('mobile drawer', () => {
+  test.skip(({ isMobile }) => !isMobile, 'mobile only');
+
+  test('the menu scrolls up and down when dragging over its items', async ({ page }) => {
+    await signInBeforeLoad(page);
+    await page.setViewportSize({ width: 360, height: 480 });
+    await fakeSupabase(page, { profiles: [profileRow()] });
+    await page.goto('/certificados');
+
+    await page.getByRole('button', { name: 'Mais', exact: true }).click();
+    const drawer = page.locator('#app-sidebar');
+    await expect(drawer).toBeVisible();
+    expect(await drawer.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+
+    await page.getByRole('link', { name: 'Certificados', exact: true }).first().hover();
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => drawer.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+
+    await page.mouse.wheel(0, -600);
+    await expect.poll(() => drawer.evaluate((el) => el.scrollTop)).toBe(0);
   });
 });

@@ -2,7 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { initMonitoring } from './lib/monitoring';
+import { installScrollbarReveal } from './lib/scrollbarReveal';
 import './index.css';
+
+installScrollbarReveal();
 
 void initMonitoring();
 

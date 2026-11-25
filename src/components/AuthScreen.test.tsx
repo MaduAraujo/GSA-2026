@@ -3,16 +3,25 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthScreen } from './AuthScreen';
 
-const { signInWithPassword, signUp, resetPasswordForEmail, signInWithOAuth } = vi.hoisted(() => ({
+const { signInWithPassword, signUp, resetPasswordForEmail, signInWithOAuth, resend, verifyOtp } = vi.hoisted(() => ({
   signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
   signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
-  signUp: vi.fn().mockResolvedValue({ error: null }),
+  signUp: vi.fn().mockResolvedValue({ data: { user: { identities: [{}] }, session: null }, error: null }),
   resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
+  resend: vi.fn().mockResolvedValue({ error: null }),
+  verifyOtp: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 vi.mock('../services/supabaseClient', () => ({
-  supabase: { auth: { signInWithPassword, signUp, resetPasswordForEmail, signInWithOAuth } },
+  supabase: { auth: { signInWithPassword, signUp, resetPasswordForEmail, signInWithOAuth, resend, verifyOtp } },
 }));
+
+const fillSignUp = async (user: ReturnType<typeof userEvent.setup>, email = 'nova@example.com') => {
+  await user.type(screen.getByLabelText('Nome completo'), 'Ana Souza');
+  await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, email);
+  await user.type(document.querySelector('input[autocomplete$="password"]') as HTMLInputElement, 'senhaSegura1');
+  await user.click(document.querySelector('form button[type="submit"]') as HTMLButtonElement);
+};
 
 const { isPasswordLeaked } = vi.hoisted(() => ({ isPasswordLeaked: vi.fn().mockResolvedValue(false) }));
 vi.mock('../utils/passwordSecurity', () => ({ isPasswordLeaked }));
@@ -55,7 +64,7 @@ describe('AuthScreen', () => {
     expect(signUp).not.toHaveBeenCalled();
   });
 
-  it('signs up and shows a confirmation message when the password is not leaked', async () => {
+  it('signs up and shows the confirm-email screen when the password is not leaked', async () => {
     isPasswordLeaked.mockResolvedValueOnce(false);
     const user = userEvent.setup();
     render(<AuthScreen initialMode="signUp" />);
@@ -68,9 +77,92 @@ describe('AuthScreen', () => {
     expect(signUp).toHaveBeenCalledWith({
       email: 'nova@example.com',
       password: 'senhaSegura1',
-      options: { data: { full_name: 'Ana Souza' } },
+      options: { emailRedirectTo: window.location.origin, data: { full_name: 'Ana Souza' } },
     });
-    expect(await screen.findByText(/Conta criada!/)).toBeInTheDocument();
+    expect(await screen.findByText('Confirme seu e-mail')).toBeInTheDocument();
+    expect(screen.getByText('nova@example.com')).toBeInTheDocument();
+  });
+
+  it('resends the confirmation email from the confirm-email screen', async () => {
+    resend.mockClear();
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signUp" />);
+    await fillSignUp(user);
+
+    await user.click(await screen.findByRole('button', { name: 'Reenviar e-mail' }));
+
+    expect(resend).toHaveBeenCalledWith({
+      type: 'signup',
+      email: 'nova@example.com',
+      options: { emailRedirectTo: window.location.origin },
+    });
+    expect(await screen.findByText(/E-mail reenviado/)).toBeInTheDocument();
+  });
+
+  it('does not show the confirm-email screen when sign up returns a session', async () => {
+    signUp.mockResolvedValueOnce({ data: { user: { identities: [{}] }, session: { access_token: 'x' } }, error: null });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signUp" />);
+    await fillSignUp(user);
+
+    await vi.waitFor(() => expect(signUp).toHaveBeenCalled());
+    expect(screen.queryByText('Confirme seu e-mail')).not.toBeInTheDocument();
+  });
+
+  it('tells the user when the email already has an account (obfuscated response)', async () => {
+    signUp.mockResolvedValueOnce({ data: { user: { identities: [] }, session: null }, error: null });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signUp" />);
+    await fillSignUp(user, 'ja@example.com');
+
+    expect(await screen.findByText(/Já existe uma conta com este e-mail/)).toBeInTheDocument();
+    expect(screen.queryByText('Confirme seu e-mail')).not.toBeInTheDocument();
+  });
+
+  it('translates the "already registered" error on sign up', async () => {
+    signUp.mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { code: 'user_already_exists', message: 'User already registered' },
+    });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signUp" />);
+    await fillSignUp(user, 'ja@example.com');
+
+    expect(await screen.findByText(/Já existe uma conta com este e-mail/)).toBeInTheDocument();
+  });
+
+  it('offers to resend the confirmation when signing in with an unconfirmed email', async () => {
+    resend.mockClear();
+    signInWithPassword.mockResolvedValueOnce({
+      error: { code: 'email_not_confirmed', message: 'Email not confirmed' },
+    });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+
+    await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'ana@example.com');
+    await user.type(document.querySelector('input[autocomplete$="password"]') as HTMLInputElement, 'senha123');
+    await user.click(document.querySelector('form button[type="submit"]') as HTMLButtonElement);
+
+    expect(await screen.findByText(/ainda não foi confirmado/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reenviar e-mail de confirmação' }));
+
+    expect(resend).toHaveBeenCalledWith(expect.objectContaining({ type: 'signup', email: 'ana@example.com' }));
+    expect(await screen.findByText('Confirme seu e-mail')).toBeInTheDocument();
+  });
+
+  it('translates invalid credentials into Portuguese', async () => {
+    signInWithPassword.mockResolvedValueOnce({
+      error: { code: 'invalid_credentials', message: 'Invalid login credentials' },
+    });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+
+    await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'ana@example.com');
+    await user.type(document.querySelector('input[autocomplete$="password"]') as HTMLInputElement, 'errada1');
+    await user.click(document.querySelector('form button[type="submit"]') as HTMLButtonElement);
+
+    expect(await screen.findByText('E-mail ou senha incorretos.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reenviar e-mail de confirmação' })).not.toBeInTheDocument();
   });
 
   it('requires first and last name on sign up', async () => {
@@ -105,6 +197,49 @@ describe('AuthScreen', () => {
       expect.objectContaining({ redirectTo: expect.any(String) }),
     );
     expect(await screen.findByText('Verifique seu e-mail')).toBeInTheDocument();
+  });
+
+  it('verifies the emailed recovery code inside the app', async () => {
+    verifyOtp.mockClear();
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+
+    await user.click(screen.getByRole('button', { name: 'Esqueceu a senha?' }));
+    await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'ana@example.com');
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    await user.type(await screen.findByLabelText('Código de verificação'), '12a3 456');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(verifyOtp).toHaveBeenCalledWith({ email: 'ana@example.com', token: '123456', type: 'recovery' });
+  });
+
+  it('rejects a short recovery code without calling the API', async () => {
+    verifyOtp.mockClear();
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+
+    await user.click(screen.getByRole('button', { name: 'Esqueceu a senha?' }));
+    await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'ana@example.com');
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    await user.type(await screen.findByLabelText('Código de verificação'), '123');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(await screen.findByText(/Digite o código de 6 dígitos/)).toBeInTheDocument();
+    expect(verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('explains when the recovery code is wrong or expired', async () => {
+    verifyOtp.mockResolvedValueOnce({ error: { code: 'otp_expired', message: 'Token has expired or is invalid' } });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+
+    await user.click(screen.getByRole('button', { name: 'Esqueceu a senha?' }));
+    await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'ana@example.com');
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    await user.type(await screen.findByLabelText('Código de verificação'), '999999');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(await screen.findByText(/Código inválido ou expirado/)).toBeInTheDocument();
   });
 
   it('toggles password visibility', async () => {
@@ -142,6 +277,6 @@ describe('AuthScreen', () => {
     const user = userEvent.setup();
     render(<AuthScreen initialMode="signIn" />);
     await user.click(screen.getByRole('button', { name: 'Entrar com o Google' }));
-    expect(await screen.findByText('Provider is not enabled')).toBeInTheDocument();
+    expect(await screen.findByText('Esse método de login não está disponível no momento.')).toBeInTheDocument();
   });
 });
