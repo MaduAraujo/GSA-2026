@@ -96,4 +96,21 @@ describe('AiApiService', () => {
     vi.stubGlobal('fetch', mockFetchOnce(200, { success: true, unexpected: 1 }));
     await expect(AiApiService.sendChatMessage('oi')).rejects.toThrow('Resposta inesperada do servidor.');
   });
+  it('rejects oversized payloads before calling the server', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      AiApiService.analyzeCertificate({ imageBase64: 'data:application/pdf;base64,' + 'A'.repeat(4.5 * 1024 * 1024) }),
+    ).rejects.toThrow(/grande demais/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a 413 response to the file-too-large message', async () => {
+    vi.stubGlobal('fetch', mockFetchOnce(413, {}));
+
+    await expect(AiApiService.analyzeCertificate({ imageBase64: 'data:image/png;base64,AAA' })).rejects.toThrow(
+      /grande demais/,
+    );
+  });
 });

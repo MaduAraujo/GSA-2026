@@ -8,6 +8,7 @@ import { useDismiss } from '../../hooks/useDismiss';
 import { AiApiService } from '../../services/aiApi';
 import type { Certificate } from '../../types';
 import { errorMessage } from '../../utils/errors';
+import { downscaleImageForAi } from '../../utils/imageForAi';
 import { DatePicker } from '../DatePicker';
 import { NumberStepper } from '../NumberStepper';
 import type { CertificateFormState } from './useCertificateForm';
@@ -74,7 +75,7 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
       const res = await AiApiService.analyzeCertificate({
         title: formData.title || fileName || 'Certificado Google 2026',
         issuer: formData.issuer || undefined,
-        imageBase64: filePreview,
+        imageBase64: fileType === 'image' ? await downscaleImageForAi(filePreview) : filePreview,
       });
 
       setFormData((prev) => ({

@@ -116,4 +116,19 @@ describe('GET /api/portfolio/:slug', () => {
     expect(chains.earned_badges!.eq).toHaveBeenCalledWith('user_id', 'u1');
     expect(createSignedUrls).toHaveBeenCalledWith(['u1/earned-badges/1-b.png'], 3600);
   });
+
+  it('rate limits a single IP after 60 requests per minute', async () => {
+    mockAdmin({ profiles: { data: null, error: null } });
+    const app = await loadApp();
+    for (let i = 0; i < 60; i++) {
+      const ok = await request(app).get('/api/portfolio/ana-1234').set('x-real-ip', '203.0.113.7');
+      expect(ok.status).toBe(404);
+    }
+    const blocked = await request(app).get('/api/portfolio/ana-1234').set('x-real-ip', '203.0.113.7');
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers['retry-after']).toBeDefined();
+
+    const otherIp = await request(app).get('/api/portfolio/ana-1234').set('x-real-ip', '203.0.113.8');
+    expect(otherIp.status).toBe(404);
+  });
 });

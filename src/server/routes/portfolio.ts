@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { PUBLIC_SLUG_PATTERN, type PublicPortfolio } from '../../shared/publicPortfolio';
 import { adminClient } from '../config';
-import { HttpError } from '../http';
+import { HttpError, ipRateLimit } from '../http';
 
 const USER_FILES_BUCKET = 'user-files';
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export const portfolioRouter = Router();
+
+portfolioRouter.use(ipRateLimit({ windowMs: 60_000, max: 60 }));
 
 portfolioRouter.get('/:slug', async (req, res) => {
   if (!adminClient) {

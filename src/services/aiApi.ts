@@ -21,18 +21,29 @@ export type {
   EnhancedPrompt,
 };
 
+const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+const TOO_LARGE_MESSAGE =
+  'O arquivo é grande demais para a IA analisar (limite de cerca de 3MB). Use um arquivo menor ou preencha os campos manualmente.';
+
 async function postJson<S extends z.ZodType>(
   url: string,
   body: unknown,
   responseSchema: S,
   fallbackError: string,
 ): Promise<z.infer<S>> {
+  const payload = JSON.stringify(body);
+  if (new Blob([payload]).size > MAX_REQUEST_BYTES) {
+    throw new Error(TOO_LARGE_MESSAGE);
+  }
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-    body: JSON.stringify(body),
+    body: payload,
   });
 
+  if (res.status === 413) {
+    throw new Error(TOO_LARGE_MESSAGE);
+  }
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: unknown };
     throw new Error(typeof err.error === 'string' && err.error ? err.error : fallbackError);

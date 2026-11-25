@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
+import { CSP_DIRECTIVES } from '../shared/csp';
 import { isProduction } from './config';
 import { errorHandler } from './http';
 import { aiRouter } from './routes/ai';
@@ -12,36 +13,13 @@ export const app = express();
 
 app.use(
   helmet({
-    contentSecurityPolicy: isProduction
-      ? {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-            fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-            imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-            mediaSrc: ["'self'", 'blob:', 'https://*.supabase.co'],
-            connectSrc: [
-              "'self'",
-              'https://*.supabase.co',
-              'wss://*.supabase.co',
-              'https://api.pwnedpasswords.com',
-              'https://*.ingest.sentry.io',
-              'https://*.ingest.us.sentry.io',
-            ],
-            frameSrc: ["'self'", 'https://*.supabase.co'],
-            workerSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            frameAncestors: ["'self'"],
-          },
-        }
-      : false,
+    contentSecurityPolicy: isProduction ? { useDefaults: false, directives: CSP_DIRECTIVES } : false,
     crossOriginEmbedderPolicy: false,
   }),
 );
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({

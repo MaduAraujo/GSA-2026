@@ -1,5 +1,6 @@
 import { routes } from '@vercel/config/v1';
 import type { VercelConfig } from '@vercel/config/v1';
+import { CSP_HEADER_VALUE } from './src/shared/csp';
 
 export const config: VercelConfig = {
   buildCommand: 'vite build',
@@ -15,6 +16,7 @@ export const config: VercelConfig = {
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
       { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      { key: 'Content-Security-Policy', value: CSP_HEADER_VALUE },
     ]),
   ],
 

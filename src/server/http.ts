@@ -72,6 +72,43 @@ export async function rateLimit(req: Request, res: Response, next: NextFunction)
   next();
 }
 
+function clientIp(req: Request): string {
+  const realIp = req.headers['x-real-ip'];
+  if (typeof realIp === 'string' && realIp) return realIp;
+  const forwarded = req.headers['x-forwarded-for'];
+  const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim();
+  return first || req.ip || 'unknown';
+}
+
+const MAX_TRACKED_IPS = 10_000;
+
+export function ipRateLimit({ windowMs, max }: { windowMs: number; max: number }) {
+  const hits = new Map<string, { windowStart: number; count: number }>();
+  return (req: Request, res: Response, next: NextFunction) => {
+    const now = Date.now();
+    if (hits.size > MAX_TRACKED_IPS) {
+      for (const [ip, entry] of hits) {
+        if (now - entry.windowStart >= windowMs) hits.delete(ip);
+      }
+      if (hits.size > MAX_TRACKED_IPS) hits.clear();
+    }
+    const ip = clientIp(req);
+    const entry = hits.get(ip);
+    if (!entry || now - entry.windowStart >= windowMs) {
+      hits.set(ip, { windowStart: now, count: 1 });
+      return next();
+    }
+    entry.count += 1;
+    if (entry.count > max) {
+      res.set('Retry-After', String(Math.ceil((entry.windowStart + windowMs - now) / 1000)));
+      return res
+        .status(429)
+        .json({ error: 'Muitas requisições em pouco tempo. Aguarde um instante e tente novamente.' });
+    }
+    next();
+  };
+}
+
 export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction) {
   if (error instanceof HttpError) {
     return res.status(error.status).json({ error: error.message });
