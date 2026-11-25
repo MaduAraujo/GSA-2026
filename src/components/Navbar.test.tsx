@@ -7,8 +7,6 @@ import { renderWithProviders } from '../test/render';
 
 function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = {}) {
   const props = {
-    isMobileNavOpen: false,
-    onToggleMobileNav: vi.fn(),
     profile: makeProfile({ name: 'Ana Souza', email: 'ana@example.com' }),
     onOpenProfile: vi.fn(),
     onOpenAmbassadorArea: vi.fn(),
@@ -21,18 +19,24 @@ function renderNavbar(overrides: Partial<React.ComponentProps<typeof Navbar>> = 
 }
 
 describe('Navbar', () => {
+  it('is a sticky top bar on every screen size with the logo, the trophy and the profile photo', () => {
+    renderNavbar();
+    expect(screen.getByTestId('navbar-logo').querySelector('svg')).toBeInTheDocument();
+    expect(screen.getByTestId('navbar-logo')).not.toHaveClass('hidden');
+    expect(screen.getByRole('banner')).toHaveClass('sticky', 'top-0');
+    expect(screen.queryByRole('button', { name: 'Abrir menu' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Níveis' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Abrir menu da conta')).toBeInTheDocument();
+  });
+
+  it('has no search field', () => {
+    renderNavbar();
+    expect(screen.queryByRole('button', { name: 'Busca rápida' })).not.toBeInTheDocument();
+  });
+
   it('links the trophy next to the profile photo to the levels page', () => {
     renderNavbar();
     expect(screen.getByRole('link', { name: 'Níveis' })).toHaveAttribute('href', '/niveis');
-  });
-
-  it('toggles the mobile sidebar from the menu button', async () => {
-    const user = userEvent.setup();
-    const { onToggleMobileNav } = renderNavbar();
-    const button = screen.getByRole('button', { name: 'Abrir menu' });
-    expect(button).toHaveAttribute('aria-expanded', 'false');
-    await user.click(button);
-    expect(onToggleMobileNav).toHaveBeenCalledTimes(1);
   });
 
   it('opens the account menu and shows the profile name and email', async () => {

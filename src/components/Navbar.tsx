@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
-import { User, Settings, Menu, X, LogOut, ChevronDown, Globe, ShieldCheck, Trophy, Search } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, Globe, ShieldCheck, Trophy } from 'lucide-react';
 import type { AmbassadorProfile } from '../types';
 import { PAGE_PATHS, type AppTab } from '../routes';
 import { OFFICIAL_SITE_URL } from './navItems';
-import { BRAND } from '../theme/colors';
+import { BrandLogo } from './ui/BrandLogo';
 
 export type { AppTab };
 
 interface NavbarProps {
-  isMobileNavOpen: boolean;
-  onToggleMobileNav: () => void;
-  onOpenSearch?: () => void;
   profile: AmbassadorProfile;
   onOpenProfile: () => void;
   onOpenAmbassadorArea: () => void;
@@ -20,9 +17,6 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  isMobileNavOpen,
-  onToggleMobileNav,
-  onOpenSearch,
   profile,
   onOpenProfile,
   onOpenAmbassadorArea,
@@ -71,68 +65,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4 h-16">
-          <div className="flex items-center shrink-0">
-            <svg viewBox="0 0 192 192" className="w-8 h-8">
-              <path
-                d="M 96,16 A 80,80 0 0,1 176,96"
-                fill="none"
-                stroke={BRAND.primary}
-                strokeWidth="14"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 176,96 A 80,80 0 0,1 96,176"
-                fill="none"
-                stroke={BRAND.success}
-                strokeWidth="14"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 96,176 A 80,80 0 0,1 16,96"
-                fill="none"
-                stroke={BRAND.warning}
-                strokeWidth="14"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 16,96 A 80,80 0 0,1 96,16"
-                fill="none"
-                stroke={BRAND.danger}
-                strokeWidth="14"
-                strokeLinecap="round"
-              />
-              <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
-              <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
-            </svg>
+          <div data-testid="navbar-logo" className="flex items-center shrink-0">
+            <BrandLogo className="w-9 h-9" />
           </div>
 
-          {onOpenSearch && (
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              aria-label="Busca rápida"
-              aria-keyshortcuts="Control+K Meta+K"
-              className="hidden sm:flex items-center gap-2 flex-1 max-w-sm ml-4 px-3.5 py-2 rounded-full border border-gray-200 dark:border-gray-800 bg-gray-50 text-sm text-gray-500 hover:bg-gray-100 transition-colors"
-            >
-              <Search aria-hidden="true" className="w-4 h-4" />
-              <span className="flex-1 text-left">Buscar…</span>
-              <kbd className="px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-800 bg-white text-2xs font-semibold text-gray-500">
-                Ctrl K
-              </kbd>
-            </button>
-          )}
-
           <div className="flex items-center gap-0.5 ml-auto">
-            {onOpenSearch && (
-              <button
-                type="button"
-                onClick={onOpenSearch}
-                aria-label="Busca rápida"
-                className={`${iconBtnClass} sm:hidden`}
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            )}
             <Link to={PAGE_PATHS.levels} aria-label="Níveis" title="Níveis" className={iconBtnClass}>
               <Trophy className="w-5 h-5 text-warning-600" />
             </Link>
@@ -232,16 +169,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
             </div>
-
-            <button
-              onClick={onToggleMobileNav}
-              aria-label={isMobileNavOpen ? 'Fechar menu' : 'Abrir menu'}
-              aria-expanded={isMobileNavOpen}
-              aria-controls="app-sidebar"
-              className={`${iconBtnClass} md:hidden`}
-            >
-              {isMobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
       </div>

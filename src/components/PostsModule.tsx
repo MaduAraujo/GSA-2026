@@ -239,7 +239,7 @@ export function PostsModule({ posts: allPosts, onSavePost, onDeletePost, initial
           <div
             role="group"
             aria-label="Filtrar por plataforma"
-            className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none"
+            className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-reveal"
           >
             <FilterChip
               label={ALL}
@@ -262,7 +262,7 @@ export function PostsModule({ posts: allPosts, onSavePost, onDeletePost, initial
             <div
               role="group"
               aria-label="Filtrar por status"
-              className="flex items-center gap-2 overflow-x-auto pt-2 pb-1 scrollbar-none"
+              className="flex items-center gap-2 overflow-x-auto pt-2 pb-1 scrollbar-reveal"
             >
               <FilterChip
                 label="Todos os status"
@@ -324,12 +324,7 @@ export function PostsModule({ posts: allPosts, onSavePost, onDeletePost, initial
           {groups.map((group) => (
             <section key={group.key} aria-label={group.label || 'Posts'} className="space-y-3">
               {group.label && (
-                <h3 className="flex items-center gap-2 text-sm font-bold text-gray-700">
-                  {group.label}
-                  <span className="text-xs font-medium text-gray-400">
-                    {group.posts.length} {group.posts.length === 1 ? 'post' : 'posts'}
-                  </span>
-                </h3>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-gray-700">{group.label}</h3>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">{group.posts.map(renderCard)}</div>
             </section>

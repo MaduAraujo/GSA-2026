@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Mail, MailCheck, Lock, Eye, EyeOff, ArrowLeft, Loader2, User } from 'lucide-react';
+import { Mail, MailCheck, Lock, Eye, EyeOff, ArrowLeft, Loader2, User, KeyRound } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { isPasswordLeaked } from '../utils/passwordSecurity';
-import { errorMessage } from '../utils/errors';
+import { authErrorCode, friendlyAuthError, isEmailNotConfirmed } from '../lib/authErrors';
 import { consumeLinkError } from '../lib/authRedirect';
 import { ROUTES } from '../routes';
 import { AuthAlert, AuthCard, AUTH_INPUT_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from './auth/AuthCard';
@@ -54,25 +54,81 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
   const [error, setError] = useState<string | null>(consumeLinkError);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [canResendConfirmation, setCanResendConfirmation] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
 
   const switchMode = (nextMode: Mode) => {
     setMode(nextMode);
     setError(null);
     setInfoMessage(null);
     setResetSent(false);
+    setAwaitingConfirmation(false);
+    setCanResendConfirmation(false);
+    setRecoveryCode('');
+  };
+
+  const verifyRecoveryCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setInfoMessage(null);
+    const token = recoveryCode.replace(/\D/g, '');
+    if (token.length < 6) {
+      setError('Digite o código de 6 dígitos que enviamos por e-mail.');
+      return;
+    }
+    setIsVerifyingCode(true);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+      if (verifyError) throw verifyError;
+    } catch (err) {
+      const code = authErrorCode(err);
+      setError(
+        code === 'otp_expired' ||
+          code === 'otp_invalid' ||
+          /expired or is invalid/i.test(String((err as Error)?.message))
+          ? 'Código inválido ou expirado. Confira o e-mail mais recente ou peça um novo código.'
+          : friendlyAuthError(err, 'Não foi possível validar o código. Tente novamente.'),
+      );
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const resendConfirmation = async () => {
+    setError(null);
+    setInfoMessage(null);
+    setIsSubmitting(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (resendError) throw resendError;
+      if (awaitingConfirmation) setInfoMessage('E-mail reenviado. Confira também a caixa de spam.');
+      setAwaitingConfirmation(true);
+      setCanResendConfirmation(false);
+    } catch (err) {
+      setError(friendlyAuthError(err, 'Não foi possível reenviar o e-mail. Tente novamente.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const sendResetEmail = async () => {
     setError(null);
+    setInfoMessage(null);
     setIsSubmitting(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}${ROUTES.resetPassword}`,
       });
       if (resetError) throw resetError;
+      if (resetSent) setInfoMessage('E-mail reenviado. Confira também a caixa de spam.');
       setResetSent(true);
     } catch (err) {
-      setError(errorMessage(err, 'Não foi possível enviar o link. Tente novamente.'));
+      setError(friendlyAuthError(err, 'Não foi possível enviar o link. Tente novamente.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -89,7 +145,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
       });
       if (oauthError) throw oauthError;
     } catch (err) {
-      setError(errorMessage(err, 'Não foi possível entrar com o Google. Tente novamente.'));
+      setError(friendlyAuthError(err, 'Não foi possível entrar com o Google. Tente novamente.'));
       setIsGoogleLoading(false);
     }
   };
@@ -98,6 +154,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
     e.preventDefault();
     setError(null);
     setInfoMessage(null);
+    setCanResendConfirmation(false);
     if (mode === 'forgotPassword') {
       await sendResetEmail();
       return;
@@ -113,16 +170,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
         if (await isPasswordLeaked(password)) {
           throw new Error('Essa senha já apareceu em vazamentos conhecidos. Escolha outra senha para sua segurança.');
         }
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name } },
+          options: { emailRedirectTo: window.location.origin, data: { full_name: name } },
         });
         if (signUpError) throw signUpError;
-        setInfoMessage('Conta criada! Verifique seu e-mail para confirmar o cadastro, se necessário.');
+        if (data.user && data.user.identities?.length === 0) {
+          throw new Error('Já existe uma conta com este e-mail. Entre com sua senha ou use "Esqueceu a senha?".');
+        }
+        if (!data.session) setAwaitingConfirmation(true);
       }
     } catch (err) {
-      setError(errorMessage(err, 'Não foi possível autenticar. Tente novamente.'));
+      if (mode === 'signIn' && isEmailNotConfirmed(err)) setCanResendConfirmation(true);
+      setError(friendlyAuthError(err, 'Não foi possível autenticar. Tente novamente.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -144,7 +205,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
 
   return (
     <AuthCard>
-      {mode === 'forgotPassword' && resetSent ? (
+      {awaitingConfirmation || (mode === 'forgotPassword' && resetSent) ? (
         <motion.div
           initial={reduceMotion ? undefined : { opacity: 0, scale: 0.96 }}
           animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
@@ -159,25 +220,64 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
             <MailCheck className="w-6 h-6" />
           </div>
           <div className="space-y-1.5">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Verifique seu e-mail</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {awaitingConfirmation ? 'Confirme seu e-mail' : 'Verifique seu e-mail'}
+            </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Enviamos um link de redefinição para{' '}
-              <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span>. Abra o link para criar
-              uma nova senha.
+              {awaitingConfirmation ? 'Enviamos um link de confirmação para ' : 'Enviamos um código para '}
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span>.{' '}
+              {awaitingConfirmation
+                ? 'Abra o link para ativar sua conta e entrar no Hub.'
+                : 'Digite-o abaixo para criar uma nova senha aqui mesmo.'}
             </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Não chegou? Confira a caixa de spam.</p>
           </div>
 
           {error && <AuthAlert tone="error">{error}</AuthAlert>}
+          {infoMessage && <AuthAlert tone="success">{infoMessage}</AuthAlert>}
+
+          {!awaitingConfirmation && (
+            <form onSubmit={verifyRecoveryCode} className="space-y-3 text-left">
+              <label
+                htmlFor="codigo-recuperacao"
+                className="block text-sm font-medium text-gray-800 dark:text-gray-300"
+              >
+                Código de verificação
+              </label>
+              <div className="group relative">
+                <KeyRound className="w-4 h-4 text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="codigo-recuperacao"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={10}
+                  placeholder="000000"
+                  value={recoveryCode}
+                  onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
+                  className={`${AUTH_INPUT_CLASS} pl-10 pr-3.5 font-mono tracking-[0.4em]`}
+                />
+              </div>
+              <button type="submit" disabled={isVerifyingCode || isSubmitting} className={AUTH_PRIMARY_BUTTON_CLASS}>
+                {isVerifyingCode && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isVerifyingCode ? 'Verificando...' : 'Continuar'}
+              </button>
+            </form>
+          )}
 
           <div className="space-y-2">
             <button
               type="button"
-              onClick={sendResetEmail}
-              disabled={isSubmitting}
-              className={AUTH_PRIMARY_BUTTON_CLASS}
+              onClick={awaitingConfirmation ? resendConfirmation : sendResetEmail}
+              disabled={isSubmitting || isVerifyingCode}
+              className={
+                awaitingConfirmation
+                  ? AUTH_PRIMARY_BUTTON_CLASS
+                  : 'w-full h-12 rounded-xl text-base font-semibold text-primary hover:bg-primary/5 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2'
+              }
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isSubmitting ? 'Reenviando...' : 'Reenviar e-mail'}
+              {isSubmitting ? 'Reenviando...' : awaitingConfirmation ? 'Reenviar e-mail' : 'Reenviar código'}
             </button>
             <button
               type="button"
@@ -229,6 +329,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
           )}
 
           {error && <AuthAlert tone="error">{error}</AuthAlert>}
+          {canResendConfirmation && (
+            <button
+              type="button"
+              onClick={resendConfirmation}
+              disabled={busy}
+              className="-mt-2 text-sm font-semibold text-primary hover:underline disabled:opacity-60"
+            >
+              Reenviar e-mail de confirmação
+            </button>
+          )}
           {infoMessage && <AuthAlert tone="success">{infoMessage}</AuthAlert>}
 
           {mode !== 'forgotPassword' && (

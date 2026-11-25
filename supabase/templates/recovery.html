@@ -9,7 +9,7 @@
   </head>
   <body style="margin: 0; padding: 0; background-color: #f8f9fa; -webkit-text-size-adjust: 100%">
     <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all">
-      Use este link para criar uma nova senha. Ele vale por 1 hora.
+      Seu código para criar uma nova senha: {{ .Token }}. Ele vale por 1 hora.
     </div>
     <table
       role="presentation"
@@ -54,9 +54,46 @@
                 </h1>
                 <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #5f6368">
                   Recebemos um pedido para redefinir a senha da conta
-                  <strong style="color: #202124">{{ .Email }}</strong>. Clique no botão abaixo para criar uma senha
-                  nova.
+                  <strong style="color: #202124">{{ .Email }}</strong>. Digite o código abaixo no app para criar uma
+                  senha nova.
                 </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px 32px">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td
+                      align="center"
+                      style="
+                        padding: 20px 16px;
+                        background-color: #e8f0fe;
+                        border-radius: 12px;
+                        font-family: 'Roboto Mono', Menlo, Consolas, monospace;
+                        font-size: 32px;
+                        line-height: 40px;
+                        font-weight: 700;
+                        letter-spacing: 8px;
+                        color: #1a73e8;
+                      "
+                    >
+                      {{ .Token }}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="
+                  padding: 0 32px 12px 32px;
+                  font-family: Roboto, 'Segoe UI', Helvetica, Arial, sans-serif;
+                  font-size: 14px;
+                  line-height: 22px;
+                  color: #5f6368;
+                "
+              >
+                Ou, se preferir, abra a página de redefinição:
               </td>
             </tr>
             <tr>
@@ -87,7 +124,8 @@
             <tr>
               <td style="padding: 0 32px 32px 32px; font-family: Roboto, 'Segoe UI', Helvetica, Arial, sans-serif">
                 <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 22px; color: #5f6368">
-                  O link vale por <strong style="color: #202124">1 hora</strong> e só pode ser usado uma vez.
+                  O código e o link valem por <strong style="color: #202124">1 hora</strong> e só podem ser usados uma
+                  vez.
                 </p>
                 <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 20px; color: #80868b">
                   Se o botão não funcionar, copie e cole este endereço no navegador:

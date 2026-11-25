@@ -178,7 +178,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
               <div
                 role="group"
                 aria-label="Filtrar por categoria"
-                className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none"
+                className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-reveal"
               >
                 {[{ name: ALL_CATEGORIES, count: visiblePhotos.length }, ...categoryCounts].map(({ name, count }) => {
                   const isSelected = activeCategory.toLowerCase() === name.toLowerCase();
@@ -259,10 +259,7 @@ export const GalleryModule: React.FC<GalleryModuleProps> = ({ photos, onSavePhot
             <div className="space-y-6">
               {groups.map((group) => (
                 <section key={group.key} aria-label={group.label} className="space-y-3">
-                  <h3 className="text-sm font-bold text-gray-700 flex items-baseline gap-2">
-                    {group.label}{' '}
-                    <span className="text-xs font-medium text-gray-400 tabular-nums">{group.photos.length}</span>
-                  </h3>
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-gray-700">{group.label}</h3>
                   <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
                     {group.photos.map((photo) => (
                       <GalleryCard

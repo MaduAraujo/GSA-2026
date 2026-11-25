@@ -10,8 +10,18 @@ import {
 import { extractDocumentText, mimeTypeOfDataUrl } from '../documents';
 import { HttpError, parseBody, rateLimit, requireAuth } from '../http';
 
-const GROQ_TEXT_MODEL = 'openai/gpt-oss-120b';
-const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || 'openai/gpt-oss-120b';
+const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b';
+
+export function parseModelJson(raw: string): unknown {
+  const visible = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  const jsonMatch = visible.match(/\{[\s\S]*\}/);
+  try {
+    return JSON.parse(jsonMatch ? jsonMatch[0] : visible);
+  } catch {
+    return null;
+  }
+}
 
 let groqClient: Groq | null = null;
 
@@ -161,14 +171,7 @@ Responda apenas com o JSON no formato especificado, sem texto adicional.`;
     rawContent = completion.choices[0]?.message?.content || '';
   }
 
-  let parsed: unknown;
-  try {
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
-  } catch {
-    parsed = null;
-  }
-  const result = analyzedCertificateSchema.safeParse(parsed);
+  const result = analyzedCertificateSchema.safeParse(parseModelJson(rawContent));
   if (!result.success) {
     throw new HttpError(
       502,

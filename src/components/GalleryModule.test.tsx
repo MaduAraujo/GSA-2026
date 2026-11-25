@@ -109,7 +109,7 @@ describe('GalleryModule', () => {
       ],
     });
     const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(headings).toEqual(['Outubro de 2026 1', 'Março de 2026 1']);
+    expect(headings).toEqual(['Outubro de 2026', 'Março de 2026']);
   });
 
   it('rejects an unsupported file with an error message', async () => {

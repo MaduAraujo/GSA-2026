@@ -200,7 +200,7 @@ export function SessionsModule({ sessions: allSessions, onSaveSession, onDeleteS
       <div
         role="tablist"
         aria-label="Tipos de sessão"
-        className="flex gap-1 p-1 rounded-2xl bg-gray-100 overflow-x-auto scrollbar-none"
+        className="flex gap-1 p-1 rounded-2xl bg-gray-100 overflow-x-auto scrollbar-reveal"
       >
         {SESSION_TYPES.map(({ type, tab }) => {
           const selected = type === activeTab.type;
@@ -229,7 +229,7 @@ export function SessionsModule({ sessions: allSessions, onSaveSession, onDeleteS
       </div>
 
       {tabSessions.length > 0 && (
-        <div className="space-y-3">
+        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
           <SearchField
             value={searchQuery}
             onChange={setSearchQuery}
@@ -241,7 +241,7 @@ export function SessionsModule({ sessions: allSessions, onSaveSession, onDeleteS
             <div
               role="group"
               aria-label="Filtrar registros"
-              className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
+              className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-reveal"
             >
               {SESSION_FILTERS.map((f) => (
                 <FilterChip
@@ -309,12 +309,7 @@ export function SessionsModule({ sessions: allSessions, onSaveSession, onDeleteS
           {groups.map((group) => (
             <section key={group.key} aria-label={group.label || activeTab.tab} className="space-y-3">
               {group.label && (
-                <h3 className="sticky top-16.75 md:top-0 z-20 -mx-1 px-1 py-2 flex items-center gap-2 text-sm font-bold text-gray-700 bg-surface-muted/95 backdrop-blur-sm">
-                  {group.label}
-                  <span className="text-xs font-medium text-gray-400">
-                    {group.sessions.length} {group.sessions.length === 1 ? activeTab.noun : activeTab.plural}
-                  </span>
-                </h3>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-gray-700">{group.label}</h3>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {group.sessions.map((session) => (

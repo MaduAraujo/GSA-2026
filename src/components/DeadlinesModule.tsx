@@ -318,7 +318,7 @@ export const DeadlinesModule: React.FC<DeadlinesModuleProps> = ({
       </PageHeader>
 
       {sortedDeadlines.length > 0 && (
-        <div>
+        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
           <SearchField
             value={searchQuery}
             onChange={setSearchQuery}

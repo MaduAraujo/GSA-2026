@@ -238,17 +238,41 @@
   background-color: #454e63;
 }
 
+.scrollbar-reveal,
+.dark .scrollbar-reveal {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-reveal.is-scrolling {
+  scrollbar-color: #dadce0 transparent;
+}
+.dark .scrollbar-reveal.is-scrolling {
+  scrollbar-color: #363e50 transparent;
+}
+.scrollbar-reveal::-webkit-scrollbar-thumb,
+.dark .scrollbar-reveal::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+.scrollbar-reveal.is-scrolling::-webkit-scrollbar-thumb {
+  background-color: #dadce0;
+}
+.dark .scrollbar-reveal.is-scrolling::-webkit-scrollbar-thumb {
+  background-color: #363e50;
+}
+
 [role='dialog'] {
   overscroll-behavior: contain;
 }
 
-.sidebar-scroll {
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable both-edges;
-  scrollbar-color: transparent transparent;
-  -webkit-overflow-scrolling: touch;
+@media (min-width: 48rem) {
+  .sidebar-scroll {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    scrollbar-color: transparent transparent;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 .sidebar-scroll:hover,
 .sidebar-scroll:focus-within {
