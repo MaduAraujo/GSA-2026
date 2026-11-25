@@ -99,6 +99,14 @@ max_frequency = "1s"
 otp_length = 6
 otp_expiry = 3600
 
+[auth.email.template.recovery]
+subject = "Redefina sua senha do Hub GSA 2026"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.confirmation]
+subject = "Confirme seu cadastro no Hub GSA 2026"
+content_path = "./supabase/templates/confirmation.html"
+
 [auth.sms]
 enable_signup = false
 enable_confirmations = false

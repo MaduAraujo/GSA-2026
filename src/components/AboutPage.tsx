@@ -16,79 +16,112 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { BRAND } from '../theme/colors';
+import { BrandLogo } from './ui/BrandLogo';
+import { LegalFooterLinks } from './legal/LegalPage';
+import { FeatureCardContent, FEATURE_CARD_CLASS, type FeatureItem } from './home/FeatureCarousel';
 
-const HOW_IT_WORKS = [
+const ACTIVITIES = [
+  'Troca diária de prompts',
+  'Portal exclusivo no Google Sites',
+  'Masterclasses no Google Meet com especialistas e Googlers',
+  'Apoio nos estudos',
+];
+
+const HOW_IT_WORKS: FeatureItem[] = [
   {
     icon: Globe2,
     title: 'Formato',
-    text: 'Online.',
+    description: '100% online, para participar de qualquer lugar do Brasil.',
+    accent: BRAND.primary,
   },
   {
     icon: Calendar,
     title: 'Cronograma',
-    text: 'Ocorre entre agosto e dezembro de 2026.',
+    description: 'De agosto a dezembro de 2026.',
+    accent: BRAND.danger,
   },
   {
     icon: MessagesSquare,
     title: 'Atividades',
-    items: [
-      'Troca diária de prompts',
-      'Acesso a um portal exclusivo no Google Sites',
-      'Masterclasses via Google Meet com especialistas e Googlers',
-      'Apoio em estudos',
-    ],
+    description: (
+      <ul className="space-y-1.5">
+        {ACTIVITIES.map((item) => (
+          <li key={item} className="flex items-start gap-2">
+            <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0 mt-2" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    ),
+    accent: BRAND.warning,
   },
   {
     icon: HeartHandshake,
     title: 'Caráter',
-    text: 'É uma iniciativa voluntária que exige engajamento ativo na comunidade universitária.',
+    description: 'Iniciativa voluntária que pede engajamento ativo na comunidade universitária.',
+    accent: BRAND.success,
   },
 ];
 
-const COMPETENCIES = [
+const COMPETENCIES: FeatureItem[] = [
   {
     icon: Puzzle,
-    title: 'Resolução de Problemas',
-    text: 'Análise de informações, organização de ideias e busca de soluções.',
+    title: 'Resolução de problemas',
+    description: 'Analise informações, organize ideias e encontre soluções com mais autonomia.',
+    accent: BRAND.primary,
   },
   {
     icon: Sparkles,
-    title: 'Comunicação e Criatividade',
-    text: 'Clareza na comunicação e transformação de ideias em conteúdo.',
+    title: 'Comunicação e criatividade',
+    description: 'Comunique com clareza e transforme ideias em conteúdo de qualidade.',
+    accent: BRAND.danger,
   },
   {
     icon: Briefcase,
-    title: 'Desenvolvimento de Carreira',
-    text: 'Construção de repertório e presença profissional.',
+    title: 'Desenvolvimento de carreira',
+    description: 'Amplie seu repertório e fortaleça sua presença profissional.',
+    accent: BRAND.warning,
   },
   {
     icon: Megaphone,
-    title: 'Liderança e Impacto',
-    text: 'Troca de conhecimento, conexão entre pessoas, ampliação do uso responsável e crítico da IA e geração de impacto.',
+    title: 'Liderança e impacto',
+    description: 'Compartilhe conhecimento, conecte pessoas e promova o uso crítico e responsável da IA.',
+    accent: BRAND.success,
   },
 ];
 
-const BENEFITS = [
-  { icon: UserCheck, text: 'Mentoria e acompanhamento de especialistas certificados.' },
-  { icon: Gift, text: 'Kit de boas-vindas exclusivo.' },
-  { icon: BadgeCheck, text: 'Selos digitais oficiais para currículo e LinkedIn.' },
+const BENEFITS: FeatureItem[] = [
+  {
+    icon: UserCheck,
+    title: 'Mentoria',
+    description: 'Acompanhamento de especialistas certificados ao longo do programa.',
+    accent: BRAND.primary,
+  },
+  {
+    icon: Gift,
+    title: 'Kit de boas-vindas',
+    description: 'Um kit exclusivo para começar a jornada.',
+    accent: BRAND.danger,
+  },
+  {
+    icon: BadgeCheck,
+    title: 'Selos digitais',
+    description: 'Selos oficiais para destacar no currículo e no LinkedIn.',
+    accent: BRAND.warning,
+  },
   {
     icon: Building2,
-    text: 'Chance de participar de imersões presenciais nos escritórios do Google para os mais ativos.',
+    title: 'Imersões presenciais',
+    description: 'Os mais ativos podem participar de imersões nos escritórios do Google.',
+    accent: BRAND.success,
   },
-  { icon: Users, text: 'Networking com estudantes de todo o país.' },
+  {
+    icon: Users,
+    title: 'Networking',
+    description: 'Conexão com estudantes de todo o país.',
+    accent: BRAND.primary,
+  },
 ];
-
-const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
-  <svg viewBox="0 0 192 192" className={className}>
-    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke={BRAND.primary} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke={BRAND.success} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke={BRAND.warning} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke={BRAND.danger} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
-    <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
-  </svg>
-);
 
 export const AboutPage: React.FC = () => {
   return (
@@ -102,9 +135,8 @@ export const AboutPage: React.FC = () => {
 
       <header className="sticky top-0 z-30 bg-gray-50/90 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5">
-            <GoogleRingMark className="w-8 h-8 shrink-0" />
-            <span className="font-bold text-gray-900 text-sm sm:text-base tracking-tight">Hub GSA 2026</span>
+          <a href="/" aria-label="Hub GSA 2026 — página inicial" className="flex items-center">
+            <BrandLogo className="w-10 h-10 shrink-0" />
           </a>
           <a
             href="/"
@@ -117,59 +149,40 @@ export const AboutPage: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-        <div className="text-center">
+        <div className="text-left">
           <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-tight">
             Sobre o Programa
           </h1>
 
-          <p className="mt-5 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mt-5 text-base sm:text-lg text-gray-600">
             O Programa de Embaixadores Estudantis do Google 2026 é uma iniciativa voltada para universitários com foco
             em inteligência artificial (IA) e no uso prático do Google Gemini para otimizar os estudos, desenvolver
             projetos e fortalecer o currículo. O programa busca formar referências locais de inovação e tecnologia
             dentro das universidades brasileiras.
           </p>
 
-          <p className="mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="mt-4 text-base sm:text-lg text-gray-600">
             Para apoiar essa evolução, a trilha é rica e multidisciplinar, desenvolvendo 4 competências essenciais:
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {COMPETENCIES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-                <Icon className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-sm mb-1.5">{title}</h3>
-              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{text}</p>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {COMPETENCIES.map((item) => (
+            <div key={item.title} className={`${FEATURE_CARD_CLASS} shadow-md`}>
+              <FeatureCardContent {...item} />
             </div>
           ))}
         </div>
 
         <div className="mt-16">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight text-center">
-            Como Funciona o Programa
+            Como Funciona o Programa?
           </h2>
 
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {HOW_IT_WORKS.map(({ icon: Icon, title, ...rest }) => (
-              <div key={title} className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-                <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-                  <Icon className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-gray-900 text-sm mb-1.5">{title}</h3>
-                {rest.items ? (
-                  <ul className="text-xs sm:text-sm text-gray-600 leading-relaxed text-left space-y-1.5">
-                    {rest.items.map((item) => (
-                      <li key={item} className="flex items-start gap-2">
-                        <span className="w-1 h-1 rounded-full bg-gray-400 shrink-0 mt-1.5" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{rest.text}</p>
-                )}
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {HOW_IT_WORKS.map((item) => (
+              <div key={item.title} className={`${FEATURE_CARD_CLASS} shadow-md`}>
+                <FeatureCardContent {...item} />
               </div>
             ))}
           </div>
@@ -180,13 +193,15 @@ export const AboutPage: React.FC = () => {
             Benefícios para os Selecionados
           </h2>
 
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {BENEFITS.map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5">
-                <div className="w-8 h-8 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <p className="text-sm text-gray-800 leading-snug pt-1">{text}</p>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {BENEFITS.map((item, i) => (
+              <div
+                key={item.title}
+                className={`${FEATURE_CARD_CLASS} shadow-md ${
+                  i === BENEFITS.length - 1 && BENEFITS.length % 2 === 1 ? 'sm:col-span-2' : ''
+                }`}
+              >
+                <FeatureCardContent {...item} />
               </div>
             ))}
           </div>
@@ -194,7 +209,8 @@ export const AboutPage: React.FC = () => {
       </main>
 
       <footer className="border-t border-gray-200 bg-white py-6">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center gap-2 text-xs text-gray-600">
+          <LegalFooterLinks />
           <p className="text-center">
             © 2026 Embaixadores Estudantis do Google.
             <br className="sm:hidden" /> Todos os direitos reservados.

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>Redefina sua senha</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f8f9fa; -webkit-text-size-adjust: 100%">
+    <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all">
+      Use este link para criar uma nova senha. Ele vale por 1 hora.
+    </div>
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      style="background-color: #f8f9fa"
+    >
+      <tr>
+        <td align="center" style="padding: 32px 16px">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              max-width: 520px;
+              background-color: #ffffff;
+              border: 1px solid #e8eaed;
+              border-radius: 16px;
+              overflow: hidden;
+            "
+          >
+            <tr>
+              <td style="padding: 0; line-height: 0; font-size: 0">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td width="25%" height="4" style="background-color: #4285f4; height: 4px"></td>
+                    <td width="25%" height="4" style="background-color: #ea4335; height: 4px"></td>
+                    <td width="25%" height="4" style="background-color: #fbbc04; height: 4px"></td>
+                    <td width="25%" height="4" style="background-color: #34a853; height: 4px"></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 32px 32px 8px 32px; font-family: Roboto, 'Segoe UI', Helvetica, Arial, sans-serif">
+                <h1 style="margin: 0 0 12px 0; font-size: 24px; line-height: 32px; font-weight: 700; color: #202124">
+                  Redefina sua senha
+                </h1>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #5f6368">
+                  Recebemos um pedido para redefinir a senha da conta
+                  <strong style="color: #202124">{{ .Email }}</strong>. Clique no botão abaixo para criar uma senha
+                  nova.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 24px 32px">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#1a73e8" style="border-radius: 12px; background-color: #1a73e8">
+                      <a
+                        href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery"
+                        target="_blank"
+                        style="
+                          display: block;
+                          padding: 14px 24px;
+                          font-family: Roboto, 'Segoe UI', Helvetica, Arial, sans-serif;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 12px;
+                        "
+                        >Criar nova senha</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 32px 32px 32px; font-family: Roboto, 'Segoe UI', Helvetica, Arial, sans-serif">
+                <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 22px; color: #5f6368">
+                  O link vale por <strong style="color: #202124">1 hora</strong> e só pode ser usado uma vez.
+                </p>
+                <p style="margin: 0 0 8px 0; font-size: 13px; line-height: 20px; color: #80868b">
+                  Se o botão não funcionar, copie e cole este endereço no navegador:
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 13px; line-height: 20px; word-break: break-all">
+                  <a
+                    href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery"
+                    target="_blank"
+                    style="color: #1a73e8; text-decoration: underline"
+                    >{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery</a
+                  >
+                </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td
+                      style="
+                        padding: 16px;
+                        background-color: #f8f9fa;
+                        border-radius: 12px;
+                        font-size: 13px;
+                        line-height: 20px;
+                        color: #5f6368;
+                      "
+                    >
+                      Não pediu para redefinir a senha? Pode ignorar este e-mail. Sua senha atual continua valendo.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 520px">
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding: 24px 16px 0 16px;
+                  font-family: Roboto, 'Segoe UI', Helvetica, Arial, sans-serif;
+                  font-size: 12px;
+                  line-height: 18px;
+                  color: #80868b;
+                "
+              >
+                <a href="{{ .SiteURL }}" target="_blank" style="color: #80868b; text-decoration: underline"
+                  >{{ .SiteURL }}</a
+                >
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

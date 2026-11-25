@@ -3,14 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AuthScreen } from './AuthScreen';
 
-const { signInWithPassword, signUp, resetPasswordForEmail } = vi.hoisted(() => ({
+const { signInWithPassword, signUp, resetPasswordForEmail, signInWithOAuth } = vi.hoisted(() => ({
+  signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
   signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
   signUp: vi.fn().mockResolvedValue({ error: null }),
   resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
 }));
 
 vi.mock('../services/supabaseClient', () => ({
-  supabase: { auth: { signInWithPassword, signUp, resetPasswordForEmail } },
+  supabase: { auth: { signInWithPassword, signUp, resetPasswordForEmail, signInWithOAuth } },
 }));
 
 const { isPasswordLeaked } = vi.hoisted(() => ({ isPasswordLeaked: vi.fn().mockResolvedValue(false) }));
@@ -45,6 +46,7 @@ describe('AuthScreen', () => {
     const user = userEvent.setup();
     render(<AuthScreen initialMode="signUp" />);
 
+    await user.type(screen.getByLabelText('Nome completo'), 'Ana Souza');
     await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'nova@example.com');
     await user.type(document.querySelector('input[autocomplete$="password"]') as HTMLInputElement, '123456');
     await user.click(document.querySelector('form button[type="submit"]') as HTMLButtonElement);
@@ -58,12 +60,36 @@ describe('AuthScreen', () => {
     const user = userEvent.setup();
     render(<AuthScreen initialMode="signUp" />);
 
+    await user.type(screen.getByLabelText('Nome completo'), '  Ana   Souza ');
     await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'nova@example.com');
     await user.type(document.querySelector('input[autocomplete$="password"]') as HTMLInputElement, 'senhaSegura1');
     await user.click(document.querySelector('form button[type="submit"]') as HTMLButtonElement);
 
-    expect(signUp).toHaveBeenCalledWith({ email: 'nova@example.com', password: 'senhaSegura1' });
+    expect(signUp).toHaveBeenCalledWith({
+      email: 'nova@example.com',
+      password: 'senhaSegura1',
+      options: { data: { full_name: 'Ana Souza' } },
+    });
     expect(await screen.findByText(/Conta criada!/)).toBeInTheDocument();
+  });
+
+  it('requires first and last name on sign up', async () => {
+    signUp.mockClear();
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signUp" />);
+
+    await user.type(screen.getByLabelText('Nome completo'), 'Ana');
+    await user.type(document.querySelector('input[type="email"]') as HTMLInputElement, 'nova@example.com');
+    await user.type(document.querySelector('input[autocomplete$="password"]') as HTMLInputElement, 'senhaSegura1');
+    await user.click(document.querySelector('form button[type="submit"]') as HTMLButtonElement);
+
+    expect(await screen.findByText(/nome e sobrenome/)).toBeInTheDocument();
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
+  it('does not show the name field on sign in', () => {
+    render(<AuthScreen initialMode="signIn" />);
+    expect(screen.queryByLabelText('Nome completo')).not.toBeInTheDocument();
   });
 
   it('sends a password reset email and shows the confirmation screen', async () => {
@@ -97,5 +123,25 @@ describe('AuthScreen', () => {
     render(<AuthScreen initialMode="signIn" onBack={onBack} />);
     await user.click(screen.getByRole('button', { name: /Voltar/ }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the Google OAuth flow', async () => {
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+    await user.click(screen.getByRole('button', { name: 'Entrar com o Google' }));
+    expect(signInWithOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'google',
+        options: expect.objectContaining({ redirectTo: expect.any(String) }),
+      }),
+    );
+  });
+
+  it('shows an error when Google sign in fails', async () => {
+    signInWithOAuth.mockResolvedValueOnce({ error: { message: 'Provider is not enabled' } });
+    const user = userEvent.setup();
+    render(<AuthScreen initialMode="signIn" />);
+    await user.click(screen.getByRole('button', { name: 'Entrar com o Google' }));
+    expect(await screen.findByText('Provider is not enabled')).toBeInTheDocument();
   });
 });

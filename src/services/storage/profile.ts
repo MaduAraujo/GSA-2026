@@ -3,11 +3,19 @@ import type { AmbassadorProfile, UserBadge } from '../../types';
 import { requireUserId } from './files';
 import { EMPTY_PROFILE, profileToRow, rowToProfile, rowToUserBadge } from './mappers';
 
+function metadataName(metadata: Record<string, unknown> | undefined): string {
+  const value = metadata?.full_name ?? metadata?.name;
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 export async function getProfile(): Promise<AmbassadorProfile> {
-  const userId = await requireUserId();
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error('Não autenticado.');
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', auth.user.id).maybeSingle();
   if (error) throw error;
-  return data ? rowToProfile(data) : { ...EMPTY_PROFILE };
+  const profile = data ? rowToProfile(data) : { ...EMPTY_PROFILE };
+  if (!profile.name.trim()) profile.name = metadataName(auth.user.user_metadata);
+  return profile;
 }
 
 export async function saveProfile(profile: AmbassadorProfile): Promise<void> {

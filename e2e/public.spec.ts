@@ -10,7 +10,7 @@ test('the landing page leads to the sign-in screen', async ({ page }) => {
   await page.getByRole('button', { name: 'Entrar' }).first().click();
 
   await expect(page).toHaveURL(/\/entrar$/);
-  await expect(page.getByText('Entre para acessar seus dados')).toBeVisible();
+  await expect(page.getByText('Bem-vindo(a) de volta')).toBeVisible();
 });
 
 test('a protected page sends signed-out visitors to sign in', async ({ page }) => {

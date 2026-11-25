@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -11,6 +11,7 @@ const { authMocks, storage } = vi.hoisted(() => {
     getSession: vi.fn(),
     onAuthStateChange: vi.fn(),
     signOut: vi.fn().mockResolvedValue({ error: null }),
+    updateUser: vi.fn().mockResolvedValue({ error: null }),
   };
   const storage = {
     getCertificates: vi.fn(),
@@ -55,6 +56,8 @@ vi.mock('./services/supabaseClient', () => ({
   supabase: { auth: authMocks },
   getAuthHeaders: vi.fn().mockResolvedValue({}),
 }));
+
+vi.mock('./utils/passwordSecurity', () => ({ isPasswordLeaked: vi.fn().mockResolvedValue(false) }));
 
 vi.mock('./services/supabaseStorage', () => ({ SupabaseStorageService: storage }));
 
@@ -116,7 +119,7 @@ describe('App — authentication gate', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Entrar' }));
-    expect(await screen.findByText('Entre para acessar seus dados')).toBeInTheDocument();
+    expect(await screen.findByText('Bem-vindo(a) de volta')).toBeInTheDocument();
   });
 
   it('renders the dashboard once a session is present', async () => {
@@ -167,7 +170,7 @@ describe('App — routing', () => {
     mockLoggedOut();
     window.history.replaceState({}, '', '/galeria');
     render(<App />);
-    expect(await screen.findByText('Entre para acessar seus dados')).toBeInTheDocument();
+    expect(await screen.findByText('Bem-vindo(a) de volta')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/entrar');
   });
 
@@ -227,5 +230,30 @@ describe('App — badges', () => {
 
     await waitFor(() => expect(storage.unlockBadge).toHaveBeenCalledWith('first_certificate'));
     expect(await screen.findByText('Badge desbloqueada!')).toBeInTheDocument();
+  });
+});
+
+describe('App — password recovery', () => {
+  it('asks for a new password after a recovery link and then opens the dashboard', async () => {
+    mockLoggedIn();
+    let emit: (event: string, session: unknown) => void = () => {};
+    authMocks.onAuthStateChange.mockImplementation((cb: typeof emit) => {
+      emit = cb;
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText('Olá, Ana Souza');
+
+    act(() => emit('PASSWORD_RECOVERY', { user: { id: 'user-1' }, access_token: 'token' }));
+
+    expect(await screen.findByText('Criar nova senha')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Nova senha'), 'novaSenha1');
+    await user.type(screen.getByLabelText('Confirmar nova senha'), 'novaSenha1');
+    await user.click(screen.getByRole('button', { name: 'Salvar nova senha' }));
+
+    expect(authMocks.updateUser).toHaveBeenCalledWith({ password: 'novaSenha1' });
+    await user.click(await screen.findByRole('button', { name: 'Ir para o Hub' }));
+    expect(await screen.findByText('Olá, Ana Souza')).toBeInTheDocument();
   });
 });

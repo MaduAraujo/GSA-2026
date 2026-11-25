@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
-  ArrowRight,
   Award,
   FileText,
   Flag,
@@ -14,13 +13,17 @@ import {
   Smartphone,
   ShieldCheck,
   Zap,
+  Sparkles,
   CheckCircle2,
   Menu,
   X,
 } from 'lucide-react';
 import { PwaGuideModal } from './PwaGuideModal';
+import { LegalFooterLinks } from './legal/LegalPage';
+import { FeatureCarousel, FeatureCardContent, FEATURE_CARD_CLASS, type FeatureItem } from './home/FeatureCarousel';
 import type { BeforeInstallPromptEvent } from '../hooks/usePwaInstall';
 import { BRAND } from '../theme/colors';
+import { BrandLogo } from './ui/BrandLogo';
 
 interface HomePageProps {
   onLogin: () => void;
@@ -32,7 +35,7 @@ interface HomePageProps {
   onClosePwaModal: () => void;
 }
 
-const FEATURES = [
+const FEATURES: FeatureItem[] = [
   {
     icon: Award,
     title: 'Certificados',
@@ -70,24 +73,34 @@ const FEATURES = [
     description: 'Visualize sua evolução com gráficos claros sobre certificados, posts e conquistas.',
     accent: BRAND.success,
   },
+  {
+    icon: Sparkles,
+    title: 'E muito mais',
+    description: 'Badges, posts, grupo de estudos, portfólio público e IA para turbinar seus prompts.',
+    accent: BRAND.danger,
+  },
 ];
 
-const HIGHLIGHTS = [
-  { icon: Smartphone, label: 'Instalável como app', accent: BRAND.primary },
-  { icon: ShieldCheck, label: 'Seus dados seguros', accent: BRAND.success },
-  { icon: Zap, label: 'IA integrada', accent: BRAND.warning },
+const HIGHLIGHTS: FeatureItem[] = [
+  {
+    icon: Smartphone,
+    title: 'Instalável como app',
+    description: 'Adicione à tela inicial do celular ou computador e acesse com um toque.',
+    accent: BRAND.primary,
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Seus dados seguros',
+    description: 'Login protegido e arquivos privados: só você vê o que é seu.',
+    accent: BRAND.success,
+  },
+  {
+    icon: Zap,
+    title: 'IA integrada',
+    description: 'Melhore seus prompts e textos com sugestões geradas por IA.',
+    accent: BRAND.warning,
+  },
 ];
-
-const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
-  <svg viewBox="0 0 192 192" className={className}>
-    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke={BRAND.primary} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke={BRAND.success} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke={BRAND.warning} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke={BRAND.danger} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
-    <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
-  </svg>
-);
 
 const AchievementStack: React.FC = () => {
   const reduceMotion = useReducedMotion();
@@ -184,10 +197,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <header className="sticky top-0 z-30 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="sm:flex-1 flex items-center gap-2 min-w-0">
-            <GoogleRingMark className="w-8 h-8 shrink-0" />
-            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base tracking-tight whitespace-nowrap truncate">
-              Hub GSA 2026
-            </span>
+            <BrandLogo className="w-10 h-10 shrink-0" />
           </div>
 
           <nav className="hidden sm:flex flex-1 items-center justify-center gap-1">
@@ -257,7 +267,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </header>
 
       <main>
-        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-20 sm:pt-20 sm:pb-28">
+        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 sm:pt-32 sm:pb-28">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="text-center lg:text-left">
               <motion.h1
@@ -273,26 +283,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               >
                 Simples, rápido e feito para acompanhar cada conquista da sua trajetória.
               </motion.p>
-
-              <motion.div
-                {...fadeUp(0.24)}
-                className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3"
-              >
-                <button
-                  type="button"
-                  onClick={onLogin}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-700 text-white text-sm font-semibold shadow-sm transition-colors"
-                >
-                  Começar agora
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                </button>
-                <a
-                  href="/sobre"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl border border-gray-300 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-900 transition-colors"
-                >
-                  Saiba mais
-                </a>
-              </motion.div>
             </div>
 
             <motion.div
@@ -315,27 +305,16 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 pb-16 sm:pb-20">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            {HIGHLIGHTS.map(({ icon: Icon, label, accent }, i) => (
+            {HIGHLIGHTS.map((item, i) => (
               <motion.div
-                key={label}
+                key={item.title}
                 initial={reduceMotion ? undefined : { opacity: 0, y: 20 }}
                 whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
                 transition={{ duration: 0.4, delay: i * 0.08, ease: 'easeOut' }}
-                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-7 flex flex-col items-center text-center"
+                className={`${FEATURE_CARD_CLASS} shadow-md`}
               >
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                  style={{
-                    backgroundColor: `${accent}1A`,
-                    color: accent,
-                  }}
-                >
-                  <Icon className="w-7 h-7" />
-                </div>
-                <p className="text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 leading-snug">
-                  {label}
-                </p>
+                <FeatureCardContent {...item} />
               </motion.div>
             ))}
           </div>
@@ -351,41 +330,17 @@ export const HomePage: React.FC<HomePageProps> = ({
               Tudo o que você precisa
             </h2>
             <p className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
-              Seis módulos pensados para a rotina de um(a) Embaixador(a) Estudantil.
+              Módulos pensados para a rotina de um(a) Embaixador(a) Estudantil.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map(({ icon: Icon, title, description, accent }, i) => (
-              <motion.div
-                key={title}
-                initial={reduceMotion ? undefined : { opacity: 0, y: 20 }}
-                whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.4, delay: (i % 3) * 0.08, ease: 'easeOut' }}
-                className="group relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 text-center"
-              >
-                <div className="flex items-center justify-center gap-3 mb-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{
-                      backgroundColor: `${accent}1A`,
-                      color: accent,
-                    }}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{title}</h3>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{description}</p>
-              </motion.div>
-            ))}
-          </div>
+          <FeatureCarousel items={FEATURES} />
         </section>
       </main>
 
       <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+          <LegalFooterLinks />
           <p className="text-center">
             © 2026 Embaixadores Estudantis do Google.
             <br className="sm:hidden" /> Todos os direitos reservados.

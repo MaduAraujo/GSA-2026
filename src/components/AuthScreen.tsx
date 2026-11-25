@@ -1,61 +1,61 @@
 import React, { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import {
-  LogIn,
-  UserPlus,
-  KeyRound,
-  Mail,
-  MailCheck,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertTriangle,
-  CheckCircle2,
-  ArrowLeft,
-  Moon,
-  Sun,
-  Loader2,
-} from 'lucide-react';
+import { Mail, MailCheck, Lock, Eye, EyeOff, ArrowLeft, Loader2, User } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { isPasswordLeaked } from '../utils/passwordSecurity';
 import { errorMessage } from '../utils/errors';
-import { BRAND } from '../theme/colors';
+import { consumeLinkError } from '../lib/authRedirect';
+import { ROUTES } from '../routes';
+import { AuthAlert, AuthCard, AUTH_INPUT_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from './auth/AuthCard';
 
 interface AuthScreenProps {
   initialMode?: 'signIn' | 'signUp';
   onBack?: () => void;
-  isDarkMode?: boolean;
-  onToggleDarkMode?: () => void;
 }
 
-const GoogleRingMark: React.FC<{ className?: string }> = ({ className }) => (
-  <svg viewBox="0 0 192 192" className={className}>
-    <path d="M 96,16 A 80,80 0 0,1 176,96" fill="none" stroke={BRAND.primary} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 176,96 A 80,80 0 0,1 96,176" fill="none" stroke={BRAND.success} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96,176 A 80,80 0 0,1 16,96" fill="none" stroke={BRAND.warning} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 16,96 A 80,80 0 0,1 96,16" fill="none" stroke={BRAND.danger} strokeWidth="14" strokeLinecap="round" />
-    <path d="M 96 56 L 140 78 L 96 100 L 52 78 Z" fill={BRAND.primary} />
-    <circle cx="96" cy="120" r="14" fill={BRAND.warning} />
+type Mode = 'signIn' | 'signUp' | 'forgotPassword';
+
+const HEADINGS: Record<Mode, { title: string; subtitle: string }> = {
+  signIn: { title: 'Bem-vindo(a) de volta', subtitle: 'Acesse sua jornada de Embaixador(a).' },
+  signUp: { title: 'Crie sua conta', subtitle: 'Organize suas conquistas em um só lugar.' },
+  forgotPassword: { title: 'Recuperar senha', subtitle: 'Enviaremos um link para o seu e-mail.' },
+};
+
+const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <path
+      fill="#4285F4"
+      d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
+    />
   </svg>
 );
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({
-  initialMode = 'signIn',
-  onBack,
-  isDarkMode,
-  onToggleDarkMode,
-}) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', onBack }) => {
   const reduceMotion = useReducedMotion();
-  const [mode, setMode] = useState<'signIn' | 'signUp' | 'forgotPassword'>(initialMode);
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [error, setError] = useState<string | null>(consumeLinkError);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
 
-  const switchMode = (nextMode: 'signIn' | 'signUp' | 'forgotPassword') => {
+  const switchMode = (nextMode: Mode) => {
     setMode(nextMode);
     setError(null);
     setInfoMessage(null);
@@ -67,7 +67,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     setIsSubmitting(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}${ROUTES.resetPassword}`,
       });
       if (resetError) throw resetError;
       setResetSent(true);
@@ -75,6 +75,22 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       setError(errorMessage(err, 'Não foi possível enviar o link. Tente novamente.'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setInfoMessage(null);
+    setIsGoogleLoading(true);
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      });
+      if (oauthError) throw oauthError;
+    } catch (err) {
+      setError(errorMessage(err, 'Não foi possível entrar com o Google. Tente novamente.'));
+      setIsGoogleLoading(false);
     }
   };
 
@@ -92,10 +108,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
       } else {
+        const name = fullName.trim().replace(/\s+/g, ' ');
+        if (!name.includes(' ')) throw new Error('Informe seu nome completo (nome e sobrenome).');
         if (await isPasswordLeaked(password)) {
           throw new Error('Essa senha já apareceu em vazamentos conhecidos. Escolha outra senha para sua segurança.');
         }
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: name } },
+        });
         if (signUpError) throw signUpError;
         setInfoMessage('Conta criada! Verifique seu e-mail para confirmar o cadastro, se necessário.');
       }
@@ -106,257 +128,261 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     }
   };
 
+  const heading = HEADINGS[mode];
+  const backButton = onBack ? (
+    <button
+      type="button"
+      onClick={onBack}
+      aria-label="Voltar"
+      title="Voltar"
+      className="group w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shadow-xs text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 hover:border-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/50"
+    >
+      <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+    </button>
+  ) : null;
+  const busy = isSubmitting || isGoogleLoading;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 font-sans">
-      <div className="h-1 w-full grid grid-cols-4">
-        <div className="bg-primary" />
-        <div className="bg-danger" />
-        <div className="bg-warning" />
-        <div className="bg-success" />
-      </div>
-
-      <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2.5">
-          <GoogleRingMark className="w-8 h-8 shrink-0" />
-          <span className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base tracking-tight">
-            Hub GSA 2026
-          </span>
-        </a>
-        {onToggleDarkMode && (
-          <button
-            type="button"
-            onClick={onToggleDarkMode}
-            aria-label="Alternar tema"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-        )}
-      </header>
-
-      <div className="flex items-center justify-center px-4 py-10 sm:py-16">
+    <AuthCard>
+      {mode === 'forgotPassword' && resetSent ? (
         <motion.div
-          initial={reduceMotion ? undefined : { opacity: 0, y: 16 }}
-          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          className="relative w-full max-w-sm"
+          initial={reduceMotion ? undefined : { opacity: 0, scale: 0.96 }}
+          animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="text-center space-y-5"
         >
-          <div className="absolute inset-x-6 -top-6 h-24 rounded-full bg-primary/10 dark:bg-primary/10 blur-3xl pointer-events-none" />
+          {backButton && <div className="text-left">{backButton}</div>}
+          <div
+            className="mx-auto w-14 h-14 rounded-2xl bg-success/10 text-success flex items-center justify-center shadow-md"
+            style={{ transform: 'translateZ(40px)' }}
+          >
+            <MailCheck className="w-6 h-6" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Verifique seu e-mail</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              Enviamos um link de redefinição para{' '}
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span>. Abra o link para criar
+              uma nova senha.
+            </p>
+          </div>
 
-          <div className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8 space-y-6">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Voltar
-              </button>
-            )}
+          {error && <AuthAlert tone="error">{error}</AuthAlert>}
 
-            {mode === 'forgotPassword' && resetSent ? (
-              <motion.div
-                initial={reduceMotion ? undefined : { opacity: 0, scale: 0.96 }}
-                animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="text-center space-y-5"
-              >
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-success/10 text-success flex items-center justify-center">
-                  <MailCheck className="w-6 h-6" />
-                </div>
-                <div className="space-y-1.5">
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">Verifique seu e-mail</h2>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                    Enviamos um link de redefinição para{' '}
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span>. Abra o link para
-                    criar uma nova senha.
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="p-3 rounded-xl bg-danger-50 dark:bg-danger/10 border border-danger/30 dark:border-danger/20 text-xs font-semibold text-danger-700 dark:text-danger-300 flex items-center gap-2 text-left">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    onClick={sendResetEmail}
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSubmitting ? 'Reenviando...' : 'Reenviar e-mail'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchMode('signIn')}
-                    className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    Voltar para o login
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              <>
-                <div className="text-center space-y-1">
-                  <div className="mx-auto w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                    {mode === 'signIn' && <LogIn className="w-5 h-5" />}
-                    {mode === 'signUp' && <UserPlus className="w-5 h-5" />}
-                    {mode === 'forgotPassword' && <KeyRound className="w-5 h-5" />}
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {mode === 'signIn' && 'Entre para acessar seus dados'}
-                    {mode === 'signUp' && 'Crie sua conta para começar'}
-                    {mode === 'forgotPassword' && 'Informe seu e-mail para receber o link de redefinição'}
-                  </p>
-                </div>
-
-                {mode !== 'forgotPassword' && (
-                  <div className="relative flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
-                    <motion.div
-                      className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-white dark:bg-gray-700 shadow-xs"
-                      initial={false}
-                      animate={{ x: mode === 'signIn' ? 4 : 'calc(100% + 4px)' }}
-                      transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => switchMode('signIn')}
-                      className={`relative z-10 flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-                        mode === 'signIn'
-                          ? 'text-gray-900 dark:text-gray-100'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Entrar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => switchMode('signUp')}
-                      className={`relative z-10 flex-1 py-1.5 text-sm font-semibold rounded-full transition-colors ${
-                        mode === 'signUp'
-                          ? 'text-gray-900 dark:text-gray-100'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Criar conta
-                    </button>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="p-3 rounded-xl bg-danger-50 dark:bg-danger/10 border border-danger/30 dark:border-danger/20 text-xs font-semibold text-danger-700 dark:text-danger-300 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                {infoMessage && (
-                  <div className="p-3 rounded-xl bg-success/10 dark:bg-success/10 border border-success/20 dark:border-success/20 text-xs font-semibold text-success-700 dark:text-success-300 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{infoMessage}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="auth-e-mail"
-                      className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1"
-                    >
-                      E-mail
-                    </label>
-                    <div className="group relative">
-                      <Mail className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        id="auth-e-mail"
-                        type="email"
-                        required
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus:border-primary"
-                      />
-                    </div>
-                  </div>
-
-                  {mode !== 'forgotPassword' && (
-                    <div>
-                      <label
-                        htmlFor="auth-senha"
-                        className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1"
-                      >
-                        Senha
-                      </label>
-                      <div className="group relative">
-                        <Lock className="w-4 h-4 text-gray-500 dark:text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          id="auth-senha"
-                          type={showPassword ? 'text' : 'password'}
-                          required
-                          minLength={6}
-                          autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full pl-9 pr-9 py-2.5 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-shadow focus:bg-white dark:focus:bg-gray-800 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-primary focus:border-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((v) => !v)}
-                          aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      {mode === 'signIn' && (
-                        <button
-                          type="button"
-                          onClick={() => switchMode('forgotPassword')}
-                          className="mt-1.5 text-xs font-semibold text-primary hover:underline"
-                        >
-                          Esqueceu a senha?
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-700 text-white text-sm font-bold shadow-xs transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isSubmitting
-                      ? 'Aguarde...'
-                      : mode === 'signIn'
-                        ? 'Entrar'
-                        : mode === 'signUp'
-                          ? 'Criar conta'
-                          : 'Enviar'}
-                  </button>
-                </form>
-
-                {mode === 'forgotPassword' && (
-                  <p className="text-center text-xs text-gray-600 dark:text-gray-400">
-                    <button
-                      type="button"
-                      onClick={() => switchMode('signIn')}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      Voltar para o login
-                    </button>
-                  </p>
-                )}
-              </>
-            )}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={sendResetEmail}
+              disabled={isSubmitting}
+              className={AUTH_PRIMARY_BUTTON_CLASS}
+            >
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? 'Reenviando...' : 'Reenviar e-mail'}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('signIn')}
+              className="w-full h-12 rounded-xl text-base font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Voltar para o login
+            </button>
           </div>
         </motion.div>
-      </div>
-    </div>
+      ) : (
+        <>
+          <div style={{ transform: 'translateZ(30px)' }}>
+            <div className="flex items-center gap-3">
+              {backButton}
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
+                {heading.title}
+              </h1>
+            </div>
+            <p className="mt-1 text-[13px] min-[360px]:text-sm sm:text-base text-gray-600 dark:text-gray-400 whitespace-nowrap sm:whitespace-normal">
+              {heading.subtitle}
+            </p>
+          </div>
+
+          {mode !== 'forgotPassword' && (
+            <div className="relative flex items-center bg-gray-100 dark:bg-gray-800 p-1 rounded-full shadow-inner">
+              <motion.div
+                className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-white dark:bg-gray-700 shadow-sm"
+                initial={false}
+                animate={{ x: mode === 'signIn' ? 4 : 'calc(100% + 4px)' }}
+                transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
+              />
+              {(['signIn', 'signUp'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => switchMode(m)}
+                  aria-pressed={mode === m}
+                  className={`relative z-10 flex-1 py-2.5 text-[15px] font-semibold rounded-full transition-colors ${
+                    mode === m
+                      ? 'text-gray-900 dark:text-gray-100'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {m === 'signIn' ? 'Entrar' : 'Criar conta'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {error && <AuthAlert tone="error">{error}</AuthAlert>}
+          {infoMessage && <AuthAlert tone="success">{infoMessage}</AuthAlert>}
+
+          {mode !== 'forgotPassword' && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={busy}
+                className="w-full h-12 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-[15px] font-semibold text-gray-800 dark:text-gray-100 shadow-[0_3px_0_0_var(--color-gray-200)] dark:shadow-[0_3px_0_0_var(--color-gray-950)] hover:bg-gray-50 dark:hover:bg-gray-700 hover:translate-y-px active:shadow-none active:translate-y-0.5 transition-all disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-3"
+              >
+                {isGoogleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon className="w-5 h-5" />}
+                {mode === 'signIn' ? 'Entrar com o Google' : 'Cadastrar com o Google'}
+              </button>
+
+              <div className="flex items-center gap-3" aria-hidden="true">
+                <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {mode === 'signUp' ? 'ou preencha' : 'ou use seu e-mail'}
+                </span>
+                <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+              </div>
+            </>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signUp' && (
+              <div>
+                <label
+                  htmlFor="auth-nome"
+                  className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1.5"
+                >
+                  Nome completo
+                </label>
+                <div className="group relative">
+                  <User className="w-4 h-4 text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    id="auth-nome"
+                    type="text"
+                    required
+                    autoComplete="name"
+                    placeholder="Seu nome e sobrenome"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className={`${AUTH_INPUT_CLASS} pl-10 pr-3.5`}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label
+                htmlFor="auth-e-mail"
+                className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1.5"
+              >
+                E-mail
+              </label>
+              <div className="group relative">
+                <Mail className="w-4 h-4 text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="auth-e-mail"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="voce@exemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`${AUTH_INPUT_CLASS} pl-10 pr-3.5`}
+                />
+              </div>
+            </div>
+
+            {mode !== 'forgotPassword' && (
+              <div>
+                <label
+                  htmlFor="auth-senha"
+                  className="block text-sm font-medium text-gray-800 dark:text-gray-300 mb-1.5"
+                >
+                  Senha
+                </label>
+                <div className="group relative">
+                  <Lock className="w-4 h-4 text-gray-500 group-focus-within:text-primary dark:group-focus-within:text-primary-500 transition-colors absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    id="auth-senha"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+                    placeholder={mode === 'signUp' ? 'Senha (mínimo de 6 caracteres)' : 'Sua senha'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${AUTH_INPUT_CLASS} pl-10 pr-10`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {mode === 'signIn' && (
+                  <div className="mt-1.5 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgotPassword')}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button type="submit" disabled={busy} className={AUTH_PRIMARY_BUTTON_CLASS}>
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting
+                ? 'Aguarde...'
+                : mode === 'signIn'
+                  ? 'Entrar'
+                  : mode === 'signUp'
+                    ? 'Criar conta'
+                    : 'Enviar'}
+            </button>
+          </form>
+
+          {mode !== 'forgotPassword' && (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 leading-relaxed text-balance">
+              Ao continuar, você aceita os{' '}
+              <a href="/termos" className="font-semibold text-primary hover:underline">
+                Termos
+              </a>{' '}
+              e a{' '}
+              <a href="/privacidade" className="font-semibold text-primary hover:underline">
+                Privacidade
+              </a>
+              .
+            </p>
+          )}
+
+          {mode === 'forgotPassword' && (
+            <p className="text-center text-xs text-gray-600 dark:text-gray-400">
+              <button
+                type="button"
+                onClick={() => switchMode('signIn')}
+                className="font-semibold text-primary hover:underline"
+              >
+                Voltar para o login
+              </button>
+            </p>
+          )}
+        </>
+      )}
+    </AuthCard>
   );
 };

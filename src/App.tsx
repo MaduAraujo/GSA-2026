@@ -9,12 +9,18 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useDarkMode } from './hooks/useDarkMode';
 import { usePersistedState } from './hooks/usePersistedState';
 import { usePwaInstall } from './hooks/usePwaInstall';
+import { hasPendingLinkError } from './lib/authRedirect';
 import { createQueryClient, persistOptions } from './lib/queryClient';
 import { readLastTab, ROUTES, TAB_PATHS } from './routes';
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const AuthScreen = lazy(() => import('./components/AuthScreen').then((m) => ({ default: m.AuthScreen })));
+const ResetPasswordScreen = lazy(() =>
+  import('./components/auth/ResetPasswordScreen').then((m) => ({ default: m.ResetPasswordScreen })),
+);
 const AboutPage = lazy(() => import('./components/AboutPage').then((m) => ({ default: m.AboutPage })));
+const PrivacyPage = lazy(() => import('./components/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import('./components/legal/TermsPage').then((m) => ({ default: m.TermsPage })));
 const PublicPortfolioPage = lazy(() =>
   import('./components/PublicPortfolioPage').then((m) => ({ default: m.PublicPortfolioPage })),
 );
@@ -49,6 +55,7 @@ function AppRoutes() {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const pwa = usePwaInstall();
   const [isPwaModalOpen, setIsPwaModalOpen] = usePersistedState('gsa_pwa_modal_open', false);
+  const { session, isRecovery, completeRecovery } = useAuth();
 
   const handleInstallPwa = async () => {
     const prompted = await pwa.install();
@@ -59,19 +66,37 @@ function AppRoutes() {
   const toDashboard = <Navigate to={returnTo} replace />;
 
   const authScreen = (mode: 'signIn' | 'signUp') => (
-    <AuthScreen
-      key={mode}
-      initialMode={mode}
-      onBack={() => navigate(ROUTES.home)}
-      isDarkMode={isDarkMode}
-      onToggleDarkMode={toggleDarkMode}
-    />
+    <AuthScreen key={mode} initialMode={mode} onBack={() => navigate(ROUTES.home)} />
   );
+
+  if (session && isRecovery) {
+    return (
+      <Suspense fallback={<FullPageLoader />}>
+        <ResetPasswordScreen
+          onDone={completeRecovery}
+          onCancel={() => {
+            completeRecovery();
+            navigate(ROUTES.signIn, { replace: true });
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  if (
+    !session &&
+    hasPendingLinkError() &&
+    (location.pathname === ROUTES.home || location.pathname === ROUTES.resetPassword)
+  ) {
+    return <Navigate to={ROUTES.signIn} replace />;
+  }
 
   return (
     <Suspense fallback={<FullPageLoader />}>
       <Routes>
         <Route path={ROUTES.about} element={<AboutPage />} />
+        <Route path={ROUTES.privacy} element={<PrivacyPage />} />
+        <Route path={ROUTES.terms} element={<TermsPage />} />
         <Route path={ROUTES.portfolio} element={<PortfolioRoute />} />
         <Route
           path={ROUTES.home}
@@ -94,6 +119,10 @@ function AppRoutes() {
         />
         <Route path={ROUTES.signIn} element={<AuthGate signedIn={toDashboard} signedOut={authScreen('signIn')} />} />
         <Route path={ROUTES.signUp} element={<AuthGate signedIn={toDashboard} signedOut={authScreen('signUp')} />} />
+        <Route
+          path={ROUTES.resetPassword}
+          element={<AuthGate signedIn={toDashboard} signedOut={<Navigate to={ROUTES.signIn} replace />} />}
+        />
         <Route
           path="*"
           element={
