@@ -194,7 +194,7 @@ As abas ficam agrupadas na barra lateral (no celular, as principais ficam na bar
 | **Diretrizes**          | Regras e boas práticas do programa                  |
 | **Suporte**             | Canal de contato com a equipe                       |
 
-Além das abas, há a página inicial pública, o **portfólio público** em `/p/:slug`, perfil, configurações (tema claro e escuro), notificações push e o guia de instalação do PWA.
+Além das abas, há a página inicial pública, o **portfólio público**, perfil, configurações (tema claro e escuro) e notificações push.
 
 ---
 
