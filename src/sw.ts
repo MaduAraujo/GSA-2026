@@ -35,7 +35,7 @@ interface PushPayload {
 }
 
 self.addEventListener('push', (event) => {
-  let payload: PushPayload = { title: 'Embaixadora Google 2026', body: 'Você tem uma novidade no seu Hub.' };
+  let payload: PushPayload = { title: 'Hub GSA 2026', body: 'Você tem uma novidade no seu Hub.' };
   try {
     if (event.data) payload = { ...payload, ...(event.data.json() as Partial<PushPayload>) };
   } catch {}

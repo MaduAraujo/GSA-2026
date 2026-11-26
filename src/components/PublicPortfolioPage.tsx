@@ -65,7 +65,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
           />
           <div className="flex-1 min-w-0">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-primary/10 text-primary mb-2">
-              Embaixadora Estudantil Google 2026
+              Embaixador(a) Estudantil 2026
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{profile.name}</h1>
             <p className="text-sm text-gray-600 mt-0.5">
@@ -166,9 +166,7 @@ export const PublicPortfolioPage: React.FC<PublicPortfolioPageProps> = ({ slug }
           )}
         </div>
 
-        <p className="text-center text-2xs text-gray-400 pt-4">
-          Portfólio gerado pelo Hub da Embaixadora Estudantil Google 2026.
-        </p>
+        <p className="text-center text-2xs text-gray-400 pt-4">Portfólio gerado pelo Hub GSA 2026.</p>
       </div>
     </div>
   );

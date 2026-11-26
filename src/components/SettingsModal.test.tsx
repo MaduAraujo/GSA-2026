@@ -25,6 +25,54 @@ describe('SettingsModal', () => {
     expect(onToggleDarkMode).toHaveBeenCalledTimes(1);
   });
 
+  it('only enables permanent deletion after typing the confirmation word', async () => {
+    const user = userEvent.setup();
+    const onDeleteAccount = vi.fn(() => Promise.resolve());
+    const onClose = vi.fn();
+    render(
+      <SettingsModal
+        isOpen
+        onClose={onClose}
+        isDarkMode={false}
+        onToggleDarkMode={vi.fn()}
+        onDeleteAccount={onDeleteAccount}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Excluir conta…' }));
+    const confirm = screen.getByRole('button', { name: 'Excluir permanentemente' });
+    expect(confirm).toBeDisabled();
+
+    await user.type(screen.getByLabelText(/Para confirmar/), 'excluir');
+    expect(confirm).toBeEnabled();
+    await user.click(confirm);
+
+    expect(onDeleteAccount).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows the error and keeps the modal open when deletion fails', async () => {
+    const user = userEvent.setup();
+    const onDeleteAccount = vi.fn(() => Promise.reject(new Error('Servidor indisponível.')));
+    const onClose = vi.fn();
+    render(
+      <SettingsModal
+        isOpen
+        onClose={onClose}
+        isDarkMode={false}
+        onToggleDarkMode={vi.fn()}
+        onDeleteAccount={onDeleteAccount}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Excluir conta…' }));
+    await user.type(screen.getByLabelText(/Para confirmar/), 'EXCLUIR');
+    await user.click(screen.getByRole('button', { name: 'Excluir permanentemente' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Servidor indisponível.');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('calls onClose from both the header and footer close controls', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

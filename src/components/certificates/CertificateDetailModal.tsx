@@ -230,7 +230,7 @@ export function CertificateDetailModal({
 
             <button
               onClick={onCreatePost}
-              title="Gerar um post comemorativo com o Gemini"
+              title="Gerar um post comemorativo com IA"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary-700 text-white shadow-sm transition-all active:scale-95"
             >
               <Sparkles className="w-4 h-4" />

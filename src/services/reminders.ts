@@ -39,8 +39,8 @@ export const RemindersService = {
     const daysSincePost = lastPostDate ? (now - new Date(lastPostDate).getTime()) / (1000 * 60 * 60 * 24) : Infinity;
     if (daysSincePost < REMINDER_INTERVAL_DAYS) return;
 
-    new Notification('Embaixadora Google 2026', {
-      body: 'Já faz um tempo desde o seu último post! Que tal gerar um novo conteúdo com o Gemini hoje?',
+    new Notification('Hub GSA 2026', {
+      body: 'Já faz um tempo desde o seu último post! Que tal gerar um novo conteúdo com IA hoje?',
       icon: '/icons/icon-192.png',
       tag: 'weekly-content-reminder',
     });

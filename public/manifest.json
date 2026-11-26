@@ -1,7 +1,7 @@
 {
-  "name": "Embaixadora Estudantil Google 2026",
-  "short_name": "Google Ambassador",
-  "description": "Portal PWA da Embaixadora Estudantil Google 2026: Gestão de Certificados, Banco de Prompts por Seção e Criador de Posts com Gemini.",
+  "name": "Hub GSA 2026",
+  "short_name": "Hub GSA",
+  "description": "Hub GSA 2026: portal independente para Embaixadores(as) Estudantis organizarem certificados, banco de prompts e criação de posts com IA.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

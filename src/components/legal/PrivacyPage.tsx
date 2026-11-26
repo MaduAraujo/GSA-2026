@@ -95,9 +95,9 @@ const SECTIONS: LegalSection[] = [
           dados, além de revogar o consentimento a qualquer momento.
         </p>
         <p>
-          Você pode editar ou apagar seus registros diretamente no Hub. Para excluir a conta inteira, entre em contato
-          pela página de Suporte. Você também pode remover o acesso do Hub à sua conta Google em
-          myaccount.google.com/permissions.
+          Você pode editar ou apagar seus registros diretamente no Hub. Para excluir a conta inteira, com todos os
+          registros e arquivos, use Configurações → Excluir minha conta. Você também pode remover o acesso do Hub à sua
+          conta Google em myaccount.google.com/permissions.
         </p>
       </>
     ),

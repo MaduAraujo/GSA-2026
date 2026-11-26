@@ -30,7 +30,7 @@ async function startServer() {
   );
 
   httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Embaixadora Google 2026 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Hub GSA 2026 Server running on http://localhost:${PORT}`);
   });
 }
 

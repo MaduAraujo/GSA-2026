@@ -269,7 +269,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, pro
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold text-gray-900 text-sm sm:text-base">{formData.name || 'Embaixadora Google'}</h4>
+              <h4 className="font-bold text-gray-900 text-sm sm:text-base">{formData.name || 'Embaixador(a)'}</h4>
             </div>
             <p className="text-xs text-gray-600 mt-0.5">{formData.role}</p>
             <p className="text-2xs text-gray-500">

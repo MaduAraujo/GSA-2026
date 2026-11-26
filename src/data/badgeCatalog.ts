@@ -186,7 +186,7 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
   {
     id: 'first_post',
     name: 'Voz Ativa',
-    description: 'Criou seu primeiro post com o Gemini Posts.',
+    description: 'Criou seu primeiro post com IA.',
     hint: 'Crie 1 post',
     icon: Rocket,
     tier: 'bronze',
@@ -256,7 +256,7 @@ export const BADGE_CATALOG: BadgeDefinition[] = [
   {
     id: 'three_posts',
     name: 'Criador Consistente',
-    description: 'Criou 3 posts com o Gemini Posts.',
+    description: 'Criou 3 posts com IA.',
     hint: 'Crie 3 posts',
     icon: CalendarCheck,
     tier: 'silver',

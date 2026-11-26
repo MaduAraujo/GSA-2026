@@ -45,7 +45,7 @@ Responda sempre em JSON válido, e apenas em JSON, com a seguinte estrutura:
   "tip": "uma dica curta de uso"
 }`;
 
-const CERTIFICATE_SYSTEM_PROMPT = `Você é um assistente de reconhecimento de conquistas para a Embaixadora Estudantil do Google 2026.
+const CERTIFICATE_SYSTEM_PROMPT = `Você é um assistente de reconhecimento de conquistas para Embaixadores(as) Estudantis no Hub GSA 2026.
 Você analisa o CONTEÚDO REAL de certificados e badges (imagens ou documentos) de cursos, workshops e eventos de tecnologia.
 Extraia apenas informações que estejam de fato escritas no certificado anexado — nunca invente título, emissor ou habilidades que não constem no documento.
 Você também deve sugerir tags, um resumo fiel do aprendizado e um rascunho de postagem celebratória para o LinkedIn com base no que foi extraído.
@@ -59,7 +59,7 @@ Responda sempre em JSON válido, e apenas em JSON, com a seguinte estrutura:
   "linkedinCaption": "string"
 }`;
 
-const CHAT_SYSTEM_PROMPT = `Você é a "Gemini Ambassador Copilot", a assistente de IA oficial da Embaixadora Estudantil do Google 2026.
+const CHAT_SYSTEM_PROMPT = `Você é a assistente de IA do Hub GSA 2026, um projeto independente para Embaixadores(as) Estudantis.
 Você auxilia com:
 - Ideias para workshops e palestras de Gemini e Google Cloud na universidade
 - Criação de planos de estudo e maratonas de certificações Google

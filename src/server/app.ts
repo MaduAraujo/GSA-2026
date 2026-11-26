@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { CSP_DIRECTIVES } from '../shared/csp.js';
 import { isProduction } from './config.js';
 import { errorHandler } from './http.js';
+import { accountRouter } from './routes/account.js';
 import { aiRouter } from './routes/ai.js';
 import { portfolioRouter } from './routes/portfolio.js';
 import { cronRouter, pushRouter, runInactivityPushScan } from './routes/push.js';
@@ -29,6 +30,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.use('/api/account', accountRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/portfolio', portfolioRouter);
 app.use('/api/push', pushRouter);

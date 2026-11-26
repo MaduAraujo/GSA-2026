@@ -91,7 +91,7 @@ describe('RemindersService', () => {
     const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
     RemindersService.checkAndNotify(tenDaysAgo);
     expect(NotificationMock).toHaveBeenCalledWith(
-      'Embaixadora Google 2026',
+      'Hub GSA 2026',
       expect.objectContaining({ tag: 'weekly-content-reminder' }),
     );
     expect(localStorage.getItem('google_ambassador_last_reminder_shown')).not.toBeNull();

@@ -33,8 +33,8 @@ export async function runInactivityPushScan() {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify({
-          title: 'Embaixadora Google 2026',
-          body: 'Já faz um tempo desde o seu último post! Que tal gerar um novo conteúdo com o Gemini hoje?',
+          title: 'Hub GSA 2026',
+          body: 'Já faz um tempo desde o seu último post! Que tal gerar um novo conteúdo com IA hoje?',
           url: '/',
         }),
       );
@@ -71,7 +71,7 @@ pushRouter.post('/test', requireAuth, async (req, res) => {
   await webpush.sendNotification(
     subscription as webpush.PushSubscription,
     JSON.stringify({
-      title: 'Embaixadora Google 2026',
+      title: 'Hub GSA 2026',
       body: 'Notificação de teste — as notificações push estão funcionando! 🚀',
       url: '/',
     }),
