@@ -29,7 +29,7 @@
 
 ## Sobre o Projeto
 
-O **Hub GSA 2026** é um sistema web + PWA para os Embaixadores(as) Estudantis do Google 2026. Ele reúne num só lugar o que o programa pede: certificados e badges, banco de prompts, posts, desafios, sessões, galeria, pontuação semanal, prazos e um portfólio público para compartilhar as conquistas.
+O **Hub GSA 2026** é um sistema web + PWA para os Embaixadores(as) Estudantis do Google 2026. Ele reúne num só lugar o que o programa proporciona: certificados e badges, prompts, posts, desafios, sessões, galeria, pontuação semanal, prazos e um portfólio público para compartilhar as conquistas.
 
 Antes do Hub, essas informações ficavam espalhadas entre planilhas, pastas no Drive, formulários e grupos de mensagem. O Hub organiza tudo por embaixador(a), lembra dos prazos e transforma o histórico do programa em um portfólio pronto para mostrar.
 
