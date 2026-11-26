@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import webpush from 'web-push';
+import * as webpush from 'web-push';
 import { pushTestRequestSchema } from '../../shared/aiSchemas';
 import { adminClient, hasVapidKeys, isProduction, VAPID_PUBLIC_KEY } from '../config';
 import { HttpError, parseBody, requireAuth } from '../http';

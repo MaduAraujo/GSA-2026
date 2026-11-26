@@ -119,6 +119,12 @@
 .dark .bg-gray-100 {
   background-color: #202737;
 }
+.dark .bg-gray-200:not([class*='dark:bg-']) {
+  background-color: #2d3444;
+}
+.dark .bg-gray-300:not([class*='dark:bg-']) {
+  background-color: #3c4456;
+}
 
 .dark .text-gray-900 {
   color: #f1f3f4;
@@ -171,6 +177,28 @@
 
 .dark .hover\:border-gray-300:hover {
   border-color: #454e63;
+}
+.dark .border-gray-200\/90 {
+  border-color: rgb(45 52 68 / 0.9);
+}
+.dark .divide-gray-200 > :not(:last-child) {
+  border-color: #2d3444;
+}
+.dark .divide-gray-100 > :not(:last-child) {
+  border-color: #262c3b;
+}
+.dark .hover\:bg-gray-200\/80:hover {
+  background-color: rgb(45 52 68 / 0.8);
+}
+
+.dark .from-gray-100 {
+  --tw-gradient-from: #202737;
+}
+.dark .via-gray-200 {
+  --tw-gradient-via: #2d3444;
+}
+.dark .to-gray-100 {
+  --tw-gradient-to: #202737;
 }
 
 .dark {

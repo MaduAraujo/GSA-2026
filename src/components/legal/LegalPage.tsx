@@ -60,7 +60,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ title, intro, updatedAt, s
             <h2 className="text-lg font-bold text-gray-900">
               {i + 1}. {section.title}
             </h2>
-            <div className="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed space-y-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_strong]:text-gray-800">
+            <div className="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed space-y-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_strong]:text-gray-800 dark:[&_strong]:text-gray-100">
               {section.body}
             </div>
           </section>
