@@ -105,8 +105,7 @@
       "path-to-regexp": "^6.3.0"
     },
     "workbox-build": {
-      "glob": "^14.0.6",
-      "minimatch": "^11.0.9"
+      "glob": "^14.0.6"
     }
   },
   "lint-staged": {
