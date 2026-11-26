@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import * as webpush from 'web-push';
-import { pushTestRequestSchema } from '../../shared/aiSchemas';
-import { adminClient, hasVapidKeys, isProduction, VAPID_PUBLIC_KEY } from '../config';
-import { HttpError, parseBody, requireAuth } from '../http';
+import { pushTestRequestSchema } from '../../shared/aiSchemas.js';
+import { adminClient, hasVapidKeys, isProduction, VAPID_PUBLIC_KEY } from '../config.js';
+import { HttpError, parseBody, requireAuth } from '../http.js';
 
 const INACTIVITY_THRESHOLD_DAYS = 7;
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { PUBLIC_SLUG_PATTERN, type PublicPortfolio } from '../../shared/publicPortfolio';
-import { adminClient } from '../config';
-import { HttpError, ipRateLimit } from '../http';
+import { PUBLIC_SLUG_PATTERN, type PublicPortfolio } from '../../shared/publicPortfolio.js';
+import { adminClient } from '../config.js';
+import { HttpError, ipRateLimit } from '../http.js';
 
 const USER_FILES_BUCKET = 'user-files';
 const SIGNED_URL_TTL_SECONDS = 60 * 60;

@@ -6,9 +6,9 @@ import {
   chatRequestSchema,
   enhancePromptRequestSchema,
   enhancedPromptSchema,
-} from '../../shared/aiSchemas';
-import { extractDocumentText, mimeTypeOfDataUrl } from '../documents';
-import { HttpError, parseBody, rateLimit, requireAuth } from '../http';
+} from '../../shared/aiSchemas.js';
+import { extractDocumentText, mimeTypeOfDataUrl } from '../documents.js';
+import { HttpError, parseBody, rateLimit, requireAuth } from '../http.js';
 
 const GROQ_TEXT_MODEL = process.env.GROQ_TEXT_MODEL || 'openai/gpt-oss-120b';
 const GROQ_VISION_MODEL = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b';

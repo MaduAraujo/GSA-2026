@@ -1,11 +1,11 @@
 import express from 'express';
 import helmet from 'helmet';
-import { CSP_DIRECTIVES } from '../shared/csp';
-import { isProduction } from './config';
-import { errorHandler } from './http';
-import { aiRouter } from './routes/ai';
-import { portfolioRouter } from './routes/portfolio';
-import { cronRouter, pushRouter, runInactivityPushScan } from './routes/push';
+import { CSP_DIRECTIVES } from '../shared/csp.js';
+import { isProduction } from './config.js';
+import { errorHandler } from './http.js';
+import { aiRouter } from './routes/ai.js';
+import { portfolioRouter } from './routes/portfolio.js';
+import { cronRouter, pushRouter, runInactivityPushScan } from './routes/push.js';
 
 export { runInactivityPushScan };
 

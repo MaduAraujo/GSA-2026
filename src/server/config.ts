@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import * as webpush from 'web-push';
-import type { Database } from '../types/database';
+import type { Database } from '../types/database.js';
 
 dotenv.config();
 

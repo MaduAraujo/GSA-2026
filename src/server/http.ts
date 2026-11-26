@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
-import { adminClient, authClient } from './config';
+import { adminClient, authClient } from './config.js';
 
 declare module 'express-serve-static-core' {
   interface Request {
