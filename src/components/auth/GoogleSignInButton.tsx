@@ -41,10 +41,10 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ mode, di
         const width = Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, container.offsetWidth || MAX_WIDTH)));
         api.renderButton(container, {
           type: 'standard',
-          theme: document.documentElement.classList.contains('dark') ? 'filled_black' : 'outline',
+          theme: 'outline',
           size: 'large',
           text: mode === 'signUp' ? 'signup_with' : 'signin_with',
-          shape: 'rectangular',
+          shape: 'pill',
           logo_alignment: 'center',
           width,
           locale: 'pt-BR',

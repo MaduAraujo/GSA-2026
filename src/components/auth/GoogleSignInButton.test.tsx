@@ -38,7 +38,12 @@ describe('GoogleSignInButton', () => {
     expect(initialize).toHaveBeenCalledWith(
       expect.objectContaining({ client_id: 'client-123.apps.googleusercontent.com', context: 'signup' }),
     );
-    expect(renderButton.mock.calls[0]?.[1]).toMatchObject({ text: 'signup_with', locale: 'pt-BR' });
+    expect(renderButton.mock.calls[0]?.[1]).toMatchObject({
+      text: 'signup_with',
+      locale: 'pt-BR',
+      theme: 'outline',
+      shape: 'pill',
+    });
     expect(screen.queryByRole('button', { name: 'Reserva' })).not.toBeInTheDocument();
 
     captured!({ credential: 'id-token' });
