@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CertificatesModule } from './CertificatesModule';
+import { AiApiService } from '../services/aiApi';
 import { type Certificate } from '../types';
 import { makeCertificate, makeProfile } from '../test/factories';
 import { renderModule as renderWithAppProviders } from '../test/render';
@@ -411,6 +412,21 @@ describe('CertificatesModule', () => {
     const input = screen.getByRole('dialog').querySelector<HTMLInputElement>('input[type="file"]')!;
     await user.upload(input, new File(['x'], 'cert.png', { type: 'image/png' }));
     expect(await screen.findByRole('button', { name: /Preencher com IA/ })).toBeEnabled();
+  });
+
+  it('explains instead of calling the AI when the PDF is too big for the request limit', async () => {
+    const user = userEvent.setup();
+    const analyzeSpy = vi.spyOn(AiApiService, 'analyzeCertificate');
+    renderModule();
+    await user.click(screen.getByLabelText('Novo certificado'));
+
+    const input = screen.getByRole('dialog').querySelector<HTMLInputElement>('input[type="file"]')!;
+    await user.upload(input, new File(['a'.repeat(3_500_000)], 'grande.pdf', { type: 'application/pdf' }));
+    await user.click(await screen.findByRole('button', { name: /Preencher com IA/ }));
+
+    expect(await screen.findByText(/grande demais para o preenchimento com IA/)).toBeInTheDocument();
+    expect(analyzeSpy).not.toHaveBeenCalled();
+    analyzeSpy.mockRestore();
   });
 
   it('hides the category chips when there is only one category', () => {

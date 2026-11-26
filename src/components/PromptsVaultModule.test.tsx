@@ -606,6 +606,36 @@ describe('PromptsVaultModule', () => {
     });
   });
 
+  it('refuses a library document whose content would not fit in the AI request', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['a'.repeat(3_500_000)], { type: 'application/pdf' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderModule({
+      prompts: [makePrompt({ promptText: 'Resuma o anexo' })],
+      promptDocs: [
+        {
+          id: 'd1',
+          name: 'relatorio.pdf',
+          filePath: 'u/d1-relatorio.pdf',
+          fileData: 'https://signed.example/relatorio.pdf',
+          fileType: 'application/pdf',
+          fileSize: 3_500_000,
+          createdAt: '2026-11-01T00:00:00.000Z',
+        },
+      ],
+    });
+    await user.click(screen.getByRole('button', { name: 'Testar prompt com IA' }));
+    await user.click(screen.getByRole('button', { name: 'Anexar da biblioteca (1)' }));
+    await user.click(screen.getByRole('button', { name: /relatorio\.pdf/ }));
+
+    expect(await screen.findByText(/"relatorio\.pdf" é grande demais para enviar à IA/)).toBeInTheDocument();
+    expect(screen.queryByText('Anexo pronto para o teste')).not.toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
   describe('library tools', () => {
     it('opens the export dialog directly with only the filtered prompts pre-selected', async () => {
       const user = userEvent.setup();

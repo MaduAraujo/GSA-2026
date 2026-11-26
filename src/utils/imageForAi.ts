@@ -1,6 +1,14 @@
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.85;
 
+export const MAX_AI_PAYLOAD_CHARS = 4_000_000;
+
+export const AI_PAYLOAD_LIMIT_LABEL = '3MB';
+
+export function exceedsAiPayloadLimit(dataUrl: string): boolean {
+  return dataUrl.length > MAX_AI_PAYLOAD_CHARS;
+}
+
 export async function downscaleImageForAi(dataUrl: string): Promise<string> {
   if (
     !dataUrl.startsWith('data:image/') ||

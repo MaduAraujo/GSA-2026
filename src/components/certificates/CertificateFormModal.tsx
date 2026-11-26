@@ -8,7 +8,7 @@ import { useDismiss } from '../../hooks/useDismiss';
 import { AiApiService } from '../../services/aiApi';
 import type { Certificate } from '../../types';
 import { errorMessage } from '../../utils/errors';
-import { downscaleImageForAi } from '../../utils/imageForAi';
+import { AI_PAYLOAD_LIMIT_LABEL, downscaleImageForAi, exceedsAiPayloadLimit } from '../../utils/imageForAi';
 import { DatePicker } from '../DatePicker';
 import { NumberStepper } from '../NumberStepper';
 import type { CertificateFormState } from './useCertificateForm';
@@ -72,10 +72,18 @@ export function CertificateFormModal({ form, categories, onSaveCertificate }: Ce
     if (!filePreview) return;
     setIsAnalyzing(true);
     try {
+      const payload = fileType === 'image' ? await downscaleImageForAi(filePreview) : filePreview;
+      if (exceedsAiPayloadLimit(payload)) {
+        toast.show({
+          message: `Este arquivo é grande demais para o preenchimento com IA (limite de ${AI_PAYLOAD_LIMIT_LABEL}). Preencha os campos manualmente ou envie um PDF menor.`,
+          tone: 'error',
+        });
+        return;
+      }
       const res = await AiApiService.analyzeCertificate({
         title: formData.title || fileName || 'Certificado Google 2026',
         issuer: formData.issuer || undefined,
-        imageBase64: fileType === 'image' ? await downscaleImageForAi(filePreview) : filePreview,
+        imageBase64: payload,
       });
 
       setFormData((prev) => ({

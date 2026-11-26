@@ -23,6 +23,7 @@ import { usePersistedState } from '../../hooks/usePersistedState';
 import { AiApiService } from '../../services/aiApi';
 import type { PromptDoc, PromptItem } from '../../types';
 import { errorMessage } from '../../utils/errors';
+import { AI_PAYLOAD_LIMIT_LABEL, downscaleImageForAi, exceedsAiPayloadLimit } from '../../utils/imageForAi';
 import { isHttpUrl } from '../../utils/safeUrl';
 import { MarkdownText } from '../MarkdownText';
 import { fillPromptVariables, getPromptVariables } from './fillPromptVariables';
@@ -90,6 +91,18 @@ export function PromptTesterModal({ prompt, promptDocs = [], onClose, onSaveProm
   const emptyVariables = variables.filter((v) => !variableValues[v]?.trim());
   const sectionLabel = prompt.section.trim();
 
+  const prepareAttachment = async (rawDataUrl: string, name: string, mimeType: string): Promise<boolean> => {
+    const dataUrl = mimeType.startsWith('image/') ? await downscaleImageForAi(rawDataUrl) : rawDataUrl;
+    if (exceedsAiPayloadLimit(dataUrl)) {
+      setFileError(
+        `"${name}" é grande demais para enviar à IA. Documentos precisam ter até ${AI_PAYLOAD_LIMIT_LABEL}.`,
+      );
+      return false;
+    }
+    setAttachment({ dataUrl, name, mimeType });
+    return true;
+  };
+
   const loadFile = (file: File) => {
     setFileError(null);
     if (!ACCEPTED_PROMPT_FILE_TYPES.includes(file.type)) {
@@ -100,7 +113,7 @@ export function PromptTesterModal({ prompt, promptDocs = [], onClose, onSaveProm
       setFileError(`Arquivo muito grande (${formatMegabytes(file.size)}MB). O limite é 4MB.`);
       return;
     }
-    void readAsDataUrl(file).then((dataUrl) => setAttachment({ dataUrl, name: file.name, mimeType: file.type }));
+    void readAsDataUrl(file).then((dataUrl) => prepareAttachment(dataUrl, file.name, file.type));
   };
 
   const attachFromLibrary = async (doc: PromptDoc) => {
@@ -112,8 +125,7 @@ export function PromptTesterModal({ prompt, promptDocs = [], onClose, onSaveProm
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const dataUrl = await readAsDataUrl(await res.blob());
-      setAttachment({ dataUrl, name: doc.name, mimeType: doc.fileType });
-      setIsLibraryOpen(false);
+      if (await prepareAttachment(dataUrl, doc.name, doc.fileType)) setIsLibraryOpen(false);
     } catch (err) {
       console.error(err);
       setFileError(`Não foi possível carregar "${doc.name}" da biblioteca. Tente novamente.`);

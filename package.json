@@ -99,6 +99,16 @@
     "node": ">=22.12"
   },
   "packageManager": "npm@10.9.2",
+  "overrides": {
+    "uuid": "^11.1.1",
+    "@vercel/routing-utils": {
+      "path-to-regexp": "^6.3.0"
+    },
+    "workbox-build": {
+      "glob": "^14.0.6",
+      "minimatch": "^11.0.9"
+    }
+  },
   "lint-staged": {
     "*.{ts,tsx,js}": [
       "eslint --fix --max-warnings=0 --no-warn-ignored",
