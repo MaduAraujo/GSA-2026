@@ -231,7 +231,7 @@ export function AppShell({ isDarkMode, onToggleDarkMode }: AppShellProps) {
           <footer className="mt-auto border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-xs text-gray-600 dark:text-gray-400">
               <p className="text-center">
-                © 2026 Embaixadores Estudantis do Google.
+                © 2026 Hub GSA 2026.
                 <br className="sm:hidden" /> Todos os direitos reservados.
               </p>
             </div>

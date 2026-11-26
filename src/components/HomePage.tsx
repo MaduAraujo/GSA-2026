@@ -198,6 +198,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="sm:flex-1 flex items-center gap-2 min-w-0">
             <BrandLogo className="w-10 h-10 shrink-0" />
+            <span className="text-base font-bold text-gray-900 dark:text-gray-50 truncate">Hub GSA 2026</span>
           </div>
 
           <nav className="hidden sm:flex flex-1 items-center justify-center gap-1">
@@ -342,7 +343,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400">
           <LegalFooterLinks />
           <p className="text-center">
-            © 2026 Embaixadores Estudantis do Google.
+            © 2026 Hub GSA 2026.
             <br className="sm:hidden" /> Todos os direitos reservados.
           </p>
         </div>

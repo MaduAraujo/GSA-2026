@@ -71,7 +71,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ title, intro, updatedAt, s
     <footer className="border-t border-gray-200 bg-white py-6">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-xs text-gray-600 space-y-2 text-center">
         <LegalFooterLinks />
-        <p>© 2026 Embaixadores Estudantis do Google. Todos os direitos reservados.</p>
+        <p>© 2026 Hub GSA 2026. Todos os direitos reservados.</p>
       </div>
     </footer>
   </div>

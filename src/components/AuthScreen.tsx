@@ -7,6 +7,7 @@ import { authErrorCode, friendlyAuthError, isEmailNotConfirmed } from '../lib/au
 import { consumeLinkError } from '../lib/authRedirect';
 import { ROUTES } from '../routes';
 import { AuthAlert, AuthCard, AUTH_INPUT_CLASS, AUTH_PRIMARY_BUTTON_CLASS } from './auth/AuthCard';
+import { GoogleSignInButton } from './auth/GoogleSignInButton';
 
 interface AuthScreenProps {
   initialMode?: 'signIn' | 'signUp';
@@ -144,6 +145,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
         options: { redirectTo: window.location.origin },
       });
       if (oauthError) throw oauthError;
+    } catch (err) {
+      setError(friendlyAuthError(err, 'Não foi possível entrar com o Google. Tente novamente.'));
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleCredential = async (idToken: string, rawNonce: string) => {
+    setError(null);
+    setInfoMessage(null);
+    setIsGoogleLoading(true);
+    try {
+      const { error: idTokenError } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+        nonce: rawNonce,
+      });
+      if (idTokenError) throw idTokenError;
     } catch (err) {
       setError(friendlyAuthError(err, 'Não foi possível entrar com o Google. Tente novamente.'));
       setIsGoogleLoading(false);
@@ -343,15 +361,26 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ initialMode = 'signIn', 
 
           {mode !== 'forgotPassword' && (
             <>
-              <button
-                type="button"
-                onClick={handleGoogle}
+              <GoogleSignInButton
+                mode={mode === 'signUp' ? 'signUp' : 'signIn'}
                 disabled={busy}
-                className="w-full h-12 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-[15px] font-semibold text-gray-800 dark:text-gray-100 shadow-[0_3px_0_0_var(--color-gray-200)] dark:shadow-[0_3px_0_0_var(--color-gray-950)] hover:bg-gray-50 dark:hover:bg-gray-700 hover:translate-y-px active:shadow-none active:translate-y-0.5 transition-all disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-3"
-              >
-                {isGoogleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon className="w-5 h-5" />}
-                {mode === 'signIn' ? 'Entrar com o Google' : 'Cadastrar com o Google'}
-              </button>
+                onCredential={handleGoogleCredential}
+                fallback={
+                  <button
+                    type="button"
+                    onClick={handleGoogle}
+                    disabled={busy}
+                    className="w-full h-12 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-[15px] font-semibold text-gray-800 dark:text-gray-100 shadow-[0_3px_0_0_var(--color-gray-200)] dark:shadow-[0_3px_0_0_var(--color-gray-950)] hover:bg-gray-50 dark:hover:bg-gray-700 hover:translate-y-px active:shadow-none active:translate-y-0.5 transition-all disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-3"
+                  >
+                    {isGoogleLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <GoogleIcon className="w-5 h-5" />
+                    )}
+                    {mode === 'signIn' ? 'Entrar com o Google' : 'Cadastrar com o Google'}
+                  </button>
+                }
+              />
 
               <div className="flex items-center gap-3" aria-hidden="true">
                 <span className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
